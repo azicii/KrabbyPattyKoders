@@ -17,6 +17,11 @@ namespace Picability.Data
         {
             base.OnModelCreating(builder);
 
+
+            builder.Entity<FriendRequest>()
+                .Property(fr => fr.Id)
+                .ValueGeneratedOnAdd();
+
             builder.Entity<FriendRequest>()
                 .HasOne(fr => fr.Sender)
                 .WithMany(u => u.SentFriendRequests)

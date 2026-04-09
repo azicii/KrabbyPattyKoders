@@ -21,6 +21,27 @@ namespace Picability.Controllers
         [HttpPost]
         public async Task<IActionResult> SendFriendRequest(CreateFriendRequestDto dto)
         {
+            //Prevent requesting friendship with yourself
+            if (dto.SenderId == dto.ReceiverId)
+            {
+                return BadRequest("You cannot send a friend request to yourself.");
+            }
+
+            // Can't friend if you've already requested
+            var existingRequest = await _context.FriendRequests
+            .FirstOrDefaultAsync(fr =>
+                 (fr.SenderId == dto.SenderId && fr.ReceiverId == dto.ReceiverId) ||
+                 (fr.SenderId == dto.ReceiverId && fr.ReceiverId == dto.SenderId)
+              );
+
+            if (existingRequest != null)
+            {
+                return BadRequest("Friend request already exists between these users.");
+            }
+            //Maybe we can enhance this by auto accepting request if a reversed pending request already exists
+
+
+
             var request = new FriendRequest
             {
                 SenderId = dto.SenderId,
