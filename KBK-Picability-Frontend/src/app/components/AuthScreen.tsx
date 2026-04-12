@@ -83,7 +83,7 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
         setError(errorMsg);
       }
     } catch (err) {
-      setError('Server connection failed. Is the C# backend running?');
+      setError('Server connection issue, try again in a few seconds.');
     } finally {
       setLoading(false);
     }
