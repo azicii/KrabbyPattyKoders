@@ -1,3 +1,23 @@
+## Visual Studio
+.vs/
+bin/
+obj/
+
+## User-specific files
+*.user
+*.suo
+
+## Build results
+*.dll
+*.exe
+
+## Logs
+*.log
+
+## OS files
+.DS_Store
+Thumbs.db
+
 # Dependencies
 node_modules/
 .pnp
@@ -23,12 +43,7 @@ eslintcache
 # Editor Settings
 .vscode/
 .idea/
-*.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# OS Files
-.DS_Store
-Thumbs.db
