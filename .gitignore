@@ -1,0 +1,49 @@
+## Visual Studio
+.vs/
+bin/
+obj/
+
+## User-specific files
+*.user
+*.suo
+
+## Build results
+*.dll
+*.exe
+
+## Logs
+*.log
+
+## OS files
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production Build
+dist/
+build/
+
+# Vite/Environment Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debugging/Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+eslintcache
+
+# Editor Settings
+.vscode/
+.idea/
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
