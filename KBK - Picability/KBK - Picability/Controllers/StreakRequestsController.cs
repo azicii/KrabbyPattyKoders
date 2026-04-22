@@ -56,8 +56,15 @@ namespace Picability.Controllers
         public async Task<IActionResult> GetAll()
         {
             var requests = await _context.StreakRequests
-                .Include(sr => sr.Sender)
-                .Include(sr => sr.Receiver)
+                .Select(sr => new
+                {
+                    sr.Id,
+                    sr.SenderId,
+                    sr.ReceiverId,
+                    sr.HabitName,
+                    sr.Status,
+                    sr.CreatedAt
+                })
                 .ToListAsync();
 
             return Ok(requests);

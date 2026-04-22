@@ -38,8 +38,14 @@ namespace Picability.Controllers
         public async Task<IActionResult> GetAll()
         {
             var requests = await _context.FriendRequests
-                .Include(fr => fr.Sender)
-                .Include(fr => fr.Receiver)
+                .Select(fr => new
+                {
+                    fr.Id,
+                    fr.SenderId,
+                    fr.ReceiverId,
+                    fr.Status,
+                    fr.CreatedAt
+                })
                 .ToListAsync();
 
             return Ok(requests);
