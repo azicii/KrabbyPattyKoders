@@ -198,7 +198,7 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
             </button>
           </form>
 
-          {/* --- DEV MODE BYPASS --- */}
+          {/* DEV MODE BYPASS */}
           <div className="mt-4 pt-4 border-t border-dashed border-slate-700/20">
             <button
               type="button"
@@ -216,11 +216,8 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
               <Hammer className="w-5 h-5" />
               Dev Mode: Skip to Dashboard
             </button>
-            <p className="mt-2 text-[10px] uppercase tracking-widest text-center opacity-40">
-              Bypasses Backend API
-            </p>
           </div>
-          {/* --- END DEV BYPASS --- */}
+          {/* END DEV BYPASS */}
 
           <div className="mt-6 text-center">
             <button

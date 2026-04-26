@@ -33,8 +33,6 @@ export default function App() {
   const [isDark, setIsDark] = useState(true);
   const [selectedHabitType, setSelectedHabitType] = useState<number | 'create' | null>(null);
   const [streaks, setStreaks] = useState<Streak[]>([]);
-
-  // --- REWORKED STATE ---
   const [preSelectedFriend, setPreSelectedFriend] = useState<User | null>(null);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [lastRequestConfig, setLastRequestConfig] = useState<{ user: User; habitName: string } | null>(null);
@@ -61,15 +59,13 @@ export default function App() {
   const handleFriends = () => setCurrentScreen('friends-list');
   const handleFindFriends = () => setCurrentScreen('user-search');
 
-  // --- THE NEW FLOW TRIGGER ---
   const handleSelectFriend = (friend: User) => {
     setPreSelectedFriend(friend); // Remember the friend
     setCurrentScreen('selector'); // Send them to pick a habit
   };
 
   const handleSelectUser = (user: User) => {
-    // For new users found in search, we'll treat them like a friend for the request
-    handleSelectFriend(user);
+    console.log('Added new friend from search:', user.name);
   };
 
   const handleSelectHabit = (habitId: number | 'create') => {
@@ -80,9 +76,8 @@ export default function App() {
   const handleAddHabit = () => setCurrentScreen('selector');
   const handleToggleDark = () => setIsDark(!isDark);
 
-  // --- FINALIZING THE REQUEST ---
+// --- FINALIZING THE REQUEST ---
   const handleConfirmConfig = (config: HabitConfiguration) => {
-    // Priority: 1. Friend from the Friend-First flow | 2. Friend picked in HabitConfig
     const targetFriendId = preSelectedFriend?.id || config.friendId;
     const targetFriendName = preSelectedFriend?.name || config.friendName;
 
@@ -91,6 +86,18 @@ export default function App() {
       return;
     }
 
+    // 1. Create the Streak for the main dashboard
+    const newStreak: Streak = {
+      id: Date.now(),
+      habitName: config.name,
+      habitIcon: config.iconComponent,
+      userName: targetFriendName,
+      userAvatar: preSelectedFriend?.avatar || config.friendAvatar || '??',
+      streakCount: 0,
+      color: colorGradients[config.color] || 'from-teal-500 to-cyan-600',
+    };
+
+    // 2. Create the Pending Request for the friends list
     const newPendingRequest: PendingRequest = {
       friendId: targetFriendId,
       habitName: config.name,
@@ -98,6 +105,8 @@ export default function App() {
       color: colorGradients[config.color] || 'from-teal-500 to-cyan-600',
     };
 
+    // 3. Update all states
+    setStreaks([...streaks, newStreak]);
     setPendingRequests([...pendingRequests, newPendingRequest]);
 
     setLastRequestConfig({
@@ -110,7 +119,7 @@ export default function App() {
       habitName: config.name
     });
 
-    setPreSelectedFriend(null); // Clear context after success
+    setPreSelectedFriend(null);
     setCurrentScreen('confirmation');
   };
 

@@ -339,9 +339,6 @@ export function HabitConfig({
                 <p className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   {preSelectedFriend.name}
                 </p>
-                <p className="text-xs text-teal-500 font-medium uppercase tracking-wider">
-                  Partner Locked
-                </p>
               </div>
             </div>
           ) : !showFriendSelect ? (
