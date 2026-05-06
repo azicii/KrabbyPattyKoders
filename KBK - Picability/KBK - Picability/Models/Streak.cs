@@ -19,5 +19,7 @@
         public StreakRequest StreakRequest { get; set; } = null!;
 
         public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+        public DateTime LastCompletedAt { get; set; } = new DateTime(1900, 1, 1);
+        public DateTime FailedAt { get; set; } = new DateTime(1900, 1, 1);
     }
 }
