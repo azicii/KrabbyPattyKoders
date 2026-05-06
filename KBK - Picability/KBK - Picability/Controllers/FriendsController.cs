@@ -15,6 +15,23 @@ namespace Picability.Controllers
             _context = context;
         }
 
+        // GET api/friends/{userId}
+        // Returns all accepted friends for a given user.
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetFriends(string userId)
+        {
+            var friends = await _context.Friends
+                .Where(f => f.UserId == userId)
+                .Select(f => new
+                {
+                    f.FriendId,
+                    f.FriendUser.UserName,
+                    f.FriendUser.Email
+                })
+                .ToListAsync();
+
+            return Ok(friends);
+        }
 
         [HttpPost("accept/{requestId}")]
         public async Task<IActionResult> AcceptFriendRequest(int requestId)

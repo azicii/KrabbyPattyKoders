@@ -13,10 +13,13 @@ namespace Picability.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
-        public AuthController(UserManager<ApplicationUser> userManager)
+        public AuthController(UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager)
         {
             _userManager = userManager;
+            _signInManager = signInManager;
         }
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto model)
@@ -42,6 +45,31 @@ namespace Picability.Controllers
                 user.UserName,
                 user.Email
             });
+        }
+
+        //Added Login logic
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(LoginDto model)
+        {
+            // Look up by email since that's what the frontend sends.
+            var user = await _userManager.FindByEmailAsync(model.Email);
+
+            if (user == null)
+                return Unauthorized(new { message = "Invalid email or password." });
+
+            var result = await _signInManager.CheckPasswordSignInAsync(
+                user, model.Password, lockoutOnFailure: false);
+
+            if (!result.Succeeded)
+                return Unauthorized(new { message = "Invalid email or password." });
+
+            return Ok(new
+            {
+                user.Id,
+                user.UserName,
+                user.Email
+            });
+
         }
     }
 }
