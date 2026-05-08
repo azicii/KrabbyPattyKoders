@@ -21,48 +21,81 @@ namespace Picability.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var streaks = await _context.Streaks
-                .Select(s => new
-                {
-                    s.Id,
-                    s.UserOneId,
-                    s.UserTwoId,
-                    s.HabitName,
-                    s.CurrentCount,
-                    s.IsActive,
-                    s.StartedAt,
-                    LastCompletedAt = s.LastCompletedAt == null ? new DateTime(1900, 1, 1) : s.LastCompletedAt,
-                    FailedAt = s.FailedAt == null ? new DateTime(1900, 1, 1) : s.FailedAt
-                })
-                .ToListAsync();
+            var streaks = await _context.Streaks.ToListAsync();
 
-            return Ok(streaks);
+            var nowUtc = DateTime.UtcNow;
+            var todayUtc = nowUtc.Date;
+            var defaultDate = new DateTime(1900, 1, 1);
+
+            foreach (var streak in streaks)
+            {
+                if (!streak.IsActive)
+                    continue;
+
+                if (streak.LastCompletedAt is DateTime lastCompletedAt &&
+                    lastCompletedAt != defaultDate &&
+                    (todayUtc - lastCompletedAt.Date).TotalDays > 1)
+                {
+                    streak.IsActive = false;
+                    streak.FailedAt = nowUtc;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            var result = streaks.Select(s => new
+            {
+                s.Id,
+                s.UserOneId,
+                s.UserTwoId,
+                s.HabitName,
+                s.CurrentCount,
+                s.IsActive,
+                Status = s.IsActive ? "Active" : "Expired",
+                s.StartedAt,
+                LastCompletedAt = s.LastCompletedAt == null ? new DateTime(1900, 1, 1) : s.LastCompletedAt,
+                FailedAt = s.FailedAt == null ? new DateTime(1900, 1, 1) : s.FailedAt
+            });
+
+            return Ok(result);
         }
 
         // GET api/streaks/{id}
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var streak = await _context.Streaks
-                .Where(s => s.Id == id)
-                .Select(s => new
-                {
-                    s.Id,
-                    s.UserOneId,
-                    s.UserTwoId,
-                    s.HabitName,
-                    s.CurrentCount,
-                    s.IsActive,
-                    s.StartedAt,
-                    LastCompletedAt = s.LastCompletedAt == null ? new DateTime(1900, 1, 1) : s.LastCompletedAt,
-                    FailedAt = s.FailedAt == null ? new DateTime(1900, 1, 1) : s.FailedAt
-                })
-                .FirstOrDefaultAsync();
+            var streak = await _context.Streaks.FirstOrDefaultAsync(s => s.Id == id);
 
             if (streak == null)
                 return NotFound("Streak not found.");
 
-            return Ok(streak);
+            var nowUtc = DateTime.UtcNow;
+            var todayUtc = nowUtc.Date;
+            var defaultDate = new DateTime(1900, 1, 1);
+
+            if (streak.IsActive &&
+                streak.LastCompletedAt is DateTime lastCompletedAt &&
+                lastCompletedAt != defaultDate &&
+                (todayUtc - lastCompletedAt.Date).TotalDays > 1)
+            {
+                streak.IsActive = false;
+                streak.FailedAt = nowUtc;
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new
+            {
+                streak.Id,
+                streak.UserOneId,
+                streak.UserTwoId,
+                streak.HabitName,
+                streak.CurrentCount,
+                streak.IsActive,
+                Status = streak.IsActive ? "Active" : "Expired",
+                streak.StartedAt,
+                LastCompletedAt = streak.LastCompletedAt == null ? new DateTime(1900, 1, 1) : streak.LastCompletedAt,
+                FailedAt = streak.FailedAt == null ? new DateTime(1900, 1, 1) : streak.FailedAt
+            });
         }
 
         // POST api/streaks/{id}/complete

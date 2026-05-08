@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KBK - Picability")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+27aaa06af78840dd99ad5896d7319946f16bf89b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6552ef9a4398b4948e2013c035dfcb65f7a71aef")]
 [assembly: System.Reflection.AssemblyProductAttribute("KBK - Picability")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KBK - Picability")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
