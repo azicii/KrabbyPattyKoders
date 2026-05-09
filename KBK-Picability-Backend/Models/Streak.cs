@@ -19,5 +19,9 @@
         public StreakRequest StreakRequest { get; set; } = null!;
 
         public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? LastCompletedAt { get; set; }
+        public DateTime? FailedAt { get; set; }
+        public int IntervalHours { get; set; } = 24;
+
     }
 }

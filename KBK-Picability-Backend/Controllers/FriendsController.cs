@@ -104,5 +104,24 @@ namespace Picability.Controllers
 
             return Ok("Friend removed successfully");
         }
+
+        // ONLY CHANGE TO BACKEND MADE BY REECE - GET FRIENDS FOR A USER
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetFriends(string userId)
+        {
+            // 1. Get all friends for this user from the Friends table
+            // 2. Include the 'FriendUser' details so we can get their UserName
+            var friends = await _context.Friends
+                .Where(f => f.UserId == userId)
+                .Select(f => new
+                {
+                    Id = f.FriendId,
+                    UserName = f.FriendUser.UserName,
+                    Email = f.FriendUser.Email
+                })
+                .ToListAsync();
+
+            return Ok(friends);
+        }
     }
 }

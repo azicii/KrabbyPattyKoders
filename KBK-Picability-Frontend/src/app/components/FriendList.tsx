@@ -1,11 +1,5 @@
-// This component is a UI mockup for the friend list and search functionality. 
-// It includes a header with a back button, title, and dark mode toggle, a search bar 
-// to filter friends, and a list of friend cards that can be selected. The selected 
-// friend is highlighted, and mutual friends are displayed below their name if available. 
-// The add friend button currently does nothing, but it can be wired up to send a 
-// friend request or open a chat in the future once the backend is implemented.
-
-import { ArrowLeft, Sun, Moon, UserPlus, Zap, Clock } from 'lucide-react';
+import { ArrowLeft, Sun, Moon, UserPlus, Zap, Clock, Check, X, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { User } from './UserSearch';
 
 export interface PendingRequest {
@@ -15,26 +9,22 @@ export interface PendingRequest {
   color: string;
 }
 
+// Internal interface for raw database requests
+interface DBRequest {
+  id: number;
+  senderId: string;
+  receiverId: string;
+  status: string;
+}
+
 interface FriendsListProps {
   isDark: boolean;
   onToggleDark: () => void;
   onBack?: () => void;
   onSelectFriend?: (user: User) => void;
   onFindFriends?: () => void;
-  pendingRequests?: PendingRequest[];
+  currentUserId: string; // From App.tsx
 }
-
-// Mock friends data - these are friends the user has already added
-// These match the accountability partners available in HabitConfig
-
-const mockFriends: User[] = [
-  { id: '1', name: 'Sarah Johnson', avatar: 'SJ', username: '@sarahj' },
-  { id: '2', name: 'Mike Chen', avatar: 'MC', username: '@mikechen' },
-  { id: '3', name: 'Emily Rodriguez', avatar: 'ER', username: '@emilyrod' },
-  { id: '4', name: 'Alex Kim', avatar: 'AK', username: '@alexk' },
-  { id: '5', name: 'Jordan Taylor', avatar: 'JT', username: '@jtaylor' },
-];
-
 
 export function FriendsList({
   isDark,
@@ -42,216 +32,146 @@ export function FriendsList({
   onBack,
   onSelectFriend,
   onFindFriends,
-  pendingRequests = []
+  currentUserId
 }: FriendsListProps) {
+  const [friends, setFriends] = useState<User[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<(User & { requestId: number })[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionId, setActionId] = useState<number | null>(null);
 
-  const handleFriendSelect = (user: User) => {
-    onSelectFriend?.(user);
+  const BASE_URL = 'http://localhost:5232';
+
+  useEffect(() => {
+    fetchData();
+  }, [currentUserId]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch real friends and pending requests in parallel
+      const [friendsRes, requestsRes] = await Promise.all([
+        fetch(`${BASE_URL}/api/Friends/${currentUserId}`),
+        fetch(`${BASE_URL}/api/FriendRequests`)
+      ]);
+
+      const friendsData = await friendsRes.json();
+      const requestsData = await requestsRes.json();
+
+      // 1. Map real friends from the /api/Friends table
+      setFriends(friendsData.map((u: any) => ({
+        id: u.id,
+        name: u.userName,
+        username: `@${u.userName.toLowerCase().replace(/\s+/g, '')}`,
+        avatar: u.userName.substring(0, 2).toUpperCase()
+      })));
+
+      // 2. Map only INCOMING pending requests for the alert section
+      // We still use Users list to get the sender's display info
+      const usersRes = await fetch(`${BASE_URL}/api/Users`);
+      const allUsers: any[] = await usersRes.json();
+
+      const incoming = requestsData
+        .filter((r: any) => r.status === 'Pending' && r.receiverId === currentUserId)
+        .map((r: any) => {
+          const sender = allUsers.find(u => u.id === r.senderId);
+          return {
+            id: sender?.id || '',
+            requestId: r.id,
+            name: sender?.userName || 'Unknown',
+            username: `@${sender?.userName.toLowerCase() || 'user'}`,
+            avatar: sender?.userName.substring(0, 2).toUpperCase() || '??'
+          };
+        });
+
+      setIncomingRequests(incoming);
+    } catch (err) {
+      console.error("Error loading friends:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getPendingRequestForFriend = (friendId: string) => {
-    return pendingRequests.find(req => req.friendId === friendId);
+  const handleAccept = async (requestId: number) => {
+    setActionId(requestId);
+    try {
+      const res = await fetch(`${BASE_URL}/api/Friends/accept/${requestId}`, { method: 'POST' });
+      if (res.ok) fetchData(); // Refresh list
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleReject = async (requestId: number) => {
+    setActionId(requestId);
+    try {
+      const res = await fetch(`${BASE_URL}/api/Friends/reject/${requestId}`, { method: 'POST' });
+      if (res.ok) fetchData(); // Refresh list
+    } finally {
+      setActionId(null);
+    }
   };
 
   return (
-    <div className={`min-h-screen p-6 transition-colors duration-300 ${
-      isDark
-        ? 'bg-gradient-to-br from-slate-900 to-slate-800'
-        : 'bg-gradient-to-br from-slate-50 to-slate-100'
-    }`}>
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <button
-          onClick={onBack}
-          className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 ${
-            isDark
-              ? 'bg-slate-800 hover:bg-slate-750'
-              : 'bg-white'
-          }`}
-          aria-label="Go back"
-        >
-          <ArrowLeft className={`w-5 h-5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
-        </button>
-
-        <h1 className={`text-2xl font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
-          My Friends
-        </h1>
-
-        <button
-          onClick={onToggleDark}
-          className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 ${
-            isDark
-              ? 'bg-slate-800 hover:bg-slate-750'
-              : 'bg-white'
-          }`}
-          aria-label="Toggle dark mode"
-        >
-          {isDark ? (
-            <Sun className="w-5 h-5 text-amber-400" />
-          ) : (
-            <Moon className="w-5 h-5 text-slate-600" />
-          )}
-        </button>
+        <button onClick={onBack} className={`p-3 rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-white shadow-sm'}`}><ArrowLeft className={isDark ? 'text-slate-300' : 'text-slate-700'} /></button>
+        <h1 className={`text-2xl font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>My Friends</h1>
+        <button onClick={onToggleDark} className={`p-3 rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-white shadow-sm'}`}>{isDark ? <Sun className="text-amber-400" /> : <Moon className="text-slate-600" />}</button>
       </div>
 
-      {/* Add Friends Button */}
-      <div className="max-w-2xl mx-auto mb-6">
-        <button
-          onClick={onFindFriends}
-          className={`w-full rounded-3xl p-5 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] ${
-            isDark
-              ? 'bg-slate-800/50 backdrop-blur-sm hover:bg-slate-800/70'
-              : 'bg-white hover:bg-slate-50'
-          }`}
-        >
-          <div className="flex items-center justify-center gap-3">
-            <UserPlus className={`w-5 h-5 ${
-              isDark ? 'text-teal-400' : 'text-teal-600'
-            }`} />
-            <span className={`font-semibold ${
-              isDark ? 'text-slate-100' : 'text-slate-800'
-            }`}>
-              Find Friends
-            </span>
-          </div>
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Find Friends Button */}
+        <button onClick={onFindFriends} className={`w-full flex items-center justify-center gap-3 p-5 rounded-3xl font-semibold transition-all ${isDark ? 'bg-slate-800/50 text-slate-100 hover:bg-slate-800' : 'bg-white text-slate-800 hover:bg-slate-50 shadow-sm'}`}>
+          <UserPlus className="text-teal-500" /> Find New Friends
         </button>
-      </div>
 
-      {/* Friends List */}
-      <div className="max-w-2xl mx-auto space-y-3">
-        {mockFriends.length > 0 ? (
-          mockFriends.map((user) => {
-            const pendingRequest = getPendingRequestForFriend(user.id);
-            const hasPending = !!pendingRequest;
-
-            return (
-              <div key={user.id}>
-                <button
-                  onClick={() => !hasPending && handleFriendSelect(user)}
-                  disabled={hasPending}
-                  className={`group w-full relative overflow-hidden rounded-3xl p-5 shadow-sm transition-all duration-300 ${
-                    hasPending
-                      ? 'cursor-default'
-                      : 'hover:shadow-xl hover:scale-[1.02]'
-                  } ${
-                    isDark
-                      ? 'bg-slate-800/50 backdrop-blur-sm'
-                      : 'bg-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    {/* User Info */}
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-14 h-14 rounded-2xl font-semibold bg-gradient-to-br from-teal-500 to-cyan-600 text-white">
-                        {user.avatar}
-                      </div>
-
-                      <div className="text-left">
-                        <h3 className={`font-semibold transition-colors ${
-                          isDark
-                            ? 'text-slate-100 group-hover:text-slate-50'
-                            : 'text-slate-800 group-hover:text-slate-900'
-                        }`}>
-                          {user.name}
-                        </h3>
-                        <p className={`text-sm transition-colors ${
-                          isDark
-                            ? 'text-slate-400'
-                            : 'text-slate-600'
-                        }`}>
-                          {user.username}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Action Button */}
-                    {!hasPending ? (
-                      <div className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 ${
-                        isDark
-                          ? 'bg-slate-700 group-hover:bg-teal-600'
-                          : 'bg-slate-100 group-hover:bg-teal-600'
-                      }`}>
-                        <Zap className={`w-5 h-5 transition-colors ${
-                          isDark
-                            ? 'text-teal-400 group-hover:text-white'
-                            : 'text-teal-600 group-hover:text-white'
-                        }`} />
-                        <span className={`text-sm font-medium transition-colors ${
-                          isDark
-                            ? 'text-slate-200 group-hover:text-white'
-                            : 'text-slate-800 group-hover:text-white'
-                        }`}>
-                          Send Request
-                        </span>
-                      </div>
-                    ) : (
-                      <div className={`flex items-center gap-2 px-4 py-2 rounded-xl ${
-                        isDark
-                          ? 'bg-amber-900/30'
-                          : 'bg-amber-100'
-                      }`}>
-                        <Clock className={`w-5 h-5 ${
-                          isDark ? 'text-amber-400' : 'text-amber-600'
-                        }`} />
-                        <span className={`text-sm font-medium ${
-                          isDark ? 'text-amber-400' : 'text-amber-700'
-                        }`}>
-                          Pending
-                        </span>
-                      </div>
-                    )}
+        {/* Incoming Requests Section */}
+        {incomingRequests.length > 0 && (
+          <div className="space-y-3">
+            <h2 className={`text-sm font-bold uppercase tracking-wider px-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Pending Invites</h2>
+            {incomingRequests.map(req => (
+              <div key={req.requestId} className={`flex items-center justify-between p-4 rounded-3xl ${isDark ? 'bg-amber-900/10 border border-amber-900/20' : 'bg-amber-50 border border-amber-100'}`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-white font-bold">{req.avatar}</div>
+                  <div>
+                    <p className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{req.name}</p>
+                    <p className="text-xs text-slate-500">wants to be friends</p>
                   </div>
-
-                  {/* Gradient overlay on hover */}
-                  {!hasPending && (
-                    <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-cyan-600 opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-3xl" />
-                  )}
-                </button>
-
-                {/* Pending Request Details */}
-                {hasPending && pendingRequest && (
-                  <div className={`mt-2 ml-4 p-3 rounded-2xl ${
-                    isDark ? 'bg-slate-800/30' : 'bg-slate-100/50'
-                  }`}>
-                    <p className={`text-xs ${
-                      isDark ? 'text-slate-400' : 'text-slate-600'
-                    }`}>
-                      Pending: <span className="font-semibold">{pendingRequest.habitName}</span>
-                    </p>
-                  </div>
-                )}
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleAccept(req.requestId)} disabled={actionId === req.requestId} className="p-2 rounded-xl bg-teal-600 text-white hover:bg-teal-500"><Check className="w-5 h-5" /></button>
+                  <button onClick={() => handleReject(req.requestId)} disabled={actionId === req.requestId} className="p-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-red-500"><X className="w-5 h-5" /></button>
+                </div>
               </div>
-            );
-          })
-        ) : (
-          <div className="text-center py-16">
-            <div className={`text-6xl mb-4 ${isDark ? 'opacity-50' : 'opacity-30'}`}>
-              👥
-            </div>
-            <h2 className={`text-xl font-semibold mb-2 ${
-              isDark ? 'text-slate-300' : 'text-slate-700'
-            }`}>
-              No friends yet
-            </h2>
-            <p className={`text-sm ${
-              isDark ? 'text-slate-400' : 'text-slate-600'
-            }`}>
-              Add friends to start accountability streaks
-            </p>
+            ))}
           </div>
         )}
-      </div>
 
-      {/* Friends count */}
-      {mockFriends.length > 0 && (
-        <div className="max-w-2xl mx-auto mt-6">
-          <p className={`text-center text-sm ${
-            isDark ? 'text-slate-400' : 'text-slate-600'
-          }`}>
-            {mockFriends.length} {mockFriends.length === 1 ? 'friend' : 'friends'}
-          </p>
+        {/* Friends List Section */}
+        <div className="space-y-3">
+          <h2 className={`text-sm font-bold uppercase tracking-wider px-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Friends</h2>
+          {loading ? (
+             <div className="flex justify-center py-10"><Loader2 className="animate-spin text-teal-500" /></div>
+          ) : friends.length > 0 ? (
+            friends.map(friend => (
+              <button key={friend.id} onClick={() => onSelectFriend?.(friend)} className={`w-full flex items-center justify-between p-5 rounded-3xl transition-all ${isDark ? 'bg-slate-800/50 hover:bg-slate-800' : 'bg-white hover:bg-slate-50 shadow-sm'}`}>
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold">{friend.avatar}</div>
+                  <div className="text-left">
+                    <h3 className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{friend.name}</h3>
+                    <p className="text-sm text-slate-500">{friend.username}</p>
+                  </div>
+                </div>
+                <Zap className="text-teal-500 w-5 h-5" />
+              </button>
+            ))
+          ) : (
+            <div className="text-center py-10 text-slate-500">No friends yet. Start searching!</div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

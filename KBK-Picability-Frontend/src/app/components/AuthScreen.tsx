@@ -39,12 +39,19 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
     setLoading(true);
 
     try {
-      const authData = {
-        Username: formData.username,
-        Email: formData.email,
-        Password: formData.password
-      };
+      // The keys here match the property names in your RegisterDto.cs and LoginDto.cs
+      const authData = isLogin 
+        ? {
+            Email: formData.email,
+            Password: formData.password
+          }
+        : {
+            Username: formData.username,
+            Email: formData.email,
+            Password: formData.password
+          };
 
+      // Match the port found in your Backend's launchSettings.json
       const BASE_URL = 'http://localhost:5232'; 
       const endpoint = isLogin ? `${BASE_URL}/api/auth/login` : `${BASE_URL}/api/auth/register`;
 
@@ -59,6 +66,7 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
       if (response.ok) {
         if (isLogin) {
           setSuccess('Welcome back!');
+          // Passes the C# result (id, userName, email) back to App.tsx
           setTimeout(() => {
             onSuccess(result); 
           }, 1000);
@@ -72,13 +80,14 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
           }, 2500);
         }
       } else {
+        // Identity sometimes returns an array of error objects
         const errorMsg = Array.isArray(result) 
           ? result[0].description 
           : result.message || 'Authentication failed.';
         setError(errorMsg);
       }
     } catch (err) {
-      setError('Server connection issue, try again in a few seconds.');
+      setError('Server connection issue. Please ensure the Backend is running.');
     } finally {
       setLoading(false);
     }
@@ -198,7 +207,6 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
             </button>
           </form>
 
-          {/* DEV MODE BYPASS */}
           <div className="mt-4 pt-4 border-t border-dashed border-slate-700/20">
             <button
               type="button"
@@ -217,7 +225,6 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
               Dev Mode: Skip to Dashboard
             </button>
           </div>
-          {/* END DEV BYPASS */}
 
           <div className="mt-6 text-center">
             <button

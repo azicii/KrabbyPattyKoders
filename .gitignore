@@ -1,3 +1,9 @@
+## Web Dependencies
+node_modules/
+dist/
+build/
+.env
+
 ## Visual Studio
 .vs/
 bin/

@@ -9,6 +9,13 @@ import { RequestConfirmation } from './components/RequestConfirmation';
 
 type Screen = 'auth' | 'tracker' | 'selector' | 'config' | 'friends-list' | 'user-search' | 'confirmation';
 
+// Interface to match the object returned by AuthController.cs
+interface AuthUser {
+  id: string;
+  userName: string;
+  email: string;
+}
+
 const habitNames: { [key: number]: string } = {
   1: 'Exercise',
   2: 'Reading',
@@ -28,7 +35,7 @@ const colorGradients: { [key: string]: string } = {
 };
 
 export default function App() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [currentScreen, setCurrentScreen] = useState<Screen>('tracker');
   const [isDark, setIsDark] = useState(true);
   const [selectedHabitType, setSelectedHabitType] = useState<number | 'create' | null>(null);
@@ -37,35 +44,36 @@ export default function App() {
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [lastRequestConfig, setLastRequestConfig] = useState<{ user: User; habitName: string } | null>(null);
 
-  const handleAuthSuccess = (userData: any) => {
+  const handleAuthSuccess = (userData: AuthUser) => {
     setUser(userData);
     setCurrentScreen('tracker'); 
+    console.log('Login successful for user ID:', userData.id);
   };
 
   const handleLogout = () => {
     setUser(null);
-    setCurrentScreen('auth');
+    setCurrentScreen('tracker'); 
   };
 
   const handleBackToTracker = () => {
-    setPreSelectedFriend(null); // Clear context if they back out
+    setPreSelectedFriend(null);
     setCurrentScreen('tracker');
   };
 
   const handleBackToSelector = () => setCurrentScreen('selector');
   const handleBackFromFriendsList = () => setCurrentScreen('tracker');
   const handleBackFromUserSearch = () => setCurrentScreen('friends-list');
-
   const handleFriends = () => setCurrentScreen('friends-list');
   const handleFindFriends = () => setCurrentScreen('user-search');
 
   const handleSelectFriend = (friend: User) => {
-    setPreSelectedFriend(friend); // Remember the friend
-    setCurrentScreen('selector'); // Send them to pick a habit
+    setPreSelectedFriend(friend);
+    setCurrentScreen('selector');
   };
 
+  // Updated to handle post-search behavior
   const handleSelectUser = (user: User) => {
-    console.log('Added new friend from search:', user.name);
+    console.log('Friend request sent to:', user.name);
   };
 
   const handleSelectHabit = (habitId: number | 'create') => {
@@ -76,7 +84,6 @@ export default function App() {
   const handleAddHabit = () => setCurrentScreen('selector');
   const handleToggleDark = () => setIsDark(!isDark);
 
-// --- FINALIZING THE REQUEST ---
   const handleConfirmConfig = (config: HabitConfiguration) => {
     const targetFriendId = preSelectedFriend?.id || config.friendId;
     const targetFriendName = preSelectedFriend?.name || config.friendName;
@@ -86,7 +93,6 @@ export default function App() {
       return;
     }
 
-    // 1. Create the Streak for the main dashboard
     const newStreak: Streak = {
       id: Date.now(),
       habitName: config.name,
@@ -97,7 +103,6 @@ export default function App() {
       color: colorGradients[config.color] || 'from-teal-500 to-cyan-600',
     };
 
-    // 2. Create the Pending Request for the friends list
     const newPendingRequest: PendingRequest = {
       friendId: targetFriendId,
       habitName: config.name,
@@ -105,7 +110,6 @@ export default function App() {
       color: colorGradients[config.color] || 'from-teal-500 to-cyan-600',
     };
 
-    // 3. Update all states
     setStreaks([...streaks, newStreak]);
     setPendingRequests([...pendingRequests, newPendingRequest]);
 
@@ -135,6 +139,7 @@ export default function App() {
     return '';
   };
 
+  // --- AUTH GATE ---
   if (!user) {
     return (
       <div className="size-full">
@@ -178,7 +183,6 @@ export default function App() {
           onConfirm={handleConfirmConfig}
           habitType={selectedHabitType || undefined}
           presetHabitName={getPresetHabitName()}
-          // We can optionally pass preSelectedFriend to HabitConfig to hide the friend picker
           preSelectedFriend={preSelectedFriend} 
         />
       )}
@@ -190,7 +194,7 @@ export default function App() {
           onBack={handleBackFromFriendsList}
           onSelectFriend={handleSelectFriend}
           onFindFriends={handleFindFriends}
-          pendingRequests={pendingRequests}
+          currentUserId={user.id}
         />
       )}
 
@@ -201,6 +205,7 @@ export default function App() {
           onBack={handleBackFromUserSearch}
           onSelectUser={handleSelectUser}
           selectedUserId={preSelectedFriend?.id}
+          currentUserId={user.id} // Added real SQL ID here
         />
       )}
 
