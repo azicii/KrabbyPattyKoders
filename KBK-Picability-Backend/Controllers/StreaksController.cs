@@ -17,155 +17,140 @@ namespace Picability.Controllers
             _context = context;
         }
 
-        // GET api/streaks
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
+        // MODIFIED BY REECE
+        // Before: Fetched streaks, dead streaks remained in the database as active
+        // After: When fetching streaks, we check if any should be marked as failed based 
+        // on the last completed date using a foreach loop. This way, dead streaks are automatically marked as 
+        // inactive without needing a separate cleanup process.
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetUserStreaks(string userId)
         {
-            var streaks = await _context.Streaks.ToListAsync();
+            var streaks = await _context.Streaks
+                .Include(s => s.UserOne)
+                .Include(s => s.UserTwo)
+                .Where(s => (s.UserOneId == userId || s.UserTwoId == userId) && s.IsActive)
+                .ToListAsync();
 
             var nowUtc = DateTime.UtcNow;
             var todayUtc = nowUtc.Date;
             var defaultDate = new DateTime(1900, 1, 1);
+            bool changesMade = false;
 
             foreach (var streak in streaks)
             {
-                if (!streak.IsActive)
-                    continue;
-
                 if (streak.LastCompletedAt is DateTime lastCompletedAt &&
                     lastCompletedAt != defaultDate &&
                     (todayUtc - lastCompletedAt.Date).TotalDays > 1)
                 {
                     streak.IsActive = false;
                     streak.FailedAt = nowUtc;
+                    changesMade = true;
                 }
             }
 
-            await _context.SaveChangesAsync();
+            if (changesMade)
+            {
+                await _context.SaveChangesAsync();
+            }
 
             var result = streaks.Select(s => new
             {
                 s.Id,
-                s.UserOneId,
-                s.UserTwoId,
                 s.HabitName,
                 s.CurrentCount,
                 s.IsActive,
-                Status = s.IsActive ? "Active" : "Expired",
-                s.StartedAt,
-                LastCompletedAt = s.LastCompletedAt == null ? new DateTime(1900, 1, 1) : s.LastCompletedAt,
-                FailedAt = s.FailedAt == null ? new DateTime(1900, 1, 1) : s.FailedAt
+                PartnerName = s.UserOneId == userId ? s.UserTwo.UserName : s.UserOne.UserName,
+                s.LastCompletedAt,
+                s.StartedAt
             });
 
             return Ok(result);
         }
 
-        // GET api/streaks/{id}
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        // ADDED BY REECE
+        // Before: Dead streaks remained in the database and the UI
+        // After: Allows the frontend to dismiss a streak and remove it
+        // from the database, also clearing it from the UI.
+        [HttpDelete("{id}/dismiss")]
+        public async Task<IActionResult> DismissStreak(int id)
         {
             var streak = await _context.Streaks.FirstOrDefaultAsync(s => s.Id == id);
+            if (streak == null) return NotFound("Streak not found.");
 
-            if (streak == null)
-                return NotFound("Streak not found.");
+            _context.Streaks.Remove(streak);
+            await _context.SaveChangesAsync();
 
-            var nowUtc = DateTime.UtcNow;
-            var todayUtc = nowUtc.Date;
-            var defaultDate = new DateTime(1900, 1, 1);
+            return Ok(new { message = "Streak dismissed and removed from database." });
+        }
 
-            if (streak.IsActive &&
-                streak.LastCompletedAt is DateTime lastCompletedAt &&
-                lastCompletedAt != defaultDate &&
-                (todayUtc - lastCompletedAt.Date).TotalDays > 1)
+        // ADDED BY REECE
+        // Before: Removing a friend did not affect streaks. They would
+        // remain in the database and UI.
+        // After: Removing a friend also removes any streaks between the
+        // users, also cleaning the UI.
+        [HttpDelete("remove-connection/{userId}/{friendId}")]
+        public async Task<IActionResult> RemoveFriendStreaks(string userId, string friendId)
+        {
+            var sharedStreaks = await _context.Streaks
+                .Where(s => (s.UserOneId == userId && s.UserTwoId == friendId) || 
+                            (s.UserOneId == friendId && s.UserTwoId == userId))
+                .ToListAsync();
+
+            if (sharedStreaks.Any())
             {
-                streak.IsActive = false;
-                streak.FailedAt = nowUtc;
+                _context.Streaks.RemoveRange(sharedStreaks);
                 await _context.SaveChangesAsync();
             }
 
-            return Ok(new
-            {
-                streak.Id,
-                streak.UserOneId,
-                streak.UserTwoId,
-                streak.HabitName,
-                streak.CurrentCount,
-                streak.IsActive,
-                Status = streak.IsActive ? "Active" : "Expired",
-                streak.StartedAt,
-                LastCompletedAt = streak.LastCompletedAt == null ? new DateTime(1900, 1, 1) : streak.LastCompletedAt,
-                FailedAt = streak.FailedAt == null ? new DateTime(1900, 1, 1) : streak.FailedAt
-            });
+            return Ok(new { message = "Shared streaks removed." });
         }
 
-        // POST api/streaks/{id}/complete
-        // Either participant can call this once per UTC day to increment the count.
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var streak = await _context.Streaks
+                .Include(s => s.UserOne)
+                .Include(s => s.UserTwo)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (streak == null) return NotFound("Streak not found.");
+            return Ok(streak);
+        }
+
         [HttpPost("{id}/complete")]
         public async Task<IActionResult> CompleteStreak(int id, CompleteStreakDto dto)
         {
-            var streak = await _context.Streaks
-                .FirstOrDefaultAsync(s => s.Id == id);
-
-            if (streak == null)
-                return NotFound("Streak not found.");
-
-            // A failed streak must be restarted via a new StreakRequest — it cannot
-            // be resumed by logging a completion.
-            if (!streak.IsActive)
-                return BadRequest($"This streak failed on {streak.FailedAt:yyyy-MM-dd} and is no longer active.");
-
-            // Verify the caller is a participant in this streak.
-            if (streak.UserOneId != dto.UserId && streak.UserTwoId != dto.UserId)
-                return Forbid();
+            var streak = await _context.Streaks.FirstOrDefaultAsync(s => s.Id == id);
+            if (streak == null) return NotFound("Streak not found.");
+            if (!streak.IsActive) return BadRequest("This streak is no longer active.");
+            if (streak.UserOneId != dto.UserId && streak.UserTwoId != dto.UserId) return Forbid();
 
             var nowUtc = DateTime.UtcNow;
             var todayUtc = nowUtc.Date;
-
             var defaultDate = new DateTime(1900, 1, 1);
 
-            // Prevent more than one completion per UTC day.
             if (streak.LastCompletedAt is DateTime lastCompleted &&
                 lastCompleted != defaultDate &&
                 lastCompleted.Date == todayUtc)
             {
-                return BadRequest("Streak already completed for today.");
+                return BadRequest("Already checked in for today!");
             }
 
-            // If more than one full day has passed since the last completion the
-            // streak is broken. Mark it failed and return a 409 so the client can
-            // prompt the user to start a fresh streak request.
-            if (streak.LastCompletedAt is DateTime lastCompletedAt &&
-                lastCompletedAt != defaultDate &&
-                (todayUtc - lastCompletedAt.Date).TotalDays > 1)
+            if (streak.LastCompletedAt is DateTime lastDate &&
+                lastDate != defaultDate &&
+                (todayUtc - lastDate.Date).TotalDays > 1)
             {
                 streak.IsActive = false;
                 streak.FailedAt = nowUtc;
-
                 await _context.SaveChangesAsync();
-
-                return Conflict(new
-                {
-                    message = "Streak broken — a day was missed. Start a new streak request to try again.",
-                    streak.Id,
-                    streak.HabitName,
-                    finalCount = streak.CurrentCount,
-                    streak.FailedAt
-                });
+                return Conflict(new { message = "Streak broken!" });
             }
 
             streak.CurrentCount++;
             streak.LastCompletedAt = nowUtc;
-
             await _context.SaveChangesAsync();
 
-            return Ok(new
-            {
-                message = "Streak completed for today!",
-                streak.Id,
-                streak.HabitName,
-                streak.CurrentCount,
-                streak.LastCompletedAt
-            });
+            return Ok(new { streak.Id, streak.CurrentCount, streak.LastCompletedAt });
         }
     }
 }
