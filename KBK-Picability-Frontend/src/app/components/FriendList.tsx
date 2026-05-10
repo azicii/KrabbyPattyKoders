@@ -1,4 +1,4 @@
-import { ArrowLeft, Sun, Moon, UserPlus, Zap, Clock, Check, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, Sun, Moon, UserPlus, Zap, Clock, Check, X, Loader2, Trash2, CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { User } from './UserSearch';
 
@@ -23,6 +23,7 @@ interface FriendsListProps {
   onBack?: () => void;
   onSelectFriend?: (user: User) => void;
   onFindFriends?: () => void;
+  onRemoveFriend?: (friendId: string, friendName: string) => Promise<boolean>; // Updated signature
   currentUserId: string; // From App.tsx
 }
 
@@ -32,12 +33,17 @@ export function FriendsList({
   onBack,
   onSelectFriend,
   onFindFriends,
+  onRemoveFriend,
   currentUserId
 }: FriendsListProps) {
   const [friends, setFriends] = useState<User[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<(User & { requestId: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<number | null>(null);
+
+  // Feedback states
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [removedName, setRemovedName] = useState("");
 
   const BASE_URL = 'http://localhost:5232';
 
@@ -49,7 +55,6 @@ export function FriendsList({
     try {
       setLoading(true);
       
-      // Fetch real friends and pending requests in parallel
       const [friendsRes, requestsRes] = await Promise.all([
         fetch(`${BASE_URL}/api/Friends/${currentUserId}`),
         fetch(`${BASE_URL}/api/FriendRequests`)
@@ -58,7 +63,6 @@ export function FriendsList({
       const friendsData = await friendsRes.json();
       const requestsData = await requestsRes.json();
 
-      // 1. Map real friends from the /api/Friends table
       setFriends(friendsData.map((u: any) => ({
         id: u.id,
         name: u.userName,
@@ -66,8 +70,6 @@ export function FriendsList({
         avatar: u.userName.substring(0, 2).toUpperCase()
       })));
 
-      // 2. Map only INCOMING pending requests for the alert section
-      // We still use Users list to get the sender's display info
       const usersRes = await fetch(`${BASE_URL}/api/Users`);
       const allUsers: any[] = await usersRes.json();
 
@@ -92,11 +94,26 @@ export function FriendsList({
     }
   };
 
+  const handleUnfriend = async (friendId: string, friendName: string) => {
+    const success = await onRemoveFriend?.(friendId, friendName);
+    if (success) {
+      // 1. Immediately remove from local UI list
+      setFriends(prev => prev.filter(f => f.id !== friendId));
+      
+      // 2. Show the success popup
+      setRemovedName(friendName);
+      setShowSuccess(true);
+      
+      // 3. Hide popup after 3 seconds
+      setTimeout(() => setShowSuccess(false), 3000);
+    }
+  };
+
   const handleAccept = async (requestId: number) => {
     setActionId(requestId);
     try {
       const res = await fetch(`${BASE_URL}/api/Friends/accept/${requestId}`, { method: 'POST' });
-      if (res.ok) fetchData(); // Refresh list
+      if (res.ok) fetchData(); 
     } finally {
       setActionId(null);
     }
@@ -106,14 +123,32 @@ export function FriendsList({
     setActionId(requestId);
     try {
       const res = await fetch(`${BASE_URL}/api/Friends/reject/${requestId}`, { method: 'POST' });
-      if (res.ok) fetchData(); // Refresh list
+      if (res.ok) fetchData(); 
     } finally {
       setActionId(null);
     }
   };
 
   return (
-    <div className={`min-h-screen p-6 transition-colors duration-300 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
+    <div className={`min-h-screen p-6 transition-colors duration-300 relative overflow-hidden ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
+      
+      {/* SUCCESS POPUP */}
+      {showSuccess && (
+        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border ${
+            isDark ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-white border-slate-100 text-slate-800'
+          }`}>
+            <div className="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center">
+              <Trash2 className="w-5 h-5 text-rose-500" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">{removedName} removed</p>
+              <p className="text-xs text-slate-500 font-medium">Friendship & streaks deleted.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <button onClick={onBack} className={`p-3 rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-white shadow-sm'}`}><ArrowLeft className={isDark ? 'text-slate-300' : 'text-slate-700'} /></button>
@@ -156,16 +191,24 @@ export function FriendsList({
              <div className="flex justify-center py-10"><Loader2 className="animate-spin text-teal-500" /></div>
           ) : friends.length > 0 ? (
             friends.map(friend => (
-              <button key={friend.id} onClick={() => onSelectFriend?.(friend)} className={`w-full flex items-center justify-between p-5 rounded-3xl transition-all ${isDark ? 'bg-slate-800/50 hover:bg-slate-800' : 'bg-white hover:bg-slate-50 shadow-sm'}`}>
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold">{friend.avatar}</div>
-                  <div className="text-left">
-                    <h3 className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{friend.name}</h3>
-                    <p className="text-sm text-slate-500">{friend.username}</p>
+              <div key={friend.id} className="flex gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <button onClick={() => onSelectFriend?.(friend)} className={`flex-1 flex items-center justify-between p-5 rounded-3xl transition-all ${isDark ? 'bg-slate-800/50 hover:bg-slate-800' : 'bg-white hover:bg-slate-50 shadow-sm'}`}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold">{friend.avatar}</div>
+                    <div className="text-left">
+                      <h3 className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{friend.name}</h3>
+                      <p className="text-sm text-slate-500">{friend.username}</p>
+                    </div>
                   </div>
-                </div>
-                <Zap className="text-teal-500 w-5 h-5" />
-              </button>
+                  <Zap className="text-teal-500 w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => handleUnfriend(friend.id, friend.name)}
+                  className={`p-4 rounded-3xl transition-all ${isDark ? 'bg-slate-800/50 hover:bg-rose-500/20 text-rose-500' : 'bg-white hover:bg-rose-50 text-rose-500 shadow-sm'}`}
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
             ))
           ) : (
             <div className="text-center py-10 text-slate-500">No friends yet. Start searching!</div>
