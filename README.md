@@ -1,6 +1,6 @@
-Picability Setup Guide
+# Picability Setup Guide
 
-Prerequisites
+## Prerequisites
 
 Before starting, ensure you have the following installed on your machine:
 
@@ -8,7 +8,7 @@ Before starting, ensure you have the following installed on your machine:
 2. .NET 8.0 SDK
 3. Git (If using clone to download, otherwise just use the zip folder)
 
-Quick Install (Windows)
+#### Quick Install (Windows)
 
 If you are on Windows, you can install the necessary tools directly from your terminal using `winget`.
 
@@ -27,9 +27,9 @@ winget install Microsoft.DotNet.SDK.8
 
 ```
 ---
-# Getting Started
+## Getting Started
 
-## 1. Clone the Repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/azicii/KrabbyPattyKoders.git
@@ -37,7 +37,7 @@ cd KrabbyPattyKoders
 
 ```
 
-## 2. Backend Setup
+### 2. Backend Setup
 
 1. Navigate to the backend folder:
 `cd KBK-Picability-Backend`
@@ -46,7 +46,7 @@ cd KrabbyPattyKoders
 3. Run the server:
 `dotnet run`
 
-## 3. Frontend Setup
+### 3. Frontend Setup
 
 1. Open a new terminal and navigate to the frontend folder:
 `cd KBK-Picability-Frontend`
@@ -57,9 +57,9 @@ cd KrabbyPattyKoders
 4. Open your browser to the URL provided in the terminal (usually http://localhost:5173).
 ---
 
-Troubleshooting Common Issues (Windows)
+## Troubleshooting Common Issues (Windows)
 
-If 'npm' or 'dotnet' is not recognized
+### If 'npm' or 'dotnet' is not recognized
 
 If you installed Node.js or .NET and still see this error, the PATH environment variable was not updated automatically.
 
@@ -69,7 +69,7 @@ If you installed Node.js or .NET and still see this error, the PATH environment 
 4. Ensure `C:\Program Files\nodejs\` and `C:\Program Files\dotnet\` are listed. If not, click New and add them manually.
 5. Restart your terminal and VS Code for changes to take effect.
 
-PowerShell Script Execution Error
+### PowerShell Script Execution Error
 
 If npm install or other scripts fail with a "Running scripts is disabled" error:
 
