@@ -1,6 +1,6 @@
 import { ArrowLeft, Sun, Moon, Zap, Send } from 'lucide-react';
 import { useState } from 'react';
-import { User } from './UserSearch';
+import { User } from './UserSearch.tsx';
 
 interface StreakRequestProps {
   isDark: boolean;

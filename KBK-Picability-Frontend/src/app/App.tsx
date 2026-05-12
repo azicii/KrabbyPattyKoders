@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { HabitSelector } from './components/HabitSelector';
-import { StreakTracker, Streak } from './components/StreakTracker';
-import { HabitConfig, HabitConfiguration } from './components/HabitConfig';
+import { HabitSelector } from './components/HabitSelector.tsx';
+import { StreakTracker, Streak } from './components/StreakTracker.tsx';
+import { HabitConfig, HabitConfiguration } from './components/HabitConfig.tsx';
 import { AuthScreen } from './components/AuthScreen'; 
-import { UserSearch, User } from './components/UserSearch';
-import { FriendsList, PendingRequest } from './components/FriendList';
-import { RequestConfirmation } from './components/RequestConfirmation';
+import { UserSearch, User } from './components/UserSearch.tsx';
+import { FriendsList, PendingRequest } from './components/FriendList.tsx';
+import { RequestConfirmation } from './components/RequestConfirmation.tsx';
 
 type Screen = 'auth' | 'tracker' | 'selector' | 'config' | 'friends-list' | 'user-search' | 'confirmation';
 

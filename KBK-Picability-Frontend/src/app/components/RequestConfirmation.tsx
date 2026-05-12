@@ -1,5 +1,5 @@
 import { Zap } from 'lucide-react';
-import { User } from './UserSearch';
+import { User } from './UserSearch.tsx';
 
 interface RequestConfirmationProps {
   isDark: boolean;

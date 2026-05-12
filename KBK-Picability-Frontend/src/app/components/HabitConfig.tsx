@@ -1,6 +1,6 @@
 import { ArrowLeft, Users, Sun, Moon, Dumbbell, BookOpen, Droplets, Moon as MoonIcon, Apple, Heart, Target, Coffee, Bike, Camera, Code, Music, Palette, Plane, Home, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { User } from './UserSearch';
+import { User } from './UserSearch.tsx';
 
 interface HabitConfigProps {
   isDark: boolean;

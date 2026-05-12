@@ -1,6 +1,6 @@
 import { ArrowLeft, Sun, Moon, UserPlus, Zap, Clock, Check, X, Loader2, Trash2, CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { User } from './UserSearch';
+import { User } from './UserSearch.tsx';
 
 export interface PendingRequest {
   friendId: string;
