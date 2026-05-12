@@ -8,9 +8,24 @@ Before starting, ensure you have the following installed on your machine:
 2. .NET 8.0 SDK
 3. Git (If using clone to download, otherwise just use the zip folder)
 
-Quick install commands:
-1. Node.js: winget install OpenJS.NodeJS.LTS (May require setting PATH variable, see troubleshooting common issues at the bottom of ReadME)
-2. .NET 8.0 SDK: winget install Microsoft.DotNet.SDK.8
+Quick Install (Windows)
+
+If you are on Windows, you can install the necessary tools directly from your terminal using `winget`.
+
+1. Node.js (LTS)
+
+```powershell
+winget install OpenJS.NodeJS.LTS
+
+```
+> *Note: This may require manually setting your PATH variable. See the Troubleshooting section below if 'npm' is not recognized after installation.*
+
+2. .NET 8.0 SDK
+
+```powershell
+winget install Microsoft.DotNet.SDK.8
+
+```
 
 ---
 
