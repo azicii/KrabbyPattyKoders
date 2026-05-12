@@ -26,12 +26,10 @@ winget install OpenJS.NodeJS.LTS
 winget install Microsoft.DotNet.SDK.8
 
 ```
-
 ---
+# Getting Started
 
-Getting Started
-
-1. Clone the Repository
+## 1. Clone the Repository
 
 ```bash
 git clone https://github.com/azicii/KrabbyPattyKoders.git
@@ -39,7 +37,7 @@ cd KrabbyPattyKoders
 
 ```
 
-2. Backend Setup
+## 2. Backend Setup
 
 1. Navigate to the backend folder:
 `cd KBK-Picability-Backend`
@@ -48,7 +46,7 @@ cd KrabbyPattyKoders
 3. Run the server:
 `dotnet run`
 
-3. Frontend Setup
+## 3. Frontend Setup
 
 1. Open a new terminal and navigate to the frontend folder:
 `cd KBK-Picability-Frontend`
@@ -57,7 +55,6 @@ cd KrabbyPattyKoders
 3. Start the development server:
 `npm run dev`
 4. Open your browser to the URL provided in the terminal (usually http://localhost:5173).
-
 ---
 
 Troubleshooting Common Issues (Windows)
