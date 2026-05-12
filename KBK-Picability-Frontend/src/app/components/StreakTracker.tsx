@@ -1,4 +1,4 @@
-import { Users, Sun, Moon, Plus, MessageSquare, Image, ChevronDown, LogOut } from 'lucide-react';
+import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 
@@ -10,21 +10,24 @@ interface Streak {
   userAvatar: string;
   streakCount: number;
   color: string;
+  lastCompletedAt?: string; 
+  isActive?: boolean;
 }
 
 export type { Streak };
 
 interface StreakTrackerProps {
   isDark: boolean;
-  user: any; // Added to receive user data from App.tsx
-  onLogout: () => void; // Added to trigger logout function
+  user: any; 
+  onLogout: () => void; 
   onToggleDark: () => void;
   onFriends?: () => void;
   onAddHabit?: () => void;
   onStreakTap?: (streakId: number) => void;
-  onSendMessage?: (streakId: number) => void;
-  onSendImage?: (streakId: number) => void;
+  onDismissStreak?: (streakId: number) => void; 
   streaks: Streak[];
+  streakInvites?: any[];
+  onAcceptInvite?: (id: number) => void;
 }
 
 export function StreakTracker({ 
@@ -35,27 +38,22 @@ export function StreakTracker({
   onFriends, 
   onAddHabit, 
   onStreakTap,
-  onSendMessage,
-  onSendImage,
-  streaks
+  onDismissStreak, 
+  streaks,
+  streakInvites = [],
+  onAcceptInvite
 }: StreakTrackerProps) {
   const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
+  const [showInvites, setShowInvites] = useState(false);
+  const [acceptedIds, setAcceptedIds] = useState<number[]>([]);
 
   const handleStreakClick = (streakId: number) => {
     setExpandedStreakId(expandedStreakId === streakId ? null : streakId);
+  };
+
+  const handleCheckIn = (streakId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     onStreakTap?.(streakId);
-  };
-
-  const handleSendMessage = (streakId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    onSendMessage?.(streakId);
-    console.log('Send message for streak:', streakId);
-  };
-
-  const handleSendImage = (streakId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    onSendImage?.(streakId);
-    console.log('Send image for streak:', streakId);
   };
 
   return (
@@ -70,7 +68,6 @@ export function StreakTracker({
           <h1 className={`text-2xl font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
             My Streaks
           </h1>
-          {/* Dynamic Greeting */}
           <div className="flex items-center gap-2 mt-1">
             <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
               Hi, <span className="font-semibold text-teal-500">{user?.userName}</span>
@@ -78,41 +75,73 @@ export function StreakTracker({
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          {/* Theme Toggle */}
+        <div className="flex items-center gap-2 relative">
           <button
-            onClick={onToggleDark}
-            className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 ${
+            onClick={() => setShowInvites(!showInvites)}
+            className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 relative ${
               isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'
             }`}
-            aria-label="Toggle dark mode"
           >
-            {isDark ? (
-              <Sun className="w-5 h-5 text-amber-400" />
-            ) : (
-              <Moon className="w-5 h-5 text-slate-600" />
+            <Mail className={`w-5 h-5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
+            {streakInvites.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full border-2 border-slate-900 flex items-center justify-center text-[10px] text-white font-bold">
+                {streakInvites.length}
+              </span>
             )}
           </button>
+
+          {showInvites && (
+            <div className={`absolute top-14 right-0 w-72 z-50 rounded-2xl shadow-2xl p-2 border animate-in fade-in slide-in-from-top-2 ${
+              isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-100 text-slate-900'
+            }`}>
+              <div className="p-3 border-b border-slate-700/50 mb-1">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-teal-500">Streak Invitations</h3>
+              </div>
+              {streakInvites.length === 0 ? (
+                <p className="text-xs p-4 text-center text-slate-500">No pending streak requests</p>
+              ) : (
+                <div className="max-h-64 overflow-y-auto space-y-1">
+                  {streakInvites.map((invite) => {
+                    const isAccepted = acceptedIds.includes(invite.id);
+                    return (
+                      <div key={invite.id} className={`p-3 rounded-xl flex items-center justify-between transition-colors duration-300 ${
+                        isAccepted ? 'bg-emerald-500/20' : isDark ? 'bg-slate-700/50' : 'bg-slate-50'
+                      }`}>
+                        <div className="flex flex-col min-w-0 pr-2">
+                          <span className="text-sm font-bold truncate">{invite.senderName}</span>
+                          <span className="text-[10px] text-slate-400 truncate">Habit: {invite.habitName}</span>
+                        </div>
+                        <button 
+                          disabled={isAccepted}
+                          onClick={() => { 
+                            setAcceptedIds(prev => [...prev, invite.id]);
+                            onAcceptInvite?.(invite.id); 
+                          }}
+                          className={`p-2 rounded-lg transition-all duration-300 ${
+                            isAccepted 
+                              ? 'bg-emerald-500 text-white scale-110' 
+                              : 'bg-teal-600 text-white hover:bg-teal-500'
+                          }`}
+                        >
+                          {isAccepted ? <CheckCircle2 size={14} className="animate-in zoom-in" /> : <Check size={14} />}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          <button onClick={onToggleDark} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
+            {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
+          </button>
           
-          {/* Friends List */}
-          <button
-            onClick={onFriends}
-            className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 ${
-              isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'
-            }`}
-            aria-label="Friends list"
-          >
+          <button onClick={onFriends} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
             <Users className={`w-5 h-5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
           </button>
 
-          {/* Logout Button */}
-          <button
-            onClick={onLogout}
-            className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 border border-transparent hover:border-rose-500/30 ${
-              isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'
-            }`}
-            aria-label="Logout"
-          >
+          <button onClick={onLogout} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all border border-transparent hover:border-rose-500/30 ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
             <LogOut className="w-5 h-5 text-rose-500" />
           </button>
         </div>
@@ -122,119 +151,86 @@ export function StreakTracker({
       <div className="max-w-2xl mx-auto space-y-4 mb-6">
         {streaks.map((streak) => {
           const isExpanded = expandedStreakId === streak.id;
+          const isBroken = streak.isActive === false;
           const IconComponent = (LucideIcons as any)[streak.habitIcon] || LucideIcons.Target;
           
+          const dateStr = streak.lastCompletedAt;
+          const normalizedDate = dateStr && !dateStr.endsWith('Z') ? `${dateStr}Z` : dateStr;
+          const lastCheckIn = normalizedDate ? new Date(normalizedDate) : new Date(1900, 0, 1);
+          const hoursSince = (new Date().getTime() - lastCheckIn.getTime()) / (1000 * 60 * 60);
+          const isReady = hoursSince >= 24;
+          const remainingHours = Math.max(0, Math.ceil(24 - hoursSince));
+
           return (
-            <div key={streak.id} className="w-full">
+            <div key={streak.id} className={`w-full transition-all duration-500 ${isBroken ? 'grayscale opacity-70 scale-[0.98]' : ''}`}>
               <button
                 onClick={() => handleStreakClick(streak.id)}
-                className={`group w-full relative overflow-hidden rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] ${
-                  isDark 
-                    ? 'bg-slate-800/50 backdrop-blur-sm' 
-                    : 'bg-white'
+                className={`group w-full relative overflow-hidden rounded-3xl p-6 shadow-sm transition-all duration-300 hover:scale-[1.01] ${
+                  isDark ? 'bg-slate-800/50 backdrop-blur-sm' : 'bg-white'
                 } ${isExpanded ? 'rounded-b-none' : ''}`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${streak.color} shadow-lg`}>
+                    <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${isBroken ? 'from-slate-500 to-slate-600' : streak.color} shadow-lg`}>
                       <IconComponent className="w-8 h-8 text-white" />
                     </div>
-                    
                     <div className="text-left">
-                      <h3 className={`text-lg font-semibold ${
-                        isDark ? 'text-slate-100' : 'text-slate-800'
-                      }`}>
-                        {streak.habitName}
+                      <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                        {streak.habitName} {isBroken && '💔'}
                       </h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${
-                          isDark 
-                            ? 'bg-slate-700 text-slate-300' 
-                            : 'bg-slate-200 text-slate-700'
-                        }`}>
-                          {streak.userAvatar}
-                        </div>
-                        <span className={`text-sm ${
-                          isDark ? 'text-slate-400' : 'text-slate-600'
-                        }`}>
-                          {streak.userName}
-                        </span>
+                        <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>{streak.userAvatar}</div>
+                        <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>with {streak.userName}</span>
                       </div>
                     </div>
                   </div>
-
                   <div className="flex items-center gap-4">
                     <div className="flex flex-col items-center">
-                      <div className={`text-3xl font-bold bg-gradient-to-br ${streak.color} bg-clip-text text-transparent`}>
-                        {streak.streakCount}
-                      </div>
-                      <span className={`text-xs font-medium ${
-                        isDark ? 'text-slate-400' : 'text-slate-600'
-                      }`}>
-                        {streak.streakCount === 1 ? 'day' : 'days'}
-                      </span>
+                      <div className={`text-3xl font-bold ${isBroken ? 'text-slate-500' : 'bg-gradient-to-br ' + streak.color + ' bg-clip-text text-transparent'}`}>{streak.streakCount}</div>
+                      <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{streak.streakCount === 1 ? 'day' : 'days'}</span>
                     </div>
-                    <ChevronDown 
-                      className={`w-5 h-5 transition-transform duration-300 ${
-                        isDark ? 'text-slate-400' : 'text-slate-600'
-                      } ${isExpanded ? 'rotate-180' : ''}`}
-                    />
+                    <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isDark ? 'text-slate-400' : 'text-slate-600'} ${isExpanded ? 'rotate-180' : ''}`} />
                   </div>
                 </div>
-
-                <div className={`absolute inset-0 bg-gradient-to-br ${streak.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-3xl ${isExpanded ? 'rounded-b-none' : ''}`} />
               </button>
 
               {isExpanded && (
-                <div className={`rounded-b-3xl overflow-hidden shadow-lg transition-all duration-300 ${
-                  isDark 
-                    ? 'bg-slate-800/50 backdrop-blur-sm' 
-                    : 'bg-white'
-                }`}>
-                  <div className="px-6 pb-6">
-                    <div className={`text-sm font-medium mb-3 ${
-                      isDark ? 'text-slate-300' : 'text-slate-700'
-                    }`}>
-                      Maintain Streak
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
+                <div className={`rounded-b-3xl overflow-hidden shadow-lg border-t ${isDark ? 'bg-slate-800/80 backdrop-blur-md border-slate-700/50' : 'bg-white border-slate-100'}`}>
+                  <div className="p-6">
+                    {isBroken ? (
                       <button
-                        onClick={(e) => handleSendMessage(streak.id, e)}
-                        className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl transition-all duration-200 hover:scale-105 ${
-                          isDark 
-                            ? 'bg-slate-700 hover:bg-slate-650' 
-                            : 'bg-slate-100 hover:bg-slate-200'
+                        onClick={(e) => { e.stopPropagation(); onDismissStreak?.(streak.id); }}
+                        className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all font-bold shadow-sm"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                        Dismiss Broken Streak
+                      </button>
+                    ) : (
+                      <button
+                        disabled={!isReady}
+                        onClick={(e) => handleCheckIn(streak.id, e)}
+                        className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl transition-all duration-300 shadow-md ${
+                          isReady 
+                            ? (isDark ? 'bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500' : 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400')
+                            : 'bg-slate-700/30 cursor-not-allowed grayscale'
                         }`}
                       >
-                        <MessageSquare className={`w-5 h-5 ${
-                          isDark ? 'text-teal-400' : 'text-teal-600'
-                        }`} />
-                        <span className={`font-medium ${
-                          isDark ? 'text-slate-200' : 'text-slate-800'
-                        }`}>
-                          Send Message
-                        </span>
+                        {isReady ? (
+                          <>
+                            <CheckCircle2 className="w-6 h-6 text-white animate-bounce" />
+                            <span className="font-bold text-white text-lg">Complete Today</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-6 h-6 text-slate-400" />
+                            <span className="font-bold text-slate-400 text-lg">Ready in {remainingHours}h</span>
+                          </>
+                        )}
                       </button>
-                      
-                      <button
-                        onClick={(e) => handleSendImage(streak.id, e)}
-                        className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl transition-all duration-200 hover:scale-105 ${
-                          isDark 
-                            ? 'bg-slate-700 hover:bg-slate-650' 
-                            : 'bg-slate-100 hover:bg-slate-200'
-                        }`}
-                      >
-                        <LucideIcons.Image className={`w-5 h-5 ${
-                          isDark ? 'text-cyan-400' : 'text-cyan-600'
-                        }`} />
-                        <span className={`font-medium ${
-                          isDark ? 'text-slate-200' : 'text-slate-800'
-                        }`}>
-                          Send Image
-                        </span>
-                      </button>
-                    </div>
+                    )}
+                    <p className={`text-center mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {isBroken ? "This streak was broken. Tap dismiss to remove it." : (isReady ? "Time to log your progress!" : `Next check-in available in ${remainingHours} hours.`)}
+                    </p>
                   </div>
                 </div>
               )}
@@ -242,38 +238,21 @@ export function StreakTracker({
           );
         })}
 
-        <button
-          onClick={onAddHabit}
-          className="group w-full relative overflow-hidden bg-gradient-to-br from-teal-600 to-cyan-700 rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
-        >
+        <button onClick={onAddHabit} className="group w-full relative overflow-hidden bg-gradient-to-br from-teal-600 to-cyan-700 rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-center justify-center gap-3">
             <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm shadow-lg">
               <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
             </div>
-            <span className="text-lg font-semibold text-white group-hover:text-white/90 transition-colors">
-              Start New Habit Streak
-            </span>
+            <span className="text-lg font-semibold text-white">Start New Habit Streak</span>
           </div>
-          
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />
         </button>
       </div>
 
       {streaks.length === 0 && (
         <div className="max-w-2xl mx-auto text-center py-16">
-          <div className={`text-6xl mb-4 ${isDark ? 'opacity-50' : 'opacity-30'}`}>
-            🎯
-          </div>
-          <h2 className={`text-xl font-semibold mb-2 ${
-            isDark ? 'text-slate-300' : 'text-slate-700'
-          }`}>
-            No Active Streaks
-          </h2>
-          <p className={`text-sm mb-6 ${
-            isDark ? 'text-slate-400' : 'text-slate-600'
-          }`}>
-            Start your first habit streak with a friend!
-          </p>
+          <div className={`text-6xl mb-4 ${isDark ? 'opacity-50' : 'opacity-30'}`}>🎯</div>
+          <h2 className={`text-xl font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>No Active Streaks</h2>
+          <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Start your first habit streak with a friend!</p>
         </div>
       )}
     </div>

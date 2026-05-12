@@ -5,15 +5,15 @@ using Picability.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add CORS Policy - Allows React to talk to the API
+// Add CORS Policy - Use a permissive policy for local development to fix the 403/Blocked error
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReactApp",
+    options.AddPolicy("AllowAll",
         policy =>
         {
-            policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // Common React ports
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
         });
 });
 
@@ -38,8 +38,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// CORS policy
-app.UseCors("AllowReactApp");
+app.UseRouting();
+
+app.UseCors("AllowAll");
 
 // Commenting out HttpsRedirection for easier local dev 
 // app.UseHttpsRedirection();

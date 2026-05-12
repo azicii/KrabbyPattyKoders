@@ -32,11 +32,8 @@ export function HabitSelector({ isDark, onToggleDark, onBack, onFriends, onSelec
         <button
           onClick={onBack}
           className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 ${
-            isDark 
-              ? 'bg-slate-800 hover:bg-slate-750' 
-              : 'bg-white'
+            isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'
           }`}
-          aria-label="Go back"
         >
           <ArrowLeft className={`w-5 h-5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
         </button>
@@ -48,83 +45,58 @@ export function HabitSelector({ isDark, onToggleDark, onBack, onFriends, onSelec
         <div className="flex items-center gap-2">
           <button
             onClick={onToggleDark}
-            className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 ${
-              isDark 
-                ? 'bg-slate-800 hover:bg-slate-750' 
-                : 'bg-white'
+            className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm ${
+              isDark ? 'bg-slate-800' : 'bg-white'
             }`}
-            aria-label="Toggle dark mode"
           >
-            {isDark ? (
-              <Sun className="w-5 h-5 text-amber-400" />
-            ) : (
-              <Moon className="w-5 h-5 text-slate-600" />
-            )}
+            {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
           </button>
           
           <button
             onClick={onFriends}
-            className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 ${
-              isDark 
-                ? 'bg-slate-800 hover:bg-slate-750' 
-                : 'bg-white'
+            className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm ${
+              isDark ? 'bg-slate-800' : 'bg-white'
             }`}
-            aria-label="Friends list"
           >
             <Users className={`w-5 h-5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
           </button>
         </div>
       </div>
 
-      {/* Habits Grid */}
       <div className="max-w-2xl mx-auto grid grid-cols-1 gap-4 mb-6">
         {presetHabits.map((habit) => {
           const IconComponent = habit.icon;
           return (
             <button
               key={habit.id}
-              onClick={() => onSelectHabit?.(habit.id)}
+              onClick={() => onSelectHabit(habit.id)}
               className={`group relative overflow-hidden rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] ${
-                isDark 
-                  ? 'bg-slate-800/50 backdrop-blur-sm' 
-                  : 'bg-white'
+                isDark ? 'bg-slate-800/50 backdrop-blur-sm' : 'bg-white'
               }`}
             >
               <div className="flex items-center gap-4">
                 <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${habit.color} shadow-lg`}>
                   <IconComponent className="w-8 h-8 text-white" />
                 </div>
-                <span className={`text-xl font-medium transition-colors ${
-                  isDark 
-                    ? 'text-slate-200 group-hover:text-slate-100' 
-                    : 'text-slate-800 group-hover:text-slate-900'
-                }`}>
+                <span className={`text-xl font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                   {habit.name}
                 </span>
               </div>
-              
-              {/* Subtle gradient overlay on hover */}
               <div className={`absolute inset-0 bg-gradient-to-br ${habit.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-3xl`} />
             </button>
           );
         })}
 
-        {/* Create Your Own Option */}
         <button
-          onClick={() => onSelectHabit?.('create')}
+          onClick={() => onSelectHabit('create')}
           className="group relative overflow-hidden bg-gradient-to-br from-teal-600 to-cyan-700 rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
         >
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm shadow-lg">
               <Plus className="w-8 h-8 text-white" strokeWidth={2.5} />
             </div>
-            <span className="text-xl font-semibold text-white group-hover:text-white/90 transition-colors">
-              Create Your Own
-            </span>
+            <span className="text-xl font-semibold text-white">Create Your Own</span>
           </div>
-          
-          {/* Shimmer effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />
         </button>
       </div>
     </div>
