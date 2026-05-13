@@ -106,7 +106,7 @@ winget install Microsoft.DotNet.SDK.8
 
 ```bash
 git clone https://github.com/azicii/KrabbyPattyKoders.git
-cd KrabbyPattyKoders
+cd KrabbyPattyKoders-main
 
 ```
 
