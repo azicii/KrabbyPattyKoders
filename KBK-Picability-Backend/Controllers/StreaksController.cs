@@ -97,12 +97,22 @@ namespace Picability.Controllers
                 .Where(s => (s.UserOneId == userId && s.UserTwoId == friendId) || 
                             (s.UserOneId == friendId && s.UserTwoId == userId))
                 .ToListAsync();
+            
+            var sharedRequests = await _context.StreakRequests
+                .Where(sr => (sr.SenderId == userId && sr.ReceiverId == friendId) || 
+                             (sr.SenderId == friendId && sr.ReceiverId == userId))
+                .ToListAsync();
 
             if (sharedStreaks.Any())
             {
                 _context.Streaks.RemoveRange(sharedStreaks);
-                await _context.SaveChangesAsync();
             }
+            if (sharedRequests.Any()) 
+            {
+                 _context.StreakRequests.RemoveRange(sharedRequests);
+            }
+            
+            await _context.SaveChangesAsync();
 
             return Ok(new { message = "Shared streaks removed." });
         }
