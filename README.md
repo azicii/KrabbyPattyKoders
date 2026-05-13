@@ -1,3 +1,76 @@
+
+# Krabby Patty Koders – Picability
+
+## Project Description
+
+Picability is a web application that enables users to monitor and build streak-based habits as well as social connections. The application allows users to create accounts, send friend requests, create streak requests, monitor habit progress, and manage daily streak activity through an interactive dashboard interface.
+---
+
+## Team Members
+
+- Abdelaziz Hamza
+- Jesse Beck
+- Reece Clem
+- Danielle Jackson
+
+---
+
+## Project Organization
+
+The project is divided into two major sections:
+
+### 1. KBK-Picability-Frontend
+- Contains all frontend UI components, pages, styling, and client-side functionality.
+- Built using:
+  - React
+  - TypeScript
+  - Tailwind CSS
+  - Vite
+
+### 2. KBK-Picability-Backend
+- Contains backend API controllers, database models, DTOs, migrations, and server configuration.
+- Developed using:
+  - ASP.NET Core Web API
+  - Entity Framework Core
+
+The solution file `KBK - Picability.sln` organizes and connects the backend project within Visual Studio.
+
+---
+
+# Folder Structure
+
+```plaintext
+KrabbyPattyKoders-main/
+│
+├── KBK - Picability.sln                    # Visual Studio solution file
+│
+├── KBK-Picability-Backend/                 # ASP.NET Core backend
+│   ├── Controllers/                        # API endpoint controllers
+│   ├── DTOs/                               # Data transfer objects
+│   ├── Data/                               # Database context configuration
+│   ├── Migrations/                         # Entity Framework migrations
+│   ├── Models/                             # Database entity models
+│   ├── Properties/                         # Launch settings
+│   ├── Program.cs                          # Main backend application entry point
+│   ├── appsettings.json                    # Backend configuration settings
+│   └── KBK - Picability.csproj             # Backend project configuration
+│
+├── KBK-Picability-Frontend/                # React frontend application
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── components/                 # Main application components
+│   │   │   └── App.tsx                     # Main frontend application component
+│   │   ├── styles/                         # CSS and styling files
+│   │   └── main.tsx                        # Frontend application entry point
+│   │
+│   ├── index.html                          # Frontend HTML template
+│   ├── package.json                        # Frontend dependencies
+│   └── vite.config.ts                      # Vite configuration
+│
+├── .gitignore                              # Git ignored files configuration
+└── README.md                               # Project documentation
+```
+
 # Picability Setup Guide
 
 ## Prerequisites
