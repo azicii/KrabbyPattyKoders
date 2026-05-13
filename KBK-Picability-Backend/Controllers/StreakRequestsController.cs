@@ -49,6 +49,16 @@ namespace Picability.Controllers
             if (duplicatePending)
                 return BadRequest("A pending streak request already exists.");
 
+            // Added check to prevent multiple active streaks for the same habit between the same users
+            bool duplicateActive = await _context.Streaks.AnyAsync(s =>
+                ((s.UserOneId == dto.SenderId && s.UserTwoId == dto.ReceiverId) ||
+                (s.UserOneId == dto.ReceiverId && s.UserTwoId == dto.SenderId)) &&
+                s.HabitName == dto.HabitName &&
+                s.IsActive);
+
+            if (duplicateActive)
+                return BadRequest("You already have an active streak for this habit with this friend.");
+
             var request = new StreakRequest
             {
                 SenderId = dto.SenderId,
