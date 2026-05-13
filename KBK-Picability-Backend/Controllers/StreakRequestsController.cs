@@ -54,6 +54,8 @@ namespace Picability.Controllers
                 SenderId = dto.SenderId,
                 ReceiverId = dto.ReceiverId,
                 HabitName = dto.HabitName,
+                HabitIcon = dto.HabitIcon,
+                Color = dto.Color,
                 Status = "Pending",
                 CreatedAt = DateTime.UtcNow
             };
@@ -78,6 +80,8 @@ namespace Picability.Controllers
                 {
                     sr.Id,
                     sr.HabitName,
+                    sr.HabitIcon,
+                    sr.Color,
                     sr.Status,
                     sr.CreatedAt,
                     SenderName = sr.Sender.UserName,
@@ -132,6 +136,8 @@ namespace Picability.Controllers
                 UserOneId = request.SenderId,
                 UserTwoId = request.ReceiverId,
                 HabitName = request.HabitName,
+                HabitIcon = request.HabitIcon,
+                Color = request.Color,
                 CurrentCount = 0,
                 IsActive = true,
                 StreakRequestId = request.Id,

@@ -11,13 +11,13 @@ interface HabitConfigProps {
   habitType?: number | 'create';
   presetHabitName?: string;
   preSelectedFriend?: User | null;
+  existingHabitNames?: string[];
 }
 
 export interface HabitConfiguration {
-  name: string;
-  icon: string;
-  iconComponent: string;
-  color: string;
+  HabitName: string;
+  HabitIcon: string;
+  Color: string;
   checkInDays: number;
   friendId?: string;
   friendName?: string;
@@ -70,7 +70,8 @@ export function HabitConfig({
   onConfirm,
   habitType,
   presetHabitName = '',
-  preSelectedFriend = null
+  preSelectedFriend = null,
+  existingHabitNames = []
 }: HabitConfigProps) {
   const isCustomHabit = habitType === 'create';
   const [habitName, setHabitName] = useState(presetHabitName);
@@ -78,15 +79,19 @@ export function HabitConfig({
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [showColorPicker, setShowColorPicker] = useState<number | null>(null);
   const [checkInDays, setCheckInDays] = useState(1);
-
+  const isDuplicate = existingHabitNames.some(
+    (name) => name.toLowerCase() === habitName.trim().toLowerCase()
+  );
+  const canSubmit = habitName.trim().length > 0 && preSelectedFriend !== null && !isDuplicate;
   const handleConfirm = () => {
+    if (!canSubmit) return;
     if (!preSelectedFriend) return;
 
     const config: HabitConfiguration = {
-      name: habitName || presetHabitName,
-      icon: iconOptions[selectedIconIndex].label,
-      iconComponent: iconOptions[selectedIconIndex].componentName,
-      color: colorOptions[selectedColorIndex].name,
+      HabitName: habitName || presetHabitName,
+      HabitIcon: iconOptions[selectedIconIndex].componentName,
+      
+      Color: colorOptions[selectedColorIndex].gradient,
       checkInDays,
       friendId: preSelectedFriend.id,
       friendName: preSelectedFriend.name,

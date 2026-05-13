@@ -57,6 +57,8 @@ namespace Picability.Controllers
             {
                 s.Id,
                 s.HabitName,
+                s.HabitIcon,
+                s.Color,
                 s.CurrentCount,
                 s.IsActive,
                 PartnerName = s.UserOneId == userId ? s.UserTwo.UserName : s.UserOne.UserName,

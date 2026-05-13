@@ -71,8 +71,8 @@ export default function App() {
         const formattedStreaks: Streak[] = data.map((s: any) => ({
           id: s.id,
           habitName: s.habitName,
-          habitIcon: getIconForHabit(s.habitName),
-          color: getColorForHabit(s.habitName),
+          habitIcon: s.habitIcon,
+          color: s.color,
           userName: s.partnerName,
           userAvatar: s.partnerName.substring(0, 2).toUpperCase(),
           streakCount: s.currentCount,
@@ -210,7 +210,9 @@ export default function App() {
         body: JSON.stringify({
           senderId: user.id,
           receiverId: config.friendId,
-          habitName: config.name
+          habitName: config.HabitName,
+          habitIcon: config.HabitIcon,
+          color: config.Color
         })
       });
 
@@ -222,7 +224,7 @@ export default function App() {
             avatar: config.friendAvatar || '??', 
             username: '' 
           },
-          habitName: config.name
+          habitName: config.HabitName
         });
         setCurrentScreen('confirmation');
       } else {

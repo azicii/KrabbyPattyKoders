@@ -13,6 +13,9 @@
 
         public string HabitName { get; set; } = string.Empty;
         public string Status { get; set; } = "Pending";
+
+        public string HabitIcon { get; set; } = "Target"; 
+        public string Color { get; set; } = "from-teal-500 to-teal-600";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

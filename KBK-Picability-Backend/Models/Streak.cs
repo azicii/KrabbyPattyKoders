@@ -12,6 +12,8 @@
         public ApplicationUser UserTwo { get; set; } = null!;
 
         public string HabitName { get; set; } = string.Empty;
+        public string HabitIcon { get; set; } = "Target"; 
+        public string Color { get; set; } = "from-teal-500 to-cyan-500"; 
         public int CurrentCount { get; set; } = 0;
         public bool IsActive { get; set; } = true;
 

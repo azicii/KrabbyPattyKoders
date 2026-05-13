@@ -211,7 +211,7 @@ export function StreakTracker({
                         onClick={(e) => handleCheckIn(streak.id, e)}
                         className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl transition-all duration-300 shadow-md ${
                           isReady 
-                            ? (isDark ? 'bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500' : 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400')
+                            ? `bg-gradient-to-r ${streak.color} hover:brightness-110`
                             : 'bg-slate-700/30 cursor-not-allowed grayscale'
                         }`}
                       >
