@@ -4,6 +4,13 @@
 ## Project Description
 
 Picability is a web application that enables users to monitor and build streak-based habits as well as social connections. The application allows users to create accounts, send friend requests, create streak requests, monitor habit progress, and manage daily streak activity through an interactive dashboard interface.
+<details>
+  <summary><b>🎬 Click to see the demo</b></summary>
+  <br>
+  <p align="center">
+    <img src="https://github.com/user-attachments/assets/034cefd1-1844-4017-b8cd-988da4dbf21f" width="720" alt="Demo GIF">
+  </p>
+</details>
 ---
 
 ## Team Members
