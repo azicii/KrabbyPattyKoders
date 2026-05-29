@@ -50,7 +50,8 @@ const getColorForHabit = (name: string) => {
   return map[name] || 'from-teal-500 to-cyan-600';
 };
 
-const BASE_URL = 'http://localhost:5232';
+// const BASE_URL = 'http://localhost:5232';
+const BASE_URL = 'https://kbk-picability20260528161204-dwgwf6eehmf5bjeu.canadacentral-01.azurewebsites.net';
 
 export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
