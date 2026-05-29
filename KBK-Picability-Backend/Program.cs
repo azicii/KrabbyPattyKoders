@@ -8,10 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add CORS Policy - Use a permissive policy for local development to fix the 403/Blocked error
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
+    options.AddPolicy("AllowPicabilityFrontend",
         policy =>
         {
-            policy.AllowAnyOrigin()
+            policy.WithOrigins("https://picability.vercel.app")
                   .AllowAnyMethod()
                   .AllowAnyHeader();
         });
@@ -47,7 +47,7 @@ app.UseSwaggerUI();
 
 app.UseRouting();
 
-app.UseCors("AllowAll");
+app.UseCors("AllowPicabilityFrontend");
 
 // Commenting out HttpsRedirection for easier local dev 
 // app.UseHttpsRedirection();

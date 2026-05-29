@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>KBK___Picability</RootNamespace>
+    <UserSecretsId>2573ccfc-fb18-4534-8e91-f963d47270ed</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
