@@ -52,7 +52,8 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
           };
 
       // Match the port found in your Backend's launchSettings.json
-      const BASE_URL = 'http://localhost:5232'; 
+      // const BASE_URL = 'http://localhost:5232'; 
+        const BASE_URL = 'https://kbk-picability20260528161204-dwgwf6eehmf5bjeu.canadacentral-01.azurewebsites.net'; 
       const endpoint = isLogin ? `${BASE_URL}/api/auth/login` : `${BASE_URL}/api/auth/register`;
 
       const response = await fetch(endpoint, {

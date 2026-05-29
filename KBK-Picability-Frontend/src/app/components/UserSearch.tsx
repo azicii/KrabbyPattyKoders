@@ -34,7 +34,10 @@ export function UserSearch({
   const [toastMessage, setToastMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const BASE_URL = 'http://localhost:5232';
+    // const BASE_URL = 'http://localhost:5232';
+    const BASE_URL = 'https://kbk-picability20260528161204-dwgwf6eehmf5bjeu.canadacentral-01.azurewebsites.net';
+    
+
 
   useEffect(() => {
     const fetchData = async () => {
