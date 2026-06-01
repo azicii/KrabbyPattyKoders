@@ -53,17 +53,36 @@ namespace Picability.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            var result = streaks.Select(s => new
+            var result = streaks.Select(s =>
             {
-                s.Id,
-                s.HabitName,
-                s.HabitIcon,
-                s.Color,
-                s.CurrentCount,
-                s.IsActive,
-                PartnerName = s.UserOneId == userId ? s.UserTwo.UserName : s.UserOne.UserName,
-                s.LastCompletedAt,
-                s.StartedAt
+                var isUserOne = s.UserOneId == userId;
+
+                var userCheckedInToday = isUserOne
+                    ? s.UserOneLastCheckedInAt.HasValue && s.UserOneLastCheckedInAt.Value.Date == todayUtc
+                    : s.UserTwoLastCheckedInAt.HasValue && s.UserTwoLastCheckedInAt.Value.Date == todayUtc;
+
+                var partnerCheckedInToday = isUserOne
+                    ? s.UserTwoLastCheckedInAt.HasValue && s.UserTwoLastCheckedInAt.Value.Date == todayUtc
+                    : s.UserOneLastCheckedInAt.HasValue && s.UserOneLastCheckedInAt.Value.Date == todayUtc;
+
+                return new
+                {
+                    s.Id,
+                    s.HabitName,
+                    s.HabitIcon,
+                    s.Color,
+                    s.CurrentCount,
+                    s.IsActive,
+                    PartnerName = isUserOne ? s.UserTwo.UserName : s.UserOne.UserName,
+                    s.LastCompletedAt,
+                    s.LastFullyCompletedAt,
+                    s.UserOneLastCheckedInAt,
+                    s.UserTwoLastCheckedInAt,
+                    UserCheckedInToday = userCheckedInToday,
+                    PartnerCheckedInToday = partnerCheckedInToday,
+                    BothCheckedInToday = userCheckedInToday && partnerCheckedInToday,
+                    s.StartedAt
+                };
             });
 
             return Ok(result);
@@ -141,14 +160,9 @@ namespace Picability.Controllers
             var todayUtc = nowUtc.Date;
             var defaultDate = new DateTime(1900, 1, 1);
 
-            if (streak.LastCompletedAt is DateTime lastCompleted &&
-                lastCompleted != defaultDate &&
-                lastCompleted.Date == todayUtc)
-            {
-                return BadRequest("Already checked in for today!");
-            }
+            var lastFullyCompleted = streak.LastFullyCompletedAt ?? streak.LastCompletedAt;
 
-            if (streak.LastCompletedAt is DateTime lastDate &&
+            if (lastFullyCompleted is DateTime lastDate &&
                 lastDate != defaultDate &&
                 (todayUtc - lastDate.Date).TotalDays > 1)
             {
@@ -158,11 +172,62 @@ namespace Picability.Controllers
                 return Conflict(new { message = "Streak broken!" });
             }
 
-            streak.CurrentCount++;
-            streak.LastCompletedAt = nowUtc;
+            var isUserOne = streak.UserOneId == dto.UserId;
+
+            var userLastCheckIn = isUserOne
+                ? streak.UserOneLastCheckedInAt
+                : streak.UserTwoLastCheckedInAt;
+
+            if (userLastCheckIn is DateTime existingCheckIn &&
+                existingCheckIn.Date == todayUtc)
+            {
+                return BadRequest("You already checked in today!");
+            }
+
+            if (isUserOne)
+            {
+                streak.UserOneLastCheckedInAt = nowUtc;
+            }
+            else
+            {
+                streak.UserTwoLastCheckedInAt = nowUtc;
+            }
+
+            var userOneCheckedInToday =
+                streak.UserOneLastCheckedInAt.HasValue &&
+                streak.UserOneLastCheckedInAt.Value.Date == todayUtc;
+
+            var userTwoCheckedInToday =
+                streak.UserTwoLastCheckedInAt.HasValue &&
+                streak.UserTwoLastCheckedInAt.Value.Date == todayUtc;
+
+            var alreadyFullyCompletedToday =
+                lastFullyCompleted.HasValue &&
+                lastFullyCompleted.Value.Date == todayUtc;
+
+            var bothCheckedInToday = userOneCheckedInToday && userTwoCheckedInToday;
+
+            if (bothCheckedInToday && !alreadyFullyCompletedToday)
+            {
+                streak.CurrentCount++;
+                streak.LastFullyCompletedAt = nowUtc;
+                streak.LastCompletedAt = nowUtc;
+            }
+
             await _context.SaveChangesAsync();
 
-            return Ok(new { streak.Id, streak.CurrentCount, streak.LastCompletedAt });
+            return Ok(new
+            {
+                streak.Id,
+                streak.CurrentCount,
+                streak.LastCompletedAt,
+                streak.LastFullyCompletedAt,
+                streak.UserOneLastCheckedInAt,
+                streak.UserTwoLastCheckedInAt,
+                UserCheckedInToday = true,
+                PartnerCheckedInToday = isUserOne ? userTwoCheckedInToday : userOneCheckedInToday,
+                BothCheckedInToday = bothCheckedInToday
+            });
         }
     }
 }

@@ -25,5 +25,8 @@
         public DateTime? FailedAt { get; set; }
         public int IntervalHours { get; set; } = 24;
 
+        public DateTime? UserOneLastCheckedInAt { get; set; }
+        public DateTime? UserTwoLastCheckedInAt { get; set; }
+        public DateTime? LastFullyCompletedAt { get; set; }
     }
 }
