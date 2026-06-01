@@ -69,17 +69,23 @@ export default function App() {
       const response = await fetch(`${BASE_URL}/api/Streaks/user/${user.id}`);
       if (response.ok) {
         const data = await response.json();
-        const formattedStreaks: Streak[] = data.map((s: any) => ({
-          id: s.id,
-          habitName: s.habitName,
-          habitIcon: s.habitIcon,
-          color: s.color,
-          userName: s.partnerName,
-          userAvatar: s.partnerName.substring(0, 2).toUpperCase(),
-          streakCount: s.currentCount,
-          lastCompletedAt: s.lastCompletedAt,
-          isActive: s.isActive 
-        }));
+          const formattedStreaks: Streak[] = data.map((s: any) => ({
+              id: s.id,
+              habitName: s.habitName,
+              habitIcon: s.habitIcon,
+              color: s.color,
+              userName: s.partnerName,
+              userAvatar: s.partnerName.substring(0, 2).toUpperCase(),
+              streakCount: s.currentCount,
+              lastCompletedAt: s.lastCompletedAt,
+              lastFullyCompletedAt: s.lastFullyCompletedAt,
+              userOneLastCheckedInAt: s.userOneLastCheckedInAt,
+              userTwoLastCheckedInAt: s.userTwoLastCheckedInAt,
+              userCheckedInToday: s.userCheckedInToday,
+              partnerCheckedInToday: s.partnerCheckedInToday,
+              bothCheckedInToday: s.bothCheckedInToday,
+              isActive: s.isActive
+          }));
         setStreaks(formattedStreaks);
       }
     } catch (err) {
