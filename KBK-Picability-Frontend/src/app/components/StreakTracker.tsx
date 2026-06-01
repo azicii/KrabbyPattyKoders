@@ -3,15 +3,21 @@ import { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 
 interface Streak {
-  id: number;
-  habitName: string;
-  habitIcon: string;
-  userName: string;
-  userAvatar: string;
-  streakCount: number;
-  color: string;
-  lastCompletedAt?: string; 
-  isActive?: boolean;
+    id: number;
+    habitName: string;
+    habitIcon: string;
+    userName: string;
+    userAvatar: string;
+    streakCount: number;
+    color: string;
+    lastCompletedAt?: string;
+    lastFullyCompletedAt?: string;
+    userOneLastCheckedInAt?: string;
+    userTwoLastCheckedInAt?: string;
+    userCheckedInToday?: boolean;
+    partnerCheckedInToday?: boolean;
+    bothCheckedInToday?: boolean;
+    isActive?: boolean;
 }
 
 export type { Streak };
@@ -154,12 +160,19 @@ export function StreakTracker({
           const isBroken = streak.isActive === false;
           const IconComponent = (LucideIcons as any)[streak.habitIcon] || LucideIcons.Target;
           
-          const dateStr = streak.lastCompletedAt;
-          const normalizedDate = dateStr && !dateStr.endsWith('Z') ? `${dateStr}Z` : dateStr;
-          const lastCheckIn = normalizedDate ? new Date(normalizedDate) : new Date(1900, 0, 1);
-          const hoursSince = (new Date().getTime() - lastCheckIn.getTime()) / (1000 * 60 * 60);
-          const isReady = hoursSince >= 24;
-          const remainingHours = Math.max(0, Math.ceil(24 - hoursSince));
+            const dateStr = streak.lastFullyCompletedAt || streak.lastCompletedAt;
+            const normalizedDate = dateStr && !dateStr.endsWith('Z') ? `${dateStr}Z` : dateStr;
+            const lastFullCompletion = normalizedDate ? new Date(normalizedDate) : new Date(1900, 0, 1);
+
+            const hoursSince = (new Date().getTime() - lastFullCompletion.getTime()) / (1000 * 60 * 60);
+            const isNewDayReady = hoursSince >= 24;
+            const remainingHours = Math.max(0, Math.ceil(24 - hoursSince));
+
+            const userCheckedInToday = streak.userCheckedInToday === true;
+            const partnerCheckedInToday = streak.partnerCheckedInToday === true;
+            const bothCheckedInToday = streak.bothCheckedInToday === true;
+
+            const canCheckIn = isNewDayReady && !userCheckedInToday;
 
           return (
             <div key={streak.id} className={`w-full transition-all duration-500 ${isBroken ? 'grayscale opacity-70 scale-[0.98]' : ''}`}>
@@ -196,7 +209,26 @@ export function StreakTracker({
 
               {isExpanded && (
                 <div className={`rounded-b-3xl overflow-hidden shadow-lg border-t ${isDark ? 'bg-slate-800/80 backdrop-blur-md border-slate-700/50' : 'bg-white border-slate-100'}`}>
-                  <div className="p-6">
+                          <div className="p-6">
+                              {!isBroken && (
+                                  <div className="mb-4 grid grid-cols-2 gap-3 text-sm">
+                                      <div className={`p-3 rounded-2xl text-center ${userCheckedInToday
+                                              ? 'bg-emerald-500/15 text-emerald-500'
+                                              : isDark ? 'bg-slate-700/50 text-slate-300' : 'bg-slate-100 text-slate-600'
+                                          }`}>
+                                          <div className="font-bold">You</div>
+                                          <div>{userCheckedInToday ? 'Checked in ✅' : 'Waiting ⏳'}</div>
+                                      </div>
+
+                                      <div className={`p-3 rounded-2xl text-center ${partnerCheckedInToday
+                                              ? 'bg-emerald-500/15 text-emerald-500'
+                                              : isDark ? 'bg-slate-700/50 text-slate-300' : 'bg-slate-100 text-slate-600'
+                                          }`}>
+                                          <div className="font-bold">Partner</div>
+                                          <div>{partnerCheckedInToday ? 'Checked in ✅' : 'Waiting ⏳'}</div>
+                                      </div>
+                                  </div>
+                              )}
                     {isBroken ? (
                       <button
                         onClick={(e) => { e.stopPropagation(); onDismissStreak?.(streak.id); }}
@@ -207,15 +239,15 @@ export function StreakTracker({
                       </button>
                     ) : (
                       <button
-                        disabled={!isReady}
+                        disabled={!canCheckIn}
                         onClick={(e) => handleCheckIn(streak.id, e)}
                         className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl transition-all duration-300 shadow-md ${
-                          isReady 
+                            canCheckIn 
                             ? `bg-gradient-to-r ${streak.color} hover:brightness-110`
                             : 'bg-slate-700/30 cursor-not-allowed grayscale'
                         }`}
                       >
-                        {isReady ? (
+                        {canCheckIn ? (
                           <>
                             <CheckCircle2 className="w-6 h-6 text-white animate-bounce" />
                             <span className="font-bold text-white text-lg">Complete Today</span>
@@ -223,13 +255,30 @@ export function StreakTracker({
                         ) : (
                           <>
                             <Clock className="w-6 h-6 text-slate-400" />
-                            <span className="font-bold text-slate-400 text-lg">Ready in {remainingHours}h</span>
+                                                      <span className="font-bold text-slate-400 text-lg">
+                                                          {userCheckedInToday && !partnerCheckedInToday
+                                                              ? 'Waiting on partner'
+                                                              : bothCheckedInToday
+                                                                  ? 'Completed today'
+                                                                  : `Ready in ${remainingHours}h`}
+                                                      </span>
+
                           </>
                         )}
                       </button>
                     )}
                     <p className={`text-center mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                      {isBroken ? "This streak was broken. Tap dismiss to remove it." : (isReady ? "Time to log your progress!" : `Next check-in available in ${remainingHours} hours.`)}
+                                  {isBroken
+                                      ? "This streak was broken. Tap dismiss to remove it."
+                                      : canCheckIn
+                                          ? "Your partner needs your check-in today."
+                                          : userCheckedInToday && !partnerCheckedInToday
+                                              ? "You checked in. Waiting for your partner to keep the streak alive."
+                                              : bothCheckedInToday
+                                                  ? "Both of you checked in today. Streak secured!"
+                                                  : partnerCheckedInToday && !userCheckedInToday
+                                                      ? "Your partner checked in. Now it's your turn."
+                                                      : `Next check-in available in ${remainingHours} hours.`}
                     </p>
                   </div>
                 </div>
