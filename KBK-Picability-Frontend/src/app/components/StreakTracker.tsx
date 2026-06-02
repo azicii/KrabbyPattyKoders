@@ -276,6 +276,14 @@ export function StreakTracker({
                       })}
                   </div>
               )}
+
+              {streaks.length > 0 && (
+                  <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'
+                      }`}>
+                      Active Streaks
+                  </h2>
+              )}
+
         {streaks.map((streak) => {
           const isExpanded = expandedStreakId === streak.id;
           const isBroken = streak.isActive === false;
