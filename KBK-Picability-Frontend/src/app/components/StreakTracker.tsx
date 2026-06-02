@@ -403,7 +403,6 @@ export function StreakTracker({
                                       </button>
                                   </div>
                               )}
-                    )}
                     <p className={`text-center mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                                   {isBroken
                                       ? "This streak was broken. Tap dismiss to remove it."
