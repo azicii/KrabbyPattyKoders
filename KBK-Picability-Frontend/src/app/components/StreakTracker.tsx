@@ -359,6 +359,7 @@ export function StreakTracker({
                         Dismiss Broken Streak
                       </button>
                     ) : (
+                    <div className="space-y-3">
                       <button
                         disabled={!canCheckIn}
                         onClick={(e) => handleCheckIn(streak.id, e)}
@@ -387,6 +388,21 @@ export function StreakTracker({
                           </>
                         )}
                       </button>
+                                      <button
+                                          onClick={(e) => {
+                                              e.stopPropagation();
+                                              const confirmed = window.confirm("Are you sure you want to cancel this streak? This will remove it for both users.");
+                                              if (confirmed) {
+                                                  onDismissStreak?.(streak.id);
+                                              }
+                                          }}
+                                          className="w-full flex items-center justify-center gap-3 py-3 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all font-bold shadow-sm"
+                                      >
+                                          <Trash2 className="w-5 h-5" />
+                                          Cancel Streak
+                                      </button>
+                                  </div>
+                              )}
                     )}
                     <p className={`text-center mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                                   {isBroken
