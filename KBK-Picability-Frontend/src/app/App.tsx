@@ -202,7 +202,24 @@ export default function App() {
     } catch (err) {
       console.error("Error accepting streak:", err);
     }
-  };
+    };
+
+    const handleRejectStreakInvite = async (requestId: number) => {
+        try {
+            const response = await fetch(`${BASE_URL}/api/StreakRequests/reject/${requestId}`, {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                fetchStreakInvites();
+                fetchStreaks();
+            } else {
+                alert("Failed to reject streak request.");
+            }
+        } catch (err) {
+            console.error("Error rejecting streak:", err);
+        }
+    };
 
   const handleConfirmConfig = async (config: HabitConfiguration) => {
     if (!user || !config.friendId) {
@@ -271,6 +288,7 @@ export default function App() {
           streaks={streaks}
           streakInvites={streakInvites}
           onAcceptInvite={handleAcceptStreakInvite}
+          onRejectInvite={handleRejectStreakInvite}
         />
       )}
 

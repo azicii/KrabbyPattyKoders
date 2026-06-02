@@ -33,7 +33,8 @@ interface StreakTrackerProps {
   onDismissStreak?: (streakId: number) => void; 
   streaks: Streak[];
   streakInvites?: any[];
-  onAcceptInvite?: (id: number) => void;
+    onAcceptInvite?: (id: number) => void;
+    onRejectInvite?: (id: number) => void;
 }
 
 export function StreakTracker({ 
@@ -47,7 +48,8 @@ export function StreakTracker({
   onDismissStreak, 
   streaks,
   streakInvites = [],
-  onAcceptInvite
+  onAcceptInvite,
+  onRejectInvite
 }: StreakTrackerProps) {
   const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
   const [showInvites, setShowInvites] = useState(false);
@@ -117,20 +119,31 @@ export function StreakTracker({
                           <span className="text-sm font-bold truncate">{invite.senderName}</span>
                           <span className="text-[10px] text-slate-400 truncate">Habit: {invite.habitName}</span>
                         </div>
-                        <button 
-                          disabled={isAccepted}
-                          onClick={() => { 
-                            setAcceptedIds(prev => [...prev, invite.id]);
-                            onAcceptInvite?.(invite.id); 
-                          }}
-                          className={`p-2 rounded-lg transition-all duration-300 ${
-                            isAccepted 
-                              ? 'bg-emerald-500 text-white scale-110' 
-                              : 'bg-teal-600 text-white hover:bg-teal-500'
-                          }`}
-                        >
-                          {isAccepted ? <CheckCircle2 size={14} className="animate-in zoom-in" /> : <Check size={14} />}
-                        </button>
+                            <button
+                                disabled={isAccepted}
+                                onClick={() => {
+                                    setAcceptedIds(prev => [...prev, invite.id]);
+                                    onAcceptInvite?.(invite.id);
+                                }}
+                                className={`p-2 rounded-lg transition-all duration-300 ${isAccepted
+                                        ? 'bg-emerald-500 text-white scale-110'
+                                        : 'bg-teal-600 text-white hover:bg-teal-500'
+                                    }`}
+                                title="Accept streak request"
+                            >
+                                {isAccepted ? <CheckCircle2 size={14} className="animate-in zoom-in" /> : <Check size={14} />}
+                            </button>
+
+                            <button
+                                disabled={isAccepted}
+                                onClick={() => {
+                                    onRejectInvite?.(invite.id);
+                                }}
+                                className="p-2 rounded-lg bg-rose-600 text-white hover:bg-rose-500 transition-all duration-300"
+                                title="Reject streak request"
+                            >
+                                <X size={14} />
+                            </button>
                       </div>
                     );
                   })}
