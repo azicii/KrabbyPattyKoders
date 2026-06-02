@@ -27,10 +27,10 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
     setError('');
     setSuccess('');
 
-    if (!validateEmail(formData.email)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
+      if (!isLogin && !validateEmail(formData.email)) {
+          setError('Please enter a valid email address.');
+          return; 
+      }
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters.');
       return;
