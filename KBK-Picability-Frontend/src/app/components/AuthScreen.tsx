@@ -143,7 +143,7 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
               <div className="relative">
                 <Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
                 <input
-                  type="email"
+                  type="text"
                   placeholder="name@email.com"
                   className={`w-full pl-12 pr-4 py-3.5 rounded-2xl outline-none transition-all ${
                     isDark ? 'bg-slate-900 text-white focus:ring-2 ring-teal-500' : 'bg-slate-50 text-slate-900 focus:ring-2 ring-teal-600'
