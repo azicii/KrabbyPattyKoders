@@ -139,7 +139,7 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
             )}
 
             <div className="space-y-2">
-              <label className={`text-sm font-medium ml-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Email Address</label>
+              <label className={`text-sm font-medium ml-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Email or username</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
                 <input
