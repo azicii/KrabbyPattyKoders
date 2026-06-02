@@ -62,6 +62,7 @@ export default function App() {
   const [preSelectedFriend, setPreSelectedFriend] = useState<User | null>(null);
   const [lastRequestConfig, setLastRequestConfig] = useState<{ user: User; habitName: string } | null>(null);
   const [streakInvites, setStreakInvites] = useState<any[]>([]);
+  const [sentStreakRequests, setSentStreakRequests] = useState<any[]>([]);
 
   const fetchStreaks = async () => {
     if (!user) return;
@@ -104,12 +105,26 @@ export default function App() {
     } catch (err) {
       console.error("Error fetching streak invites:", err);
     }
-  };
+    };
+
+    const fetchSentStreakRequests = async () => {
+        if (!user) return;
+        try {
+            const response = await fetch(`${BASE_URL}/api/StreakRequests/sender/${user.id}`);
+            if (response.ok) {
+                const data = await response.json();
+                setSentStreakRequests(data);
+            }
+        } catch (err) {
+            console.error("Error fetching sent streak requests:", err);
+        }
+    };
 
   useEffect(() => {
     if (user) {
       fetchStreaks();
       fetchStreakInvites();
+      fetchSentStreakRequests();
     }
   }, [user]);
 
@@ -196,6 +211,7 @@ export default function App() {
       if (response.ok) {
         setTimeout(() => {
           fetchStreakInvites();
+          fetchSentStreakRequests();
           fetchStreaks();
         }, 800);
       }
@@ -212,6 +228,7 @@ export default function App() {
 
             if (response.ok) {
                 fetchStreakInvites();
+                fetchSentStreakRequests();
                 fetchStreaks();
             } else {
                 alert("Failed to reject streak request.");
@@ -250,6 +267,7 @@ export default function App() {
           },
           habitName: config.HabitName
         });
+        fetchSentStreakRequests();
         setCurrentScreen('confirmation');
       } else {
         const contentType = response.headers.get("content-type");
@@ -287,6 +305,7 @@ export default function App() {
           onDismissStreak={handleDismissStreak}
           streaks={streaks}
           streakInvites={streakInvites}
+          sentStreakRequests={sentStreakRequests}
           onAcceptInvite={handleAcceptStreakInvite}
           onRejectInvite={handleRejectStreakInvite}
         />

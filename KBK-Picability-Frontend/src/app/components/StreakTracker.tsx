@@ -33,8 +33,9 @@ interface StreakTrackerProps {
   onDismissStreak?: (streakId: number) => void; 
   streaks: Streak[];
   streakInvites?: any[];
-    onAcceptInvite?: (id: number) => void;
-    onRejectInvite?: (id: number) => void;
+  sentStreakRequests?: any[];
+  onAcceptInvite?: (id: number) => void;
+  onRejectInvite?: (id: number) => void;
 }
 
 export function StreakTracker({ 
@@ -48,6 +49,7 @@ export function StreakTracker({
   onDismissStreak, 
   streaks,
   streakInvites = [],
+  sentStreakRequests = [],
   onAcceptInvite,
   onRejectInvite
 }: StreakTrackerProps) {
@@ -84,19 +86,19 @@ export function StreakTracker({
         </div>
         
         <div className="flex items-center gap-2 relative">
-          <button
-            onClick={() => setShowInvites(!showInvites)}
-            className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 relative ${
-              isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'
-            }`}
-          >
-            <Mail className={`w-5 h-5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
-            {streakInvites.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full border-2 border-slate-900 flex items-center justify-center text-[10px] text-white font-bold">
-                {streakInvites.length}
-              </span>
-            )}
-          </button>
+          {/*<button*/}
+          {/*  onClick={() => setShowInvites(!showInvites)}*/}
+          {/*  className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 relative ${*/}
+          {/*    isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'*/}
+          {/*  }`}*/}
+          {/*>*/}
+          {/*  <Mail className={`w-5 h-5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />*/}
+          {/*  {streakInvites.length > 0 && (*/}
+          {/*    <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full border-2 border-slate-900 flex items-center justify-center text-[10px] text-white font-bold">*/}
+          {/*      {streakInvites.length}*/}
+          {/*    </span>*/}
+          {/*  )}*/}
+          {/*</button>*/}
 
           {showInvites && (
             <div className={`absolute top-14 right-0 w-72 z-50 rounded-2xl shadow-2xl p-2 border animate-in fade-in slide-in-from-top-2 ${
@@ -168,6 +170,112 @@ export function StreakTracker({
 
       {/* Streaks List */}
       <div className="max-w-2xl mx-auto space-y-4 mb-6">
+              {streakInvites.length > 0 && (
+                  <div className="space-y-3">
+                      <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'
+                          }`}>
+                          Incoming Streak Requests
+                      </h2>
+
+                      {streakInvites.map((invite) => {
+                          const IconComponent = (LucideIcons as any)[invite.habitIcon] || LucideIcons.Target;
+
+                          return (
+                              <div
+                                  key={`incoming-${invite.id}`}
+                                  className={`w-full rounded-3xl p-6 shadow-md border-2 border-dashed transition-all ${isDark
+                                          ? 'bg-amber-500/10 border-amber-500/30'
+                                          : 'bg-amber-50 border-amber-300'
+                                      }`}
+                              >
+                                  <div className="flex items-center justify-between gap-4">
+                                      <div className="flex items-center gap-4">
+                                          <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${invite.color || 'from-amber-500 to-orange-600'} shadow-lg`}>
+                                              <IconComponent className="w-8 h-8 text-white" />
+                                          </div>
+
+                                          <div>
+                                              <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                                                  {invite.habitName}
+                                              </h3>
+                                              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                                  {invite.senderName} invited you to start this streak
+                                              </p>
+                                              <p className="text-xs text-amber-500 font-semibold mt-1">
+                                                  Waiting for your response
+                                              </p>
+                                          </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-2">
+                                          <button
+                                              onClick={() => onAcceptInvite?.(invite.id)}
+                                              className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all"
+                                          >
+                                              Accept
+                                          </button>
+
+                                          <button
+                                              onClick={() => onRejectInvite?.(invite.id)}
+                                              className="px-4 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all"
+                                          >
+                                              Reject
+                                          </button>
+                                      </div>
+                                  </div>
+                              </div>
+                          );
+                      })}
+                  </div>
+              )}
+
+              {sentStreakRequests.length > 0 && (
+                  <div className="space-y-3">
+                      <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'
+                          }`}>
+                          Pending Streaks
+                      </h2>
+
+                      {sentStreakRequests.map((request) => {
+                          const IconComponent = (LucideIcons as any)[request.habitIcon] || LucideIcons.Target;
+
+                          return (
+                              <div
+                                  key={`sent-${request.id}`}
+                                  className={`w-full rounded-3xl p-6 shadow-sm border transition-all ${isDark
+                                          ? 'bg-slate-800/40 border-slate-700/70'
+                                          : 'bg-white border-slate-200'
+                                      }`}
+                              >
+                                  <div className="flex items-center justify-between gap-4">
+                                      <div className="flex items-center gap-4">
+                                          <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${request.color || 'from-slate-500 to-slate-600'} shadow-lg opacity-80`}>
+                                              <IconComponent className="w-8 h-8 text-white" />
+                                          </div>
+
+                                          <div>
+                                              <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                                                  {request.habitName}
+                                              </h3>
+                                              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                                  Requested with {request.receiverName}
+                                              </p>
+                                              <p className="text-xs text-amber-500 font-semibold mt-1">
+                                                  Pending response ⏳
+                                              </p>
+                                          </div>
+                                      </div>
+
+                                      <div className={`px-4 py-2 rounded-2xl text-sm font-bold ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'
+                                          }`}>
+                                          Pending
+                                      </div>
+                                  </div>
+                              </div>
+                          );
+                      })}
+                  </div>
+              )}
         {streaks.map((streak) => {
           const isExpanded = expandedStreakId === streak.id;
           const isBroken = streak.isActive === false;
