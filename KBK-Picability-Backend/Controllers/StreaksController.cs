@@ -17,6 +17,38 @@ namespace Picability.Controllers
             _context = context;
         }
 
+        private static TimeZoneInfo GetPacificTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time"); // Windows/Azure
+            }
+            catch
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"); // Linux/Mac
+            }
+        }
+
+        private static DateTime ToPacificDate(DateTime utcDateTime)
+        {
+            var pacificZone = GetPacificTimeZone();
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc), pacificZone).Date;
+        }
+
+        private static DateTime GetPacificToday(DateTime nowUtc)
+        {
+            var pacificZone = GetPacificTimeZone();
+            return TimeZoneInfo.ConvertTimeFromUtc(nowUtc, pacificZone).Date;
+        }
+
+        private static int GetHoursUntilPacificMidnight(DateTime nowUtc)
+        {
+            var pacificZone = GetPacificTimeZone();
+            var nowPacific = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, pacificZone);
+            var nextMidnightPacific = nowPacific.Date.AddDays(1);
+            return Math.Max(0, (int)Math.Ceiling((nextMidnightPacific - nowPacific).TotalHours));
+        }
+
         // MODIFIED BY REECE
         // Before: Fetched streaks, dead streaks remained in the database as active
         // After: When fetching streaks, we check if any should be marked as failed based 
@@ -32,19 +64,26 @@ namespace Picability.Controllers
                 .ToListAsync();
 
             var nowUtc = DateTime.UtcNow;
-            var todayUtc = nowUtc.Date;
+            var todayPacific = GetPacificToday(nowUtc);
+            var hoursUntilMidnight = GetHoursUntilPacificMidnight(nowUtc);
             var defaultDate = new DateTime(1900, 1, 1);
             bool changesMade = false;
 
             foreach (var streak in streaks)
             {
-                if (streak.LastCompletedAt is DateTime lastCompletedAt &&
-                    lastCompletedAt != defaultDate &&
-                    (todayUtc - lastCompletedAt.Date).TotalDays > 1)
+                var lastFullyCompleted = streak.LastFullyCompletedAt ?? streak.LastCompletedAt;
+
+                if (lastFullyCompleted is DateTime lastCompletedAt &&
+                    lastCompletedAt != defaultDate)
                 {
-                    streak.IsActive = false;
-                    streak.FailedAt = nowUtc;
-                    changesMade = true;
+                    var lastCompletedPacificDate = ToPacificDate(lastCompletedAt);
+
+                    if ((todayPacific - lastCompletedPacificDate).TotalDays > 1)
+                    {
+                        streak.IsActive = false;
+                        streak.FailedAt = nowUtc;
+                        changesMade = true;
+                    }
                 }
             }
 
@@ -58,12 +97,12 @@ namespace Picability.Controllers
                 var isUserOne = s.UserOneId == userId;
 
                 var userCheckedInToday = isUserOne
-                    ? s.UserOneLastCheckedInAt.HasValue && s.UserOneLastCheckedInAt.Value.Date == todayUtc
-                    : s.UserTwoLastCheckedInAt.HasValue && s.UserTwoLastCheckedInAt.Value.Date == todayUtc;
+                    ? s.UserOneLastCheckedInAt.HasValue && ToPacificDate(s.UserOneLastCheckedInAt.Value) == todayPacific
+                    : s.UserTwoLastCheckedInAt.HasValue && ToPacificDate(s.UserTwoLastCheckedInAt.Value) == todayPacific;
 
                 var partnerCheckedInToday = isUserOne
-                    ? s.UserTwoLastCheckedInAt.HasValue && s.UserTwoLastCheckedInAt.Value.Date == todayUtc
-                    : s.UserOneLastCheckedInAt.HasValue && s.UserOneLastCheckedInAt.Value.Date == todayUtc;
+                    ? s.UserTwoLastCheckedInAt.HasValue && ToPacificDate(s.UserTwoLastCheckedInAt.Value) == todayPacific
+                    : s.UserOneLastCheckedInAt.HasValue && ToPacificDate(s.UserOneLastCheckedInAt.Value) == todayPacific;
 
                 return new
                 {
@@ -81,7 +120,12 @@ namespace Picability.Controllers
                     UserCheckedInToday = userCheckedInToday,
                     PartnerCheckedInToday = partnerCheckedInToday,
                     BothCheckedInToday = userCheckedInToday && partnerCheckedInToday,
-                    s.StartedAt
+                    s.StartedAt,
+                    CanCheckInToday = !userCheckedInToday,
+                    HoursUntilMidnight = hoursUntilMidnight,
+                    TimeMessage = userCheckedInToday
+                        ? $"Send another streak in {hoursUntilMidnight} hours"
+                        : $"Send a streak within {hoursUntilMidnight} hours or the streak dies!"
                 };
             });
 
@@ -113,12 +157,12 @@ namespace Picability.Controllers
         public async Task<IActionResult> RemoveFriendStreaks(string userId, string friendId)
         {
             var sharedStreaks = await _context.Streaks
-                .Where(s => (s.UserOneId == userId && s.UserTwoId == friendId) || 
+                .Where(s => (s.UserOneId == userId && s.UserTwoId == friendId) ||
                             (s.UserOneId == friendId && s.UserTwoId == userId))
                 .ToListAsync();
-            
+
             var sharedRequests = await _context.StreakRequests
-                .Where(sr => (sr.SenderId == userId && sr.ReceiverId == friendId) || 
+                .Where(sr => (sr.SenderId == userId && sr.ReceiverId == friendId) ||
                              (sr.SenderId == friendId && sr.ReceiverId == userId))
                 .ToListAsync();
 
@@ -126,11 +170,11 @@ namespace Picability.Controllers
             {
                 _context.Streaks.RemoveRange(sharedStreaks);
             }
-            if (sharedRequests.Any()) 
+            if (sharedRequests.Any())
             {
-                 _context.StreakRequests.RemoveRange(sharedRequests);
+                _context.StreakRequests.RemoveRange(sharedRequests);
             }
-            
+
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Shared streaks removed." });
@@ -157,14 +201,15 @@ namespace Picability.Controllers
             if (streak.UserOneId != dto.UserId && streak.UserTwoId != dto.UserId) return Forbid();
 
             var nowUtc = DateTime.UtcNow;
-            var todayUtc = nowUtc.Date;
+            var todayPacific = GetPacificToday(nowUtc);
+            var hoursUntilMidnight = GetHoursUntilPacificMidnight(nowUtc);
             var defaultDate = new DateTime(1900, 1, 1);
 
             var lastFullyCompleted = streak.LastFullyCompletedAt ?? streak.LastCompletedAt;
 
             if (lastFullyCompleted is DateTime lastDate &&
                 lastDate != defaultDate &&
-                (todayUtc - lastDate.Date).TotalDays > 1)
+                (todayPacific - ToPacificDate(lastDate)).TotalDays > 1)
             {
                 streak.IsActive = false;
                 streak.FailedAt = nowUtc;
@@ -179,7 +224,7 @@ namespace Picability.Controllers
                 : streak.UserTwoLastCheckedInAt;
 
             if (userLastCheckIn is DateTime existingCheckIn &&
-                existingCheckIn.Date == todayUtc)
+                ToPacificDate(existingCheckIn) == todayPacific)
             {
                 return BadRequest("You already checked in today!");
             }
@@ -195,15 +240,14 @@ namespace Picability.Controllers
 
             var userOneCheckedInToday =
                 streak.UserOneLastCheckedInAt.HasValue &&
-                streak.UserOneLastCheckedInAt.Value.Date == todayUtc;
-
+                ToPacificDate(streak.UserOneLastCheckedInAt.Value) == todayPacific; 
             var userTwoCheckedInToday =
                 streak.UserTwoLastCheckedInAt.HasValue &&
-                streak.UserTwoLastCheckedInAt.Value.Date == todayUtc;
+                ToPacificDate(streak.UserTwoLastCheckedInAt.Value) == todayPacific;
 
             var alreadyFullyCompletedToday =
                 lastFullyCompleted.HasValue &&
-                lastFullyCompleted.Value.Date == todayUtc;
+                ToPacificDate(lastFullyCompleted.Value) == todayPacific;
 
             var bothCheckedInToday = userOneCheckedInToday && userTwoCheckedInToday;
 
@@ -226,7 +270,12 @@ namespace Picability.Controllers
                 streak.UserTwoLastCheckedInAt,
                 UserCheckedInToday = true,
                 PartnerCheckedInToday = isUserOne ? userTwoCheckedInToday : userOneCheckedInToday,
-                BothCheckedInToday = bothCheckedInToday
+                BothCheckedInToday = bothCheckedInToday,
+                CanCheckInToday = false,
+                HoursUntilMidnight = hoursUntilMidnight,
+                TimeMessage = bothCheckedInToday
+                    ? $"Send another streak in {hoursUntilMidnight} hours"
+                    : $"Send a streak within {hoursUntilMidnight} hours or the streak dies!"
             });
         }
     }
