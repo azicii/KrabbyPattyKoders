@@ -51,12 +51,26 @@ namespace Picability.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
-            // Find the user by the email provided in your LoginDto
-            var user = await _userManager.FindByEmailAsync(model.Email);
+            // The Email field is now being used as "email OR username"
+            var loginInput = model.Email?.Trim();
+
+            if (string.IsNullOrWhiteSpace(loginInput))
+            {
+                return BadRequest(new { message = "Email or username is required" });
+            }
+
+            // First try email login
+            var user = await _userManager.FindByEmailAsync(loginInput);
+
+            // If no user was found by email, try username login
+            if (user == null)
+            {
+                user = await _userManager.FindByNameAsync(loginInput);
+            }
 
             if (user == null)
             {
-                return Unauthorized(new { message = "Invalid email or password" });
+                return Unauthorized(new { message = "Invalid email/username or password" });
             }
 
             // Check the password against the hashed version in the DB
@@ -73,7 +87,7 @@ namespace Picability.Controllers
                 });
             }
 
-            return Unauthorized(new { message = "Invalid email or password" });
+            return Unauthorized(new { message = "Invalid email/username or password" });
         }
     }
 }

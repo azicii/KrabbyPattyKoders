@@ -102,6 +102,28 @@ namespace Picability.Controllers
             return Ok(requests);
         }
 
+        [HttpGet("sender/{senderId}")]
+        public async Task<IActionResult> GetOutgoingRequests(string senderId)
+        {
+            var requests = await _context.StreakRequests
+                .Include(sr => sr.Receiver)
+                .Where(r => r.SenderId == senderId && r.Status == "Pending")
+                .Select(sr => new
+                {
+                    sr.Id,
+                    sr.HabitName,
+                    sr.HabitIcon,
+                    sr.Color,
+                    sr.Status,
+                    sr.CreatedAt,
+                    ReceiverName = sr.Receiver.UserName,
+                    ReceiverId = sr.ReceiverId
+                })
+                .ToListAsync();
+
+            return Ok(requests);
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
