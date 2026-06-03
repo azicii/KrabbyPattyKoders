@@ -76,27 +76,15 @@ export function StreakTracker({
         const hoursSince = (new Date().getTime() - lastFullCompletion.getTime()) / (1000 * 60 * 60);
         const canCheckInNow = hoursSince >= 24;
 
-        if (!canCheckInNow && !userDone && !partnerDone) {
-            return {
-                priority: 5,
-                label: 'Resting',
-                detail: 'Next check-in is not ready yet.',
-                emoji: '⚪',
-                cardClass: '',
-                chipClass: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-                pulseStyle: undefined
-            };
-        }
-
-        if (userDone && partnerDone) {
+        if (!canCheckInNow || (userDone && partnerDone)) {
             return {
                 priority: 4,
                 label: 'Completed today',
-                detail: 'Both of you checked in.',
+                detail: 'Both of you are good until the next check-in.',
                 emoji: '🟢',
-                cardClass: 'shadow-[0_0_22px_rgba(16,185,129,0.22)]',
+                cardClass: 'shadow-[0_0_18px_rgba(16,185,129,0.16)]',
                 chipClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
-                pulseStyle: { animation: 'picabilityGreenPulse 3s ease-in-out infinite' }
+                pulseStyle: undefined
             };
         }
 
@@ -106,9 +94,9 @@ export function StreakTracker({
                 label: 'Waiting on partner',
                 detail: 'You did your part.',
                 emoji: '🔵',
-                cardClass: 'shadow-[0_0_18px_rgba(59,130,246,0.25)]',
+                cardClass: 'shadow-[0_0_18px_rgba(59,130,246,0.20)]',
                 chipClass: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
-                pulseStyle: { animation: 'picabilityBluePulse 2.8s ease-in-out infinite' }
+                pulseStyle: { animation: 'picabilityBluePulse 4s ease-in-out infinite' }
             };
         }
 
@@ -118,9 +106,9 @@ export function StreakTracker({
                 label: 'Ready to check in',
                 detail: 'Both of you still need to check in.',
                 emoji: '🟡',
-                cardClass: 'shadow-[0_0_28px_rgba(245,158,11,0.35)]',
+                cardClass: 'shadow-[0_0_24px_rgba(245,158,11,0.30)]',
                 chipClass: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
-                pulseStyle: { animation: 'picabilityAmberPulse 2s ease-in-out infinite' }
+                pulseStyle: { animation: 'picabilityAmberPulse 3s ease-in-out infinite' }
             };
         }
 
@@ -129,9 +117,9 @@ export function StreakTracker({
             label: "Don't leave them hanging!",
             detail: 'Your partner already checked in.',
             emoji: '🔥',
-            cardClass: 'shadow-[0_0_34px_rgba(249,115,22,0.45)] scale-[1.01]',
+            cardClass: 'shadow-[0_0_30px_rgba(249,115,22,0.38)] scale-[1.005]',
             chipClass: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-            pulseStyle: { animation: 'picabilityFirePulse 1.6s ease-in-out infinite' }
+            pulseStyle: { animation: 'picabilityFirePulse 2.4s ease-in-out infinite' }
         };
     };
 
