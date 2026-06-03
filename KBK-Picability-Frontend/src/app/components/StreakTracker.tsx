@@ -70,6 +70,24 @@ export function StreakTracker({
         const userDone = streak.userCheckedInToday === true;
         const partnerDone = streak.partnerCheckedInToday === true;
 
+        const dateStr = streak.lastFullyCompletedAt || streak.lastCompletedAt;
+        const normalizedDate = dateStr && !dateStr.endsWith('Z') ? `${dateStr}Z` : dateStr;
+        const lastFullCompletion = normalizedDate ? new Date(normalizedDate) : new Date(1900, 0, 1);
+        const hoursSince = (new Date().getTime() - lastFullCompletion.getTime()) / (1000 * 60 * 60);
+        const canCheckInNow = hoursSince >= 24;
+
+        if (!canCheckInNow && !userDone && !partnerDone) {
+            return {
+                priority: 5,
+                label: 'Resting',
+                detail: 'Next check-in is not ready yet.',
+                emoji: '⚪',
+                cardClass: '',
+                chipClass: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+                pulseStyle: undefined
+            };
+        }
+
         if (userDone && partnerDone) {
             return {
                 priority: 4,
