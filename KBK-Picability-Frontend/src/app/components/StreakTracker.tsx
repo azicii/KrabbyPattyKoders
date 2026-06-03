@@ -390,7 +390,7 @@ export function StreakTracker({
                             <div
                                 key={streak.id}
                                 style={!isBroken ? visualState.pulseStyle : undefined}
-                                className={`w-full transition-all duration-500 ${!isBroken ? visualState.cardClass : ''} ${isBroken ? 'grayscale opacity-70 scale-[0.98]' : ''}`}
+                                className={`w-full rounded-3xl overflow-hidden transition-all duration-500 ${!isBroken ? visualState.cardClass : ''} ${isBroken ? 'grayscale opacity-70 scale-[0.98]' : ''}`}
                             >
                                 <button
                                     onClick={() => handleStreakClick(streak.id)}
