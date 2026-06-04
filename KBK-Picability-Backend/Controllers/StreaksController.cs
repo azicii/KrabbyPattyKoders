@@ -60,7 +60,7 @@ namespace Picability.Controllers
             var streaks = await _context.Streaks
                 .Include(s => s.UserOne)
                 .Include(s => s.UserTwo)
-                .Where(s => (s.UserOneId == userId || s.UserTwoId == userId) && s.IsActive)
+                .Where(s => s.UserOneId == userId || s.UserTwoId == userId)
                 .ToListAsync();
 
             var nowUtc = DateTime.UtcNow;
@@ -136,6 +136,7 @@ namespace Picability.Controllers
                     s.StartedAt,
                     CanCheckInToday = !userCheckedInToday,
                     HoursUntilMidnight = hoursUntilMidnight,
+                    PartnerId = isUserOne ? s.UserTwoId : s.UserOneId,
                     TimeMessage = userCheckedInToday
                         ? $"Send another streak in {hoursUntilMidnight} hours"
                         : $"Send a streak within {hoursUntilMidnight} hours or the streak dies!"

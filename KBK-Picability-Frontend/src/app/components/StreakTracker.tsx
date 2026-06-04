@@ -21,6 +21,7 @@ interface Streak {
     canCheckInToday?: boolean;
     hoursUntilMidnight?: number;
     timeMessage?: string;
+    partnerId?: string;
 }
 
 export type { Streak };
@@ -39,6 +40,7 @@ interface StreakTrackerProps {
     sentStreakRequests?: any[];
     onAcceptInvite?: (id: number) => void;
     onRejectInvite?: (id: number) => void;
+    onRestartStreak?: (streak: Streak) => void;
 }
 
 export function StreakTracker({
@@ -54,6 +56,7 @@ export function StreakTracker({
     streakInvites = [],
     sentStreakRequests = [],
     onAcceptInvite,
+    onRestartStreak,
     onRejectInvite
 }: StreakTrackerProps) {
     const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
@@ -125,6 +128,9 @@ export function StreakTracker({
     const sortedStreaks = [...streaks].sort((a, b) => {
         return getStreakVisualState(a).priority - getStreakVisualState(b).priority;
     });
+
+    const activeStreaks = sortedStreaks.filter(s => s.isActive !== false);
+    const brokenStreaks = streaks.filter(s => s.isActive === false);
 
     return (
         <>
@@ -358,14 +364,14 @@ export function StreakTracker({
                         </div>
                     )}
 
-                    {streaks.length > 0 && (
+                    {activeStreaks.length > 0 && (
                         <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'
                             }`}>
                             Active Streaks
                         </h2>
                     )}
 
-                    {sortedStreaks.map((streak) => {
+                    {activeStreaks.map((streak) => {
                         const isExpanded = expandedStreakId === streak.id;
                         const isBroken = streak.isActive === false;
                         const IconComponent = (LucideIcons as any)[streak.habitIcon] || LucideIcons.Target;
@@ -500,6 +506,63 @@ export function StreakTracker({
                             </div>
                         );
                     })}
+
+                    {brokenStreaks.length > 0 && (
+                        <div className="space-y-3">
+                            <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'
+                                }`}>
+                                Broken Streaks
+                            </h2>
+
+                            {brokenStreaks.map((streak) => {
+                                const IconComponent = (LucideIcons as any)[streak.habitIcon] || LucideIcons.Target;
+
+                                return (
+                                    <div
+                                        key={`broken-${streak.id}`}
+                                        className={`w-full rounded-3xl p-6 shadow-sm border transition-all grayscale opacity-80 ${isDark ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'
+                                            }`}
+                                    >
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-700 shadow-lg">
+                                                    <IconComponent className="w-8 h-8 text-white" />
+                                                </div>
+
+                                                <div>
+                                                    <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                                                        {streak.habitName} 💔
+                                                    </h3>
+                                                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                                        with {streak.userName}
+                                                    </p>
+                                                    <p className="text-sm text-rose-400 font-bold mt-1">
+                                                        You killed him! :'C
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-2">
+                                                <button
+                                                    onClick={() => onRestartStreak?.(streak)}
+                                                    className="px-4 py-2 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold transition-all"
+                                                >
+                                                    Try Again?
+                                                </button>
+
+                                                <button
+                                                    onClick={() => onDismissStreak?.(streak.id)}
+                                                    className="px-4 py-2 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white font-bold transition-all"
+                                                >
+                                                    Dismiss
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     <button onClick={onAddHabit} className="group w-full relative overflow-hidden bg-gradient-to-br from-teal-600 to-cyan-700 rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
                         <div className="flex items-center justify-center gap-3">

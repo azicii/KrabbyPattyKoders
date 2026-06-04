@@ -92,6 +92,7 @@ export default function App() {
                     canCheckInToday: s.canCheckInToday,
                     hoursUntilMidnight: s.hoursUntilMidnight,
                     timeMessage: s.timeMessage,
+                    partnerId: s.partnerId
                 }));
                 setStreaks(formattedStreaks);
             }
@@ -145,6 +146,35 @@ export default function App() {
             if (response.ok) fetchStreaks();
         } catch (err) {
             console.error("Check-in error:", err);
+        }
+    };
+
+    const handleRestartStreak = async (streak: Streak) => {
+        if (!user || !streak.partnerId) return;
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/StreakRequests`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    senderId: user.id,
+                    receiverId: streak.partnerId,
+                    habitName: streak.habitName,
+                    habitIcon: streak.habitIcon,
+                    color: streak.color
+                })
+            });
+
+            if (response.ok) {
+                await fetchStreaks();
+                await fetchSentStreakRequests();
+                alert("Streak request sent!");
+            } else {
+                const errorText = await response.text();
+                alert(errorText || "Failed to restart streak.");
+            }
+        } catch (err) {
+            console.error("Restart streak error:", err);
         }
     };
 
@@ -318,6 +348,7 @@ export default function App() {
                     sentStreakRequests={sentStreakRequests}
                     onAcceptInvite={handleAcceptStreakInvite}
                     onRejectInvite={handleRejectStreakInvite}
+                    onRestartStreak={handleRestartStreak}
                 />
             )}
 
