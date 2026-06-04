@@ -73,17 +73,30 @@ namespace Picability.Controllers
             {
                 var lastFullyCompleted = streak.LastFullyCompletedAt ?? streak.LastCompletedAt;
 
-                if (lastFullyCompleted is DateTime lastCompletedAt &&
-                    lastCompletedAt != defaultDate)
-                {
-                    var lastCompletedPacificDate = ToPacificDate(lastCompletedAt);
+                DateTime anchorDateUtc;
 
-                    if ((todayPacific - lastCompletedPacificDate).TotalDays > 1)
-                    {
-                        streak.IsActive = false;
-                        streak.FailedAt = nowUtc;
-                        changesMade = true;
-                    }
+                if (lastFullyCompleted is DateTime completedAt && completedAt != defaultDate)
+                {
+                    anchorDateUtc = completedAt;
+                }
+                else
+                {
+                    anchorDateUtc = streak.StartedAt;
+                }
+
+                var anchorPacificDate = ToPacificDate(anchorDateUtc);
+
+                var missedYesterdayOrEarlier = anchorPacificDate < todayPacific.AddDays(-1);
+
+                var startedBeforeTodayAndNeverCompleted =
+                    (lastFullyCompleted == null || lastFullyCompleted == defaultDate) &&
+                    anchorPacificDate < todayPacific;
+
+                if (missedYesterdayOrEarlier || startedBeforeTodayAndNeverCompleted)
+                {
+                    streak.IsActive = false;
+                    streak.FailedAt = nowUtc;
+                    changesMade = true;
                 }
             }
 
@@ -207,9 +220,26 @@ namespace Picability.Controllers
 
             var lastFullyCompleted = streak.LastFullyCompletedAt ?? streak.LastCompletedAt;
 
-            if (lastFullyCompleted is DateTime lastDate &&
-                lastDate != defaultDate &&
-                (todayPacific - ToPacificDate(lastDate)).TotalDays > 1)
+            DateTime anchorDateUtc;
+
+            if (lastFullyCompleted is DateTime completedAt && completedAt != defaultDate)
+            {
+                anchorDateUtc = completedAt;
+            }
+            else
+            {
+                anchorDateUtc = streak.StartedAt;
+            }
+
+            var anchorPacificDate = ToPacificDate(anchorDateUtc);
+
+            var missedYesterdayOrEarlier = anchorPacificDate < todayPacific.AddDays(-1);
+
+            var startedBeforeTodayAndNeverCompleted =
+                (lastFullyCompleted == null || lastFullyCompleted == defaultDate) &&
+                anchorPacificDate < todayPacific;
+
+            if (missedYesterdayOrEarlier || startedBeforeTodayAndNeverCompleted)
             {
                 streak.IsActive = false;
                 streak.FailedAt = nowUtc;

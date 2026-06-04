@@ -18,6 +18,9 @@ interface Streak {
     partnerCheckedInToday?: boolean;
     bothCheckedInToday?: boolean;
     isActive?: boolean;
+    canCheckInToday?: boolean;
+    hoursUntilMidnight?: number;
+    timeMessage?: string;
 }
 
 export type { Streak };
@@ -70,11 +73,7 @@ export function StreakTracker({
         const userDone = streak.userCheckedInToday === true;
         const partnerDone = streak.partnerCheckedInToday === true;
 
-        const dateStr = streak.lastFullyCompletedAt || streak.lastCompletedAt;
-        const normalizedDate = dateStr && !dateStr.endsWith('Z') ? `${dateStr}Z` : dateStr;
-        const lastFullCompletion = normalizedDate ? new Date(normalizedDate) : new Date(1900, 0, 1);
-        const hoursSince = (new Date().getTime() - lastFullCompletion.getTime()) / (1000 * 60 * 60);
-        const canCheckInNow = hoursSince >= 24;
+        const canCheckInNow = streak.canCheckInToday === true;
 
         if (!canCheckInNow || (userDone && partnerDone)) {
             return {
@@ -372,19 +371,11 @@ export function StreakTracker({
                         const IconComponent = (LucideIcons as any)[streak.habitIcon] || LucideIcons.Target;
                         const visualState = getStreakVisualState(streak);
 
-                        const dateStr = streak.lastFullyCompletedAt || streak.lastCompletedAt;
-                        const normalizedDate = dateStr && !dateStr.endsWith('Z') ? `${dateStr}Z` : dateStr;
-                        const lastFullCompletion = normalizedDate ? new Date(normalizedDate) : new Date(1900, 0, 1);
-
-                        const hoursSince = (new Date().getTime() - lastFullCompletion.getTime()) / (1000 * 60 * 60);
-                        const isNewDayReady = hoursSince >= 24;
-                        const remainingHours = Math.max(0, Math.ceil(24 - hoursSince));
-
                         const userCheckedInToday = streak.userCheckedInToday === true;
                         const partnerCheckedInToday = streak.partnerCheckedInToday === true;
                         const bothCheckedInToday = streak.bothCheckedInToday === true;
 
-                        const canCheckIn = isNewDayReady && !userCheckedInToday;
+                        const canCheckIn = streak.canCheckInToday === true;
 
                         return (
                             <div
@@ -476,13 +467,9 @@ export function StreakTracker({
                                                         ) : (
                                                             <>
                                                                 <Clock className="w-6 h-6 text-slate-400" />
-                                                                <span className="font-bold text-slate-400 text-lg">
-                                                                    {userCheckedInToday && !partnerCheckedInToday
-                                                                        ? 'Waiting on partner'
-                                                                        : bothCheckedInToday
-                                                                            ? 'Completed today'
-                                                                            : `Ready in ${remainingHours}h`}
-                                                                </span>
+                                                                        <span className="font-bold text-slate-400 text-lg">
+                                                                            {streak.timeMessage}
+                                                                        </span>
 
                                                             </>
                                                         )}
@@ -505,15 +492,7 @@ export function StreakTracker({
                                             <p className={`text-center mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                                                 {isBroken
                                                     ? "This streak was broken. Tap dismiss to remove it."
-                                                    : canCheckIn
-                                                        ? "Your partner needs your check-in today."
-                                                        : userCheckedInToday && !partnerCheckedInToday
-                                                            ? "You checked in. Waiting for your partner to keep the streak alive."
-                                                            : bothCheckedInToday
-                                                                ? "Both of you checked in today. Streak secured!"
-                                                                : partnerCheckedInToday && !userCheckedInToday
-                                                                    ? "🔥 Don't leave them hanging! Your partner already checked in."
-                                                                    : `Next check-in available in ${remainingHours} hours.`}
+                                                    : streak.timeMessage}
                                             </p>
                                         </div>
                                     </div>

@@ -89,6 +89,9 @@ export default function App() {
                     partnerCheckedInToday: s.partnerCheckedInToday,
                     bothCheckedInToday: s.bothCheckedInToday,
                     isActive: s.isActive
+                    canCheckInToday: s.canCheckInToday,
+                    hoursUntilMidnight: s.hoursUntilMidnight,
+                    timeMessage: s.timeMessage,
                 }));
                 setStreaks(formattedStreaks);
             }
