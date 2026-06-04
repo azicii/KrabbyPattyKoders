@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, LogIn, UserPlus, AlertCircle, CheckCircle2, Sun, Moon, Hammer } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, LogIn, UserPlus, AlertCircle, CheckCircle2, Sun, Moon } from 'lucide-react';
 
 interface AuthScreenProps {
   isDark: boolean;
@@ -207,25 +207,6 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
               )}
             </button>
           </form>
-
-          <div className="mt-4 pt-4 border-t border-dashed border-slate-700/20">
-            <button
-              type="button"
-              onClick={() => onSuccess({ 
-                id: 'dev-user-123', 
-                userName: 'DevTester', 
-                email: 'dev@test.com' 
-              })}
-              className={`w-full py-3 rounded-2xl font-medium transition-all duration-200 border-2 border-dashed flex items-center justify-center gap-2 ${
-                isDark 
-                  ? 'border-teal-500/30 text-teal-400 hover:bg-teal-500/10' 
-                  : 'border-teal-600/20 text-teal-700 hover:bg-teal-600/5'
-              }`}
-            >
-              <Hammer className="w-5 h-5" />
-              Dev Mode: Skip to Dashboard
-            </button>
-          </div>
 
           <div className="mt-6 text-center">
             <button
