@@ -20,6 +20,7 @@ interface Streak {
     isActive?: boolean;
     canCheckInToday?: boolean;
     hoursUntilMidnight?: number;
+    brokenMessage?: string;
     timeMessage?: string;
     partnerId?: string;
 }
@@ -537,7 +538,10 @@ export function StreakTracker({
                                                         with {streak.userName}
                                                     </p>
                                                     <p className="text-sm text-rose-400 font-bold mt-1">
-                                                        You killed him! :'C
+                                                        {streak.brokenMessage || "The streak died! :'C"}
+                                                    </p>
+                                                    <p className="text-xs text-slate-400 mt-1">
+                                                        Made it to {streak.streakCount} {streak.streakCount === 1 ? 'day' : 'days'}
                                                     </p>
                                                 </div>
                                             </div>

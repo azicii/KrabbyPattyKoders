@@ -109,6 +109,45 @@ namespace Picability.Controllers
             {
                 var isUserOne = s.UserOneId == userId;
 
+                string? brokenMessage = null;
+
+                if (!s.IsActive && s.FailedAt.HasValue)
+                {
+                    var failedPacificDate = ToPacificDate(s.FailedAt.Value);
+                    var missedPacificDate = failedPacificDate.AddDays(-1);
+
+                    var userOneCheckedMissedDay =
+                        s.UserOneLastCheckedInAt.HasValue &&
+                        ToPacificDate(s.UserOneLastCheckedInAt.Value) == missedPacificDate;
+
+                    var userTwoCheckedMissedDay =
+                        s.UserTwoLastCheckedInAt.HasValue &&
+                        ToPacificDate(s.UserTwoLastCheckedInAt.Value) == missedPacificDate;
+
+                    var currentUserCheckedMissedDay = isUserOne
+                        ? userOneCheckedMissedDay
+                        : userTwoCheckedMissedDay;
+
+                    var partnerCheckedMissedDay = isUserOne
+                        ? userTwoCheckedMissedDay
+                        : userOneCheckedMissedDay;
+
+                    var partnerName = isUserOne ? s.UserTwo.UserName : s.UserOne.UserName;
+
+                    if (!currentUserCheckedMissedDay && partnerCheckedMissedDay)
+                    {
+                        brokenMessage = "You killed him! :'C";
+                    }
+                    else if (currentUserCheckedMissedDay && !partnerCheckedMissedDay)
+                    {
+                        brokenMessage = $"{partnerName} killed him! :'C";
+                    }
+                    else
+                    {
+                        brokenMessage = "You both killed him! :'C";
+                    }
+                }
+
                 var userCheckedInToday = isUserOne
                     ? s.UserOneLastCheckedInAt.HasValue && ToPacificDate(s.UserOneLastCheckedInAt.Value) == todayPacific
                     : s.UserTwoLastCheckedInAt.HasValue && ToPacificDate(s.UserTwoLastCheckedInAt.Value) == todayPacific;
@@ -131,6 +170,7 @@ namespace Picability.Controllers
                     s.UserOneLastCheckedInAt,
                     s.UserTwoLastCheckedInAt,
                     UserCheckedInToday = userCheckedInToday,
+                    BrokenMessage = brokenMessage,
                     PartnerCheckedInToday = partnerCheckedInToday,
                     BothCheckedInToday = userCheckedInToday && partnerCheckedInToday,
                     s.StartedAt,

@@ -88,6 +88,7 @@ export default function App() {
                     userCheckedInToday: s.userCheckedInToday,
                     partnerCheckedInToday: s.partnerCheckedInToday,
                     bothCheckedInToday: s.bothCheckedInToday,
+                    brokenMessage: s.brokenMessage,
                     isActive: s.isActive,
                     canCheckInToday: s.canCheckInToday,
                     hoursUntilMidnight: s.hoursUntilMidnight,
