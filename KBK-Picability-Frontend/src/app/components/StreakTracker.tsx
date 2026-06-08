@@ -42,6 +42,7 @@ interface StreakTrackerProps {
     onAcceptInvite?: (id: number) => void;
     onRejectInvite?: (id: number) => void;
     onRestartStreak?: (streak: Streak) => void;
+    pendingFriendRequestCount?: number;
 }
 
 export function StreakTracker({
@@ -58,6 +59,7 @@ export function StreakTracker({
     sentStreakRequests = [],
     onAcceptInvite,
     onRestartStreak,
+    pendingFriendRequestCount = 0,
     onRejectInvite
 }: StreakTrackerProps) {
     const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
@@ -246,9 +248,15 @@ export function StreakTracker({
                             {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
                         </button>
 
-                        <button onClick={onFriends} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
+                        <button onClick={onFriends} className={`relative flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
                             <Users className={`w-5 h-5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
+                            {pendingFriendRequestCount > 0 && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full border-2 border-slate-900 flex items-center justify-center text-[10px] text-white font-bold">
+                                    {pendingFriendRequestCount}
+                                </span>
+                            )}
                         </button>
+
 
                         <button onClick={onLogout} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all border border-transparent hover:border-rose-500/30 ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
                             <LogOut className="w-5 h-5 text-rose-500" />

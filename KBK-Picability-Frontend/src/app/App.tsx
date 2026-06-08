@@ -66,6 +66,7 @@ export default function App() {
     const [lastRequestConfig, setLastRequestConfig] = useState<{ user: User; habitName: string } | null>(null);
     const [streakInvites, setStreakInvites] = useState<any[]>([]);
     const [sentStreakRequests, setSentStreakRequests] = useState<any[]>([]);
+    const [pendingFriendRequestCount, setPendingFriendRequestCount] = useState(0);
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -115,6 +116,24 @@ export default function App() {
         }
     };
 
+    const fetchPendingFriendRequestCount = async () => {
+        if (!user) return;
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/FriendRequests`);
+            if (response.ok) {
+                const data = await response.json();
+                const count = data.filter(
+                    (r: any) => r.status === 'Pending' && r.receiverId === user.id
+                ).length;
+
+                setPendingFriendRequestCount(count);
+            }
+        } catch (err) {
+            console.error("Error fetching friend request count:", err);
+        }
+    };
+
     const fetchSentStreakRequests = async () => {
         if (!user) return;
         try {
@@ -133,6 +152,7 @@ export default function App() {
             fetchStreaks();
             fetchStreakInvites();
             fetchSentStreakRequests();
+            fetchPendingFriendRequestCount();
         }
     }, [user]);
 
@@ -350,6 +370,7 @@ export default function App() {
                     onAcceptInvite={handleAcceptStreakInvite}
                     onRejectInvite={handleRejectStreakInvite}
                     onRestartStreak={handleRestartStreak}
+                    pendingFriendRequestCount={pendingFriendRequestCount}
                 />
             )}
 
