@@ -464,20 +464,16 @@ export function StreakTracker({
                                             e.stopPropagation();
                                             alert(hasPhotoBubble ? "Photo viewer coming next." : "Message viewer coming next.");
                                         }}
-                                        className={`absolute top-1/2 -right-8 -translate-y-1/2 z-20 w-20 h-16 rounded-full bg-white shadow-2xl border-4 flex items-center justify-center hover:scale-110 transition-all ${hasPhotoBubble
+                                        className={`absolute top-1/2 -right-12 -translate-y-1/2 z-20 w-[73px] h-[58px] rounded-full bg-white shadow-2xl border-4 flex items-center justify-center hover:scale-105 transition-all ${hasPhotoBubble
                                                 ? 'border-purple-500 text-purple-600'
                                                 : 'border-teal-500 text-slate-900'
                                             }`}
                                     >
-                                        <div
-                                            className={`absolute -bottom-1 left-4 w-5 h-5 bg-white border-b-4 border-l-4 rotate-[-20deg] ${hasPhotoBubble ? 'border-purple-500' : 'border-teal-500'
-                                                }`}
-                                        />
 
                                         {hasPhotoBubble ? (
-                                            <ImageIcon className="w-8 h-8 relative z-10" />
+                                            <ImageIcon className="w-7 h-7 relative z-10" />
                                         ) : (
-                                            <MessageCircle className="w-9 h-9 relative z-10" />
+                                            <MessageCircle className="w-8 h-8 relative z-10" />
                                         )}
                                     </button>
                                 )}
