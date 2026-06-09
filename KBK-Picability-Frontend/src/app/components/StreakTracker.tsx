@@ -1,5 +1,5 @@
 import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 
 interface Streak {
@@ -83,6 +83,7 @@ export function StreakTracker({
     const [checkInMessage, setCheckInMessage] = useState('');
     const [selectedPhotoName, setSelectedPhotoName] = useState('');
     const [viewingContent, setViewingContent] = useState<any | null>(null);
+    const [viewerProgress, setViewerProgress] = useState(100);
 
     const handleStreakClick = (streakId: number) => {
         setExpandedStreakId(expandedStreakId === streakId ? null : streakId);
@@ -186,6 +187,29 @@ export function StreakTracker({
 
     const activeStreaks = sortedStreaks.filter(s => s.isActive !== false);
     const brokenStreaks = streaks.filter(s => s.isActive === false);
+
+    useEffect(() => {
+        if (!viewingContent) return;
+
+        setViewerProgress(100);
+
+        const durationMs = (viewingContent.viewDurationSeconds || 10) * 1000;
+        const startTime = Date.now();
+
+        const interval = window.setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const remainingPercent = Math.max(0, 100 - (elapsed / durationMs) * 100);
+
+            setViewerProgress(remainingPercent);
+
+            if (remainingPercent <= 0) {
+                setViewingContent(null);
+                window.clearInterval(interval);
+            }
+        }, 50);
+
+        return () => window.clearInterval(interval);
+    }, [viewingContent]);
 
     return (
         <>
@@ -768,9 +792,21 @@ export function StreakTracker({
                                         : 'bg-white border-slate-200 text-slate-800'
                                     }`}
                             >
-                                <p className="text-sm font-bold uppercase tracking-widest text-teal-500 mb-3">
-                                    Check-in Message
-                                </p>
+                                <div className="flex items-center justify-between mb-3">
+                                    <p className="text-sm font-bold uppercase tracking-widest text-teal-500">
+                                        Check-in Message
+                                    </p>
+
+                                    <div
+                                        className="w-8 h-8 rounded-full"
+                                        style={{
+                                            background: `conic-gradient(rgb(20 184 166) ${viewerProgress * 3.6}deg, rgba(148, 163, 184, 0.18) 0deg)`
+                                        }}
+                                    >
+                                        <div className={`w-full h-full rounded-full scale-[0.72] ${isDark ? 'bg-slate-900' : 'bg-white'
+                                            }`} />
+                                    </div>
+                                </div>
 
                                 <div className={`rounded-3xl p-5 mb-4 ${isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-800'
                                     }`}>
