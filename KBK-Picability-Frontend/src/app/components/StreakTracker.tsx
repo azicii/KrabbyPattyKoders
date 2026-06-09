@@ -52,6 +52,7 @@ interface StreakTrackerProps {
         viewDurationSeconds: number
     ) => void;
     unreadContent?: any[];
+    onViewCheckInContent?: (contentId: number) => void;
 }
 
 export function StreakTracker({
@@ -71,6 +72,7 @@ export function StreakTracker({
     pendingFriendRequestCount = 0,
     onSendCheckInMessage,
     unreadContent = [],
+    onViewCheckInContent,
     onRejectInvite
 }: StreakTrackerProps) {
     const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
@@ -80,6 +82,7 @@ export function StreakTracker({
     const [checkInMode, setCheckInMode] = useState<'options' | 'message' | 'photo'>('options');
     const [checkInMessage, setCheckInMessage] = useState('');
     const [selectedPhotoName, setSelectedPhotoName] = useState('');
+    const [viewingContent, setViewingContent] = useState<any | null>(null);
 
     const handleStreakClick = (streakId: number) => {
         setExpandedStreakId(expandedStreakId === streakId ? null : streakId);
@@ -507,7 +510,10 @@ export function StreakTracker({
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            alert(hasPhotoBubble ? "Photo viewer coming next." : "Message viewer coming next.");
+                                            if (unreadForThisStreak) {
+                                                setViewingContent(unreadForThisStreak);
+                                                onViewCheckInContent?.(unreadForThisStreak.id);
+                                            }
                                         }}
                                         className={`absolute top-1/2 -right-12 -translate-y-1/2 z-20 w-[60px] h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
                                             } ${bubbleAccentClass}`}
@@ -749,6 +755,39 @@ export function StreakTracker({
                                         }`}
                                 >
                                     Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {viewingContent && (
+                        <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                            <div
+                                className={`w-full max-w-md rounded-3xl p-6 shadow-2xl border animate-in fade-in slide-in-from-bottom-4 duration-200 ${isDark
+                                        ? 'bg-slate-900 border-slate-700 text-slate-100'
+                                        : 'bg-white border-slate-200 text-slate-800'
+                                    }`}
+                            >
+                                <p className="text-sm font-bold uppercase tracking-widest text-teal-500 mb-3">
+                                    Check-in Message
+                                </p>
+
+                                <div className={`rounded-3xl p-5 mb-4 ${isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-800'
+                                    }`}>
+                                    <p className="text-lg font-semibold leading-relaxed">
+                                        {viewingContent.messageText}
+                                    </p>
+                                </div>
+
+                                <p className="text-xs text-slate-500 text-center mb-4">
+                                    This message disappears after viewing.
+                                </p>
+
+                                <button
+                                    onClick={() => setViewingContent(null)}
+                                    className="w-full py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold transition-all"
+                                >
+                                    Done
                                 </button>
                             </div>
                         </div>

@@ -162,6 +162,18 @@ export default function App() {
         await handleCheckIn(streakId);
     };
 
+    const handleViewCheckInContent = async (contentId: number) => {
+        try {
+            await fetch(`${BASE_URL}/api/CheckInContent/${contentId}/view`, {
+                method: 'POST'
+            });
+
+            await fetchUnreadContent();
+        } catch (err) {
+            console.error("Error marking content viewed:", err);
+        }
+    };
+
     const fetchUnreadContent = async () => {
         if (!user) return;
 
@@ -415,6 +427,7 @@ export default function App() {
                     pendingFriendRequestCount={pendingFriendRequestCount}
                     onSendCheckInMessage={handleSendCheckInMessage}
                     unreadContent={unreadContent}
+                    onViewCheckInContent={handleViewCheckInContent}
                 />
             )}
 
