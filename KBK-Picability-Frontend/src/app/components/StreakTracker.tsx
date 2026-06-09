@@ -415,9 +415,9 @@ export function StreakTracker({
 
                         const canCheckIn = streak.canCheckInToday === true;
 
-                        // TESTING ONLY
-                        const hasMessageBubble = streak.habitName === 'Exercise';
-                        const hasPhotoBubble = streak.habitName === 'Reading';
+                        //// TESTING ONLY
+                        //const hasMessageBubble = streak.habitName === 'Exercise';
+                        //const hasPhotoBubble = streak.habitName === 'Reading';
 
                         const bubbleAccentClass = streak.color.includes('orange') ? 'border-orange-500 text-orange-400'
                             : streak.color.includes('violet') || streak.color.includes('purple') ? 'border-purple-500 text-purple-400'
@@ -426,8 +426,8 @@ export function StreakTracker({
                                         : streak.color.includes('emerald') || streak.color.includes('teal') ? 'border-teal-500 text-teal-400'
                                             : 'border-teal-500 text-teal-400';
 
-                        //const hasMessageBubble = streak.hasUnreadMessage === true;
-                        //const hasPhotoBubble = streak.hasUnreadPhoto === true;
+                        const hasMessageBubble = streak.hasUnreadMessage === true;
+                        const hasPhotoBubble = streak.hasUnreadPhoto === true;
 
 
 
