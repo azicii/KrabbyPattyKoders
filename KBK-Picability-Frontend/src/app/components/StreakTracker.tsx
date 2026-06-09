@@ -1,4 +1,4 @@
-import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2 } from 'lucide-react';
+import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 
@@ -22,6 +22,8 @@ interface Streak {
     hoursUntilMidnight?: number;
     brokenMessage?: string;
     timeMessage?: string;
+    hasUnreadMessage?: boolean;
+    hasUnreadPhoto?: boolean;
     partnerId?: string;
 }
 
@@ -277,7 +279,7 @@ export function StreakTracker({
                 </div>
 
                 {/* Streaks List */}
-                <div className="max-w-2xl mx-auto space-y-4 mb-6">
+                <div className="max-w-2xl mx-auto space-y-4 mb-6 pr-10">
                     {streakInvites.length > 0 && (
                         <div className="space-y-3">
                             <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'
@@ -404,11 +406,20 @@ export function StreakTracker({
 
                         const canCheckIn = streak.canCheckInToday === true;
 
+                        // TESTING ONLY
+                        const hasMessageBubble = streak.habitName === 'Exercise';
+                        const hasPhotoBubble = streak.habitName === 'Reading';
+
+                        //const hasMessageBubble = streak.hasUnreadMessage === true;
+                        //const hasPhotoBubble = streak.hasUnreadPhoto === true;
+
+
+
                         return (
                             <div
                                 key={streak.id}
                                 style={!isBroken ? visualState.pulseStyle : undefined}
-                                className={`w-full rounded-3xl overflow-hidden transition-all duration-500 ${!isBroken ? visualState.cardClass : ''} ${isBroken ? 'grayscale opacity-70 scale-[0.98]' : ''}`}
+                                className={`relative w-full rounded-3xl overflow-visible transition-all duration-500 ${!isBroken ? visualState.cardClass : ''} ${isBroken ? 'grayscale opacity-70 scale-[0.98]' : ''}`}
                             >
                                 <button
                                     onClick={() => handleStreakClick(streak.id)}
@@ -445,6 +456,31 @@ export function StreakTracker({
                                         </div>
                                     </div>
                                 </button>
+
+                                {!isBroken && (hasMessageBubble || hasPhotoBubble) && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            alert(hasPhotoBubble ? "Photo viewer coming next." : "Message viewer coming next.");
+                                        }}
+                                        className={`absolute top-1/2 -right-8 -translate-y-1/2 z-20 w-20 h-16 rounded-full bg-white shadow-2xl border-4 flex items-center justify-center hover:scale-110 transition-all ${hasPhotoBubble
+                                                ? 'border-purple-500 text-purple-600'
+                                                : 'border-teal-500 text-slate-900'
+                                            }`}
+                                    >
+                                        <div
+                                            className={`absolute -bottom-1 left-4 w-5 h-5 bg-white border-b-4 border-l-4 rotate-[-20deg] ${hasPhotoBubble ? 'border-purple-500' : 'border-teal-500'
+                                                }`}
+                                        />
+
+                                        {hasPhotoBubble ? (
+                                            <ImageIcon className="w-8 h-8 relative z-10" />
+                                        ) : (
+                                            <MessageCircle className="w-9 h-9 relative z-10" />
+                                        )}
+                                    </button>
+                                )}
 
                                 {isExpanded && (
                                     <div className={`rounded-b-3xl overflow-hidden shadow-lg border-t ${isDark ? 'bg-slate-800/80 backdrop-blur-md border-slate-700/50' : 'bg-white border-slate-100'}`}>
