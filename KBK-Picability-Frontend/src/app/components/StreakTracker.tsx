@@ -65,14 +65,26 @@ export function StreakTracker({
     const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
     const [showInvites, setShowInvites] = useState(false);
     const [acceptedIds, setAcceptedIds] = useState<number[]>([]);
+    const [checkInModalStreak, setCheckInModalStreak] = useState<Streak | null>(null);
 
     const handleStreakClick = (streakId: number) => {
         setExpandedStreakId(expandedStreakId === streakId ? null : streakId);
     };
 
-    const handleCheckIn = (streakId: number, e: React.MouseEvent) => {
+    const openCheckInModal = (streak: Streak, e: React.MouseEvent) => {
         e.stopPropagation();
-        onStreakTap?.(streakId);
+        setCheckInModalStreak(streak);
+    };
+
+    const closeCheckInModal = () => {
+        setCheckInModalStreak(null);
+    };
+
+    const confirmSimpleCheckIn = () => {
+        if (!checkInModalStreak) return;
+
+        onStreakTap?.(checkInModalStreak.id);
+        setCheckInModalStreak(null);
     };
 
     const getStreakVisualState = (streak: Streak) => {
@@ -468,7 +480,7 @@ export function StreakTracker({
                                                 <div className="space-y-3">
                                                     <button
                                                         disabled={!canCheckIn}
-                                                        onClick={(e) => handleCheckIn(streak.id, e)}
+                                                        onClick={(e) => openCheckInModal(streak, e)}
                                                         className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl transition-all duration-300 shadow-md ${canCheckIn
                                                             ? `bg-gradient-to-r ${streak.color} hover:brightness-110`
                                                             : 'bg-slate-700/30 cursor-not-allowed grayscale'
@@ -515,6 +527,71 @@ export function StreakTracker({
                             </div>
                         );
                     })}
+
+                    {checkInModalStreak && (
+                        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                            <div
+                                className={`w-full max-w-md rounded-3xl p-6 shadow-2xl border animate-in fade-in slide-in-from-bottom-4 duration-200 ${isDark
+                                        ? 'bg-slate-900 border-slate-700 text-slate-100'
+                                        : 'bg-white border-slate-200 text-slate-800'
+                                    }`}
+                            >
+                                <div className="mb-5">
+                                    <p className="text-sm font-bold uppercase tracking-widest text-teal-500 mb-2">
+                                        Complete Streak
+                                    </p>
+
+                                    <h2 className="text-2xl font-bold">
+                                        {checkInModalStreak.habitName}
+                                    </h2>
+
+                                    <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                        How do you want to check in today?
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={confirmSimpleCheckIn}
+                                        className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`}
+                                    >
+                                        <span>Check in</span>
+                                        <CheckCircle2 className="w-5 h-5" />
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        disabled
+                                        className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all opacity-60 cursor-not-allowed ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
+                                            }`}
+                                    >
+                                        <span>Add message</span>
+                                        <span className="text-xs font-semibold">Coming next</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        disabled
+                                        className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all opacity-60 cursor-not-allowed ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
+                                            }`}
+                                    >
+                                        <span>Add picture</span>
+                                        <span className="text-xs font-semibold">Coming next</span>
+                                    </button>
+                                </div>
+
+                                <button
+                                    onClick={closeCheckInModal}
+                                    className={`w-full mt-4 py-3 rounded-2xl font-semibold transition-all ${isDark
+                                            ? 'text-slate-400 hover:bg-slate-800'
+                                            : 'text-slate-500 hover:bg-slate-100'
+                                        }`}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {brokenStreaks.length > 0 && (
                         <div className="space-y-3">
