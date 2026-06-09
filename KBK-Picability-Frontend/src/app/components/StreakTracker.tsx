@@ -279,7 +279,7 @@ export function StreakTracker({
                 </div>
 
                 {/* Streaks List */}
-                <div className="max-w-2xl mx-auto space-y-4 mb-6 pr-16">
+                <div className="max-w-2xl mx-auto space-y-4 mb-6 pr-12">
                     {streakInvites.length > 0 && (
                         <div className="space-y-3">
                             <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'
