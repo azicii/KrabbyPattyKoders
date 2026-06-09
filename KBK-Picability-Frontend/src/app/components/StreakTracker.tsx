@@ -68,6 +68,9 @@ export function StreakTracker({
     const [showInvites, setShowInvites] = useState(false);
     const [acceptedIds, setAcceptedIds] = useState<number[]>([]);
     const [checkInModalStreak, setCheckInModalStreak] = useState<Streak | null>(null);
+    const [checkInMode, setCheckInMode] = useState<'options' | 'message' | 'photo'>('options');
+    const [checkInMessage, setCheckInMessage] = useState('');
+    const [selectedPhotoName, setSelectedPhotoName] = useState('');
 
     const handleStreakClick = (streakId: number) => {
         setExpandedStreakId(expandedStreakId === streakId ? null : streakId);
@@ -76,17 +79,23 @@ export function StreakTracker({
     const openCheckInModal = (streak: Streak, e: React.MouseEvent) => {
         e.stopPropagation();
         setCheckInModalStreak(streak);
+        setCheckInMode('options');
+        setCheckInMessage('');
+        setSelectedPhotoName('');
     };
 
     const closeCheckInModal = () => {
         setCheckInModalStreak(null);
+        setCheckInMode('options');
+        setCheckInMessage('');
+        setSelectedPhotoName('');
     };
 
     const confirmSimpleCheckIn = () => {
         if (!checkInModalStreak) return;
 
         onStreakTap?.(checkInModalStreak.id);
-        setCheckInModalStreak(null);
+        closeCheckInModal();
     };
 
     const getStreakVisualState = (streak: Streak) => {
@@ -587,35 +596,121 @@ export function StreakTracker({
                                     </p>
                                 </div>
 
-                                <div className="space-y-3">
-                                    <button
-                                        onClick={confirmSimpleCheckIn}
-                                        className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`}
-                                    >
-                                        <span>Check in</span>
-                                        <CheckCircle2 className="w-5 h-5" />
-                                    </button>
+                                {checkInMode === 'options' && (
+                                    <div className="space-y-3">
+                                        <button
+                                            onClick={confirmSimpleCheckIn}
+                                            className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`}
+                                        >
+                                            <span>Check in</span>
+                                            <CheckCircle2 className="w-5 h-5" />
+                                        </button>
 
-                                    <button
-                                        type="button"
-                                        disabled
-                                        className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all opacity-60 cursor-not-allowed ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
-                                            }`}
-                                    >
-                                        <span>Add message</span>
-                                        <span className="text-xs font-semibold">Coming next</span>
-                                    </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCheckInMode('message')}
+                                            className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all ${isDark ? 'bg-slate-800 text-slate-100 hover:bg-slate-700' : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            <span>Add message</span>
+                                            <span className="text-xs font-semibold text-teal-400">Optional</span>
+                                        </button>
 
-                                    <button
-                                        type="button"
-                                        disabled
-                                        className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all opacity-60 cursor-not-allowed ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
-                                            }`}
-                                    >
-                                        <span>Add picture</span>
-                                        <span className="text-xs font-semibold">Coming next</span>
-                                    </button>
-                                </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCheckInMode('photo')}
+                                            className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all ${isDark ? 'bg-slate-800 text-slate-100 hover:bg-slate-700' : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            <span>Add picture</span>
+                                            <span className="text-xs font-semibold text-teal-400">Optional</span>
+                                        </button>
+                                    </div>
+                                )}
+
+                                {checkInMode === 'message' && (
+                                    <div className="space-y-3">
+                                        <textarea
+                                            value={checkInMessage}
+                                            onChange={(e) => setCheckInMessage(e.target.value)}
+                                            maxLength={200}
+                                            placeholder="Write a quick check-in message..."
+                                            className={`w-full min-h-28 resize-none rounded-2xl p-4 outline-none border transition-all ${isDark
+                                                    ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:border-teal-500'
+                                                    : 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-teal-500'
+                                                }`}
+                                        />
+
+                                        <div className="flex items-center justify-between text-xs text-slate-500">
+                                            <span>This will be ephemeral later.</span>
+                                            <span>{checkInMessage.length}/200</span>
+                                        </div>
+
+                                        <button
+                                            onClick={confirmSimpleCheckIn}
+                                            className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`}
+                                        >
+                                            <span>Send message + check in</span>
+                                            <CheckCircle2 className="w-5 h-5" />
+                                        </button>
+
+                                        <button
+                                            onClick={() => setCheckInMode('options')}
+                                            className={`w-full py-3 rounded-2xl font-semibold transition-all ${isDark ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-100'
+                                                }`}
+                                        >
+                                            Back
+                                        </button>
+                                    </div>
+                                )}
+
+                                {checkInMode === 'photo' && (
+                                    <div className="space-y-3">
+                                        <label
+                                            className={`w-full min-h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${isDark
+                                                    ? 'bg-slate-800 border-slate-700 text-slate-300 hover:border-teal-500'
+                                                    : 'bg-slate-50 border-slate-300 text-slate-600 hover:border-teal-500'
+                                                }`}
+                                        >
+                                            <span className="font-bold">
+                                                {selectedPhotoName || 'Choose JPG or PNG'}
+                                            </span>
+                                            <span className="text-xs text-slate-500">
+                                                Photo upload storage comes next
+                                            </span>
+
+                                            <input
+                                                type="file"
+                                                accept="image/png,image/jpeg"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) setSelectedPhotoName(file.name);
+                                                }}
+                                            />
+                                        </label>
+
+                                        <button
+                                            onClick={confirmSimpleCheckIn}
+                                            disabled={!selectedPhotoName}
+                                            className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all ${selectedPhotoName
+                                                    ? `bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`
+                                                    : 'bg-slate-700/30 text-slate-500 cursor-not-allowed'
+                                                }`}
+                                        >
+                                            <span>Send photo + check in</span>
+                                            <CheckCircle2 className="w-5 h-5" />
+                                        </button>
+
+                                        <button
+                                            onClick={() => setCheckInMode('options')}
+                                            className={`w-full py-3 rounded-2xl font-semibold transition-all ${isDark ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-100'
+                                                }`}
+                                        >
+                                            Back
+                                        </button>
+                                    </div>
+                                )}
 
                                 <button
                                     onClick={closeCheckInModal}
