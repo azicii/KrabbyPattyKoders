@@ -85,7 +85,23 @@ export function StreakTracker({
     const [viewingContent, setViewingContent] = useState<any | null>(null);
     const [viewerProgress, setViewerProgress] = useState(100);
 
+    const getUnreadForStreak = (streakId: number) => {
+        return unreadContent?.find(c => c.streakId === streakId);
+    };
+
+    const openUnreadContent = (content: any) => {
+        setViewingContent(content);
+        onViewCheckInContent?.(content.id);
+    };
+
     const handleStreakClick = (streakId: number) => {
+        const unread = getUnreadForStreak(streakId);
+
+        if (unread) {
+            openUnreadContent(unread);
+            return;
+        }
+
         setExpandedStreakId(expandedStreakId === streakId ? null : streakId);
     };
 
@@ -210,6 +226,8 @@ export function StreakTracker({
 
         return () => window.clearInterval(interval);
     }, [viewingContent]);
+
+    
 
     return (
         <>
@@ -476,8 +494,7 @@ export function StreakTracker({
                                         : streak.color.includes('emerald') || streak.color.includes('teal') ? 'border-teal-500 text-teal-400'
                                             : 'border-teal-500 text-teal-400';
 
-                        const unreadForThisStreak =
-                            unreadContent?.find(c => c.streakId === streak.id);
+                        const unreadForThisStreak = getUnreadForStreak(streak.id);
 
                         const hasMessageBubble =
                             unreadForThisStreak?.contentType === "Message";
@@ -535,8 +552,7 @@ export function StreakTracker({
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             if (unreadForThisStreak) {
-                                                setViewingContent(unreadForThisStreak);
-                                                onViewCheckInContent?.(unreadForThisStreak.id);
+                                                openUnreadContent(unreadForThisStreak);
                                             }
                                         }}
                                         className={`absolute top-1/2 -right-12 -translate-y-1/2 z-20 w-[60px] h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
@@ -839,10 +855,22 @@ export function StreakTracker({
                             {brokenStreaks.map((streak) => {
                                 const IconComponent = (LucideIcons as any)[streak.habitIcon] || LucideIcons.Target;
 
+                                const unreadForThisStreak = getUnreadForStreak(streak.id);
+
+                                const hasMessageBubble = unreadForThisStreak?.contentType === "Message";
+                                const hasPhotoBubble = unreadForThisStreak?.contentType === "Photo";
+
+                                const bubbleAccentClass = streak.color.includes('orange') ? 'border-orange-500 text-orange-400'
+                                    : streak.color.includes('violet') || streak.color.includes('purple') ? 'border-purple-500 text-purple-400'
+                                        : streak.color.includes('rose') || streak.color.includes('pink') ? 'border-pink-500 text-pink-400'
+                                            : streak.color.includes('sky') || streak.color.includes('blue') ? 'border-blue-500 text-blue-400'
+                                                : streak.color.includes('emerald') || streak.color.includes('teal') ? 'border-teal-500 text-teal-400'
+                                                    : 'border-teal-500 text-teal-400';
+
                                 return (
                                     <div
                                         key={`broken-${streak.id}`}
-                                        className={`w-full rounded-3xl p-6 shadow-sm border transition-all grayscale opacity-80 ${isDark ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'
+                                        className={`relative w-full rounded-3xl p-6 shadow-sm border transition-all grayscale opacity-80 ${isDark ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between gap-4">
@@ -883,6 +911,25 @@ export function StreakTracker({
                                                 </button>
                                             </div>
                                         </div>
+                                        {(hasMessageBubble || hasPhotoBubble) && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (unreadForThisStreak) {
+                                                        openUnreadContent(unreadForThisStreak);
+                                                    }
+                                                }}
+                                                className={`absolute top-1/2 -right-12 -translate-y-1/2 z-20 w-[60px] h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all opacity-70 grayscale ${isDark ? 'bg-slate-800' : 'bg-white'
+                                                    } ${bubbleAccentClass}`}
+                                            >
+                                                {hasPhotoBubble ? (
+                                                    <ImageIcon className="w-6 h-6 relative z-10" />
+                                                ) : (
+                                                    <MessageCircle className="w-7 h-7 relative z-10" />
+                                                )}
+                                            </button>
+                                        )}
                                     </div>
                                 );
                             })}
