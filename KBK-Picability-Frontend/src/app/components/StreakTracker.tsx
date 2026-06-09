@@ -25,6 +25,7 @@ interface Streak {
     hasUnreadMessage?: boolean;
     hasUnreadPhoto?: boolean;
     partnerId?: string;
+    unreadContent?: any[];
 }
 
 export type { Streak };
@@ -50,6 +51,7 @@ interface StreakTrackerProps {
         messageText: string,
         viewDurationSeconds: number
     ) => void;
+    unreadContent?: any[];
 }
 
 export function StreakTracker({
@@ -68,6 +70,7 @@ export function StreakTracker({
     onRestartStreak,
     pendingFriendRequestCount = 0,
     onSendCheckInMessage,
+    unreadContent = [],
     onRejectInvite
 }: StreakTrackerProps) {
     const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
@@ -438,9 +441,6 @@ export function StreakTracker({
 
                         const canCheckIn = streak.canCheckInToday === true;
 
-                        //// TESTING ONLY
-                        //const hasMessageBubble = streak.habitName === 'Exercise';
-                        //const hasPhotoBubble = streak.habitName === 'Reading';
 
                         const bubbleAccentClass = streak.color.includes('orange') ? 'border-orange-500 text-orange-400'
                             : streak.color.includes('violet') || streak.color.includes('purple') ? 'border-purple-500 text-purple-400'
@@ -449,8 +449,14 @@ export function StreakTracker({
                                         : streak.color.includes('emerald') || streak.color.includes('teal') ? 'border-teal-500 text-teal-400'
                                             : 'border-teal-500 text-teal-400';
 
-                        const hasMessageBubble = streak.hasUnreadMessage === true;
-                        const hasPhotoBubble = streak.hasUnreadPhoto === true;
+                        const unreadForThisStreak =
+                            unreadContent?.find(c => c.streakId === streak.id);
+
+                        const hasMessageBubble =
+                            unreadForThisStreak?.contentType === "Message";
+
+                        const hasPhotoBubble =
+                            unreadForThisStreak?.contentType === "Photo";
 
 
 

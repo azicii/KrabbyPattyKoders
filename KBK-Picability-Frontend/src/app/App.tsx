@@ -67,6 +67,7 @@ export default function App() {
     const [streakInvites, setStreakInvites] = useState<any[]>([]);
     const [sentStreakRequests, setSentStreakRequests] = useState<any[]>([]);
     const [pendingFriendRequestCount, setPendingFriendRequestCount] = useState(0);
+    const [unreadContent, setUnreadContent] = useState<any[]>([]);
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -161,6 +162,19 @@ export default function App() {
         await handleCheckIn(streakId);
     };
 
+    const fetchUnreadContent = async () => {
+        if (!user) return;
+
+        const response = await fetch(
+            `${BASE_URL}/api/CheckInContent/unread/${user.id}`
+        );
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        setUnreadContent(data);
+    };
+
     const fetchSentStreakRequests = async () => {
         if (!user) return;
         try {
@@ -180,6 +194,7 @@ export default function App() {
             fetchStreakInvites();
             fetchSentStreakRequests();
             fetchPendingFriendRequestCount();
+            fetchUnreadContent();
         }
     }, [user]);
 
@@ -399,6 +414,7 @@ export default function App() {
                     onRestartStreak={handleRestartStreak}
                     pendingFriendRequestCount={pendingFriendRequestCount}
                     onSendCheckInMessage={handleSendCheckInMessage}
+                    unreadContent={unreadContent}
                 />
             )}
 
