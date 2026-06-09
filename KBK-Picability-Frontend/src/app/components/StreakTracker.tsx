@@ -279,7 +279,7 @@ export function StreakTracker({
                 </div>
 
                 {/* Streaks List */}
-                <div className="max-w-2xl mx-auto space-y-4 mb-6 pr-10">
+                <div className="max-w-2xl mx-auto space-y-4 mb-6 pr-16">
                     {streakInvites.length > 0 && (
                         <div className="space-y-3">
                             <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'
@@ -464,16 +464,20 @@ export function StreakTracker({
                                             e.stopPropagation();
                                             alert(hasPhotoBubble ? "Photo viewer coming next." : "Message viewer coming next.");
                                         }}
-                                        className={`absolute top-1/2 -right-12 -translate-y-1/2 z-20 w-[73px] h-[58px] rounded-full bg-white shadow-2xl border-4 flex items-center justify-center hover:scale-105 transition-all ${hasPhotoBubble
-                                                ? 'border-purple-500 text-purple-600'
-                                                : 'border-teal-500 text-slate-900'
+                                        className={`absolute top-1/2 -right-16 -translate-y-1/2 z-20 w-[60px] h-[48px] rounded-full shadow-xl border-3 flex items-center justify-center hover:scale-105 transition-all ${hasPhotoBubble
+                                                ? isDark
+                                                    ? 'bg-slate-800 border-purple-500 text-purple-400'
+                                                    : 'bg-white border-purple-500 text-purple-600'
+                                                : isDark
+                                                    ? 'bg-slate-800 border-teal-500 text-teal-400'
+                                                    : 'bg-white border-teal-500 text-slate-900'
                                             }`}
                                     >
 
                                         {hasPhotoBubble ? (
-                                            <ImageIcon className="w-7 h-7 relative z-10" />
+                                            <ImageIcon className="w-6 h-6 relative z-10" />
                                         ) : (
-                                            <MessageCircle className="w-8 h-8 relative z-10" />
+                                            <MessageCircle className="w-7 h-7 relative z-10" />
                                         )}
                                     </button>
                                 )}
