@@ -701,7 +701,7 @@ export function StreakTracker({
                                         />
 
                                         <div className="flex items-center justify-between text-xs text-slate-500">
-                                            <span>This will be ephemeral later.</span>
+                                            <span>Message expires after 10 seconds once opened.</span>
                                             <span>{checkInMessage.length}/200</span>
                                         </div>
 
