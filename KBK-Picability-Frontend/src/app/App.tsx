@@ -134,6 +134,33 @@ export default function App() {
         }
     };
 
+    const handleSendCheckInMessage = async (
+        streakId: number,
+        messageText: string,
+        viewDurationSeconds: number
+    ) => {
+        if (!user) return;
+
+        const response = await fetch(`${BASE_URL}/api/CheckInContent/message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                streakId,
+                senderId: user.id,
+                messageText,
+                viewDurationSeconds
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            alert(errorText || "Failed to send message.");
+            return;
+        }
+
+        await handleCheckIn(streakId);
+    };
+
     const fetchSentStreakRequests = async () => {
         if (!user) return;
         try {
@@ -371,6 +398,7 @@ export default function App() {
                     onRejectInvite={handleRejectStreakInvite}
                     onRestartStreak={handleRestartStreak}
                     pendingFriendRequestCount={pendingFriendRequestCount}
+                    onSendCheckInMessage={handleSendCheckInMessage}
                 />
             )}
 

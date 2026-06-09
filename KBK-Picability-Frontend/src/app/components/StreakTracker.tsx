@@ -45,6 +45,11 @@ interface StreakTrackerProps {
     onRejectInvite?: (id: number) => void;
     onRestartStreak?: (streak: Streak) => void;
     pendingFriendRequestCount?: number;
+    onSendCheckInMessage?: (
+        streakId: number,
+        messageText: string,
+        viewDurationSeconds: number
+    ) => void;
 }
 
 export function StreakTracker({
@@ -62,6 +67,7 @@ export function StreakTracker({
     onAcceptInvite,
     onRestartStreak,
     pendingFriendRequestCount = 0,
+    onSendCheckInMessage,
     onRejectInvite
 }: StreakTrackerProps) {
     const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
@@ -95,6 +101,23 @@ export function StreakTracker({
         if (!checkInModalStreak) return;
 
         onStreakTap?.(checkInModalStreak.id);
+        closeCheckInModal();
+    };
+
+    const confirmMessageCheckIn = () => {
+        if (!checkInModalStreak) return;
+
+        if (!checkInMessage.trim()) {
+            alert("Please enter a message first.");
+            return;
+        }
+
+        onSendCheckInMessage?.(
+            checkInModalStreak.id,
+            checkInMessage.trim(),
+            10
+        );
+
         closeCheckInModal();
     };
 
@@ -647,7 +670,7 @@ export function StreakTracker({
                                         </div>
 
                                         <button
-                                            onClick={confirmSimpleCheckIn}
+                                            onClick={confirmMessageCheckIn}
                                             className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`}
                                         >
                                             <span>Send message + check in</span>
