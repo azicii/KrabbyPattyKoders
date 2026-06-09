@@ -410,6 +410,13 @@ export function StreakTracker({
                         const hasMessageBubble = streak.habitName === 'Exercise';
                         const hasPhotoBubble = streak.habitName === 'Reading';
 
+                        const bubbleAccentClass = streak.color.includes('orange') ? 'border-orange-500 text-orange-400'
+                            : streak.color.includes('violet') || streak.color.includes('purple') ? 'border-purple-500 text-purple-400'
+                                : streak.color.includes('rose') || streak.color.includes('pink') ? 'border-pink-500 text-pink-400'
+                                    : streak.color.includes('sky') || streak.color.includes('blue') ? 'border-blue-500 text-blue-400'
+                                        : streak.color.includes('emerald') || streak.color.includes('teal') ? 'border-teal-500 text-teal-400'
+                                            : 'border-teal-500 text-teal-400';
+
                         //const hasMessageBubble = streak.hasUnreadMessage === true;
                         //const hasPhotoBubble = streak.hasUnreadPhoto === true;
 
@@ -464,14 +471,8 @@ export function StreakTracker({
                                             e.stopPropagation();
                                             alert(hasPhotoBubble ? "Photo viewer coming next." : "Message viewer coming next.");
                                         }}
-                                        className={`absolute top-1/2 -right-16 -translate-y-1/2 z-20 w-[60px] h-[48px] rounded-full shadow-xl border-3 flex items-center justify-center hover:scale-105 transition-all ${hasPhotoBubble
-                                                ? isDark
-                                                    ? 'bg-slate-800 border-purple-500 text-purple-400'
-                                                    : 'bg-white border-purple-500 text-purple-600'
-                                                : isDark
-                                                    ? 'bg-slate-800 border-teal-500 text-teal-400'
-                                                    : 'bg-white border-teal-500 text-slate-900'
-                                            }`}
+                                        className={`absolute top-1/2 -right-16 -translate-y-1/2 z-20 w-[60px] h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
+                                            } ${bubbleAccentClass}`}
                                     >
 
                                         {hasPhotoBubble ? (
