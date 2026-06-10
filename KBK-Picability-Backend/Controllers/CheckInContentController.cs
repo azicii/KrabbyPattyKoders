@@ -81,6 +81,7 @@ namespace Picability.Controllers
         {
             var contents = await _context.CheckInContents
                 .Include(c => c.Streak)
+                .Include(c => c.Sender)
                 .Where(c =>
                     c.ReceiverId == userId &&
                     !c.IsViewed &&
@@ -91,6 +92,7 @@ namespace Picability.Controllers
                     c.Id,
                     c.StreakId,
                     c.SenderId,
+                    SenderName = c.Sender.UserName,
                     c.ReceiverId,
                     c.ContentType,
                     c.MessageText,

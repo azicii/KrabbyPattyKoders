@@ -169,6 +169,29 @@ export function StreakTracker({
         closeCheckInModal();
     };
 
+    const getContentAccentColor = (content: any) => {
+        const streak = streaks.find(s => s.id === content.streakId);
+
+        if (!streak) return 'rgb(20 184 166)';
+
+        if (streak.color.includes('orange'))
+            return 'rgb(249 115 22)';
+
+        if (streak.color.includes('violet') || streak.color.includes('purple'))
+            return 'rgb(168 85 247)';
+
+        if (streak.color.includes('pink') || streak.color.includes('rose'))
+            return 'rgb(236 72 153)';
+
+        if (streak.color.includes('sky') || streak.color.includes('blue'))
+            return 'rgb(59 130 246)';
+
+        if (streak.color.includes('emerald') || streak.color.includes('teal'))
+            return 'rgb(20 184 166)';
+
+        return 'rgb(20 184 166)';
+    };
+
     const getStreakVisualState = (streak: Streak) => {
         const userDone = streak.userCheckedInToday === true;
         const partnerDone = streak.partnerCheckedInToday === true;
@@ -864,7 +887,11 @@ export function StreakTracker({
                                     <div
                                         className="w-8 h-8 rounded-full"
                                         style={{
-                                            background: `conic-gradient(rgb(20 184 166) ${viewerProgress * 3.6}deg, rgba(148, 163, 184, 0.18) 0deg)`
+                                            background: `conic-gradient(
+                                                ${getContentAccentColor(viewingContent)}
+                                                ${viewerProgress * 3.6}deg,
+                                                rgba(148, 163, 184, 0.18) 0deg
+                                            )`
                                         }}
                                     >
                                         <div className={`w-full h-full rounded-full scale-[0.72] ${isDark ? 'bg-slate-900' : 'bg-white'
@@ -889,8 +916,8 @@ export function StreakTracker({
 
                                 <p className="text-xs text-slate-500 text-center mb-4">
                                     {viewingContent.contentType === "Photo"
-                                        ? "This photo disappears after viewing."
-                                        : "This message disappears after viewing."}
+                                        ? `Photo from ${viewingContent.senderName}`
+                                        : `Message from ${viewingContent.senderName}`}
                                 </p>
 
                                 <button
