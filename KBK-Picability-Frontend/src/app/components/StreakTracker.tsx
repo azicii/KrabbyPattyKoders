@@ -778,6 +778,8 @@ export function StreakTracker({
                                             <span className="text-xs text-slate-500">
                                                 Photo upload storage comes next
                                             </span>
+                                            <span>Photo expires after 10 seconds once opened.</span>
+
 
                                             <input
                                                 type="file"
