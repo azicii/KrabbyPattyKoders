@@ -778,8 +778,6 @@ export function StreakTracker({
                                             <span className="text-xs text-slate-500">
                                                 Photo upload storage comes next
                                             </span>
-                                            <span>Photo expires after 10 seconds once opened.</span>
-
 
                                             <input
                                                 type="file"
@@ -821,6 +819,11 @@ export function StreakTracker({
                                             <span>Send photo + check in</span>
                                             <CheckCircle2 className="w-5 h-5" />
                                         </button>
+
+                                        <div className="flex items-center justify-between text-xs text-slate-500">
+                                            <span>Photo expires after 10 seconds once opened.</span>
+                                        </div>
+                                        
 
                                         <button
                                             onClick={() => setCheckInMode('options')}
