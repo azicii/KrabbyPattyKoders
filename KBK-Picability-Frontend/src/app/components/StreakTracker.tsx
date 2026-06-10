@@ -53,6 +53,11 @@ interface StreakTrackerProps {
     ) => void;
     unreadContent?: any[];
     onViewCheckInContent?: (contentId: number) => void;
+    onSendCheckInPhoto?: (
+        streakId: number,
+        photoDataUrl: string,
+        viewDurationSeconds: number
+    ) => void;
 }
 
 export function StreakTracker({
@@ -73,7 +78,8 @@ export function StreakTracker({
     onSendCheckInMessage,
     unreadContent = [],
     onViewCheckInContent,
-    onRejectInvite
+    onRejectInvite,
+    onSendCheckInPhoto
 }: StreakTrackerProps) {
     const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
     const [showInvites, setShowInvites] = useState(false);
@@ -84,6 +90,7 @@ export function StreakTracker({
     const [selectedPhotoName, setSelectedPhotoName] = useState('');
     const [viewingContent, setViewingContent] = useState<any | null>(null);
     const [viewerProgress, setViewerProgress] = useState(100);
+    const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
     const getUnreadForStreak = (streakId: number) => {
         return unreadContent?.find(c => c.streakId === streakId);
@@ -111,6 +118,7 @@ export function StreakTracker({
         setCheckInMode('options');
         setCheckInMessage('');
         setSelectedPhotoName('');
+        setSelectedPhoto(null);
     };
 
     const closeCheckInModal = () => {
@@ -118,6 +126,7 @@ export function StreakTracker({
         setCheckInMode('options');
         setCheckInMessage('');
         setSelectedPhotoName('');
+        setSelectedPhoto(null);
     };
 
     const confirmSimpleCheckIn = () => {
@@ -141,6 +150,22 @@ export function StreakTracker({
             10
         );
 
+        closeCheckInModal();
+    };
+
+    const confirmPhotoCheckIn = () => {
+        if (!checkInModalStreak || !selectedPhoto) {
+            return;
+        }
+
+        onSendCheckInPhoto?.(
+            checkInModalStreak.id,
+            selectedPhoto,
+            10
+        );
+
+        setSelectedPhoto(null);
+        setSelectedPhotoName('');
         closeCheckInModal();
     };
 
@@ -758,15 +783,33 @@ export function StreakTracker({
                                                 type="file"
                                                 accept="image/png,image/jpeg"
                                                 className="hidden"
+                                                id="photo-upload-input"
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0];
-                                                    if (file) setSelectedPhotoName(file.name);
+                                                    if (!file) return;
+
+                                                    const reader = new FileReader();
+
+                                                    reader.onload = () => {
+                                                        setSelectedPhoto(reader.result as string);
+                                                        setSelectedPhotoName(file.name);
+                                                    };
+
+                                                    reader.readAsDataURL(file);
                                                 }}
                                             />
                                         </label>
 
+                                        {selectedPhoto && (
+                                            <img
+                                                src={selectedPhoto}
+                                                alt="Preview"
+                                                className="w-full rounded-2xl max-h-64 object-cover"
+                                            />
+                                        )}
+
                                         <button
-                                            onClick={confirmSimpleCheckIn}
+                                            onClick={confirmPhotoCheckIn}
                                             disabled={!selectedPhotoName}
                                             className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all ${selectedPhotoName
                                                     ? `bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`

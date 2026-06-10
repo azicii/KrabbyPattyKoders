@@ -399,6 +399,37 @@ export default function App() {
         }
     };
 
+    const handleSendCheckInPhoto = async (
+        streakId: number,
+        photoDataUrl: string,
+        viewDurationSeconds: number
+    ) => {
+        if (!user) return;
+
+        const response = await fetch(
+            `${BASE_URL}/api/CheckInContent/photo`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    streakId,
+                    senderId: user.id,
+                    photoDataUrl,
+                    viewDurationSeconds
+                })
+            }
+        );
+
+        if (!response.ok) {
+            alert("Failed to send photo.");
+            return;
+        }
+
+        await handleCheckIn(streakId);
+    };
+
     if (!user) {
         return <AuthScreen isDark={isDark} onToggleDark={() => setIsDark(!isDark)} onSuccess={handleAuthSuccess} />;
     }
@@ -428,6 +459,7 @@ export default function App() {
                     onSendCheckInMessage={handleSendCheckInMessage}
                     unreadContent={unreadContent}
                     onViewCheckInContent={handleViewCheckInContent}
+                    onSendCheckInPhoto={handleSendCheckInPhoto}
                 />
             )}
 
