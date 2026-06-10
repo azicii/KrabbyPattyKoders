@@ -126,5 +126,75 @@ namespace Picability.Controllers
                 content.ViewDurationSeconds
             });
         }
+
+        [HttpPost("photo")]
+        public async Task<IActionResult> CreatePhoto([FromBody] CreateCheckInPhotoDto model)
+        {
+            if (string.IsNullOrWhiteSpace(model.PhotoDataUrl))
+            {
+                return BadRequest(new { message = "Photo is required." });
+            }
+
+            if (!model.PhotoDataUrl.StartsWith("data:image/png;base64,") &&
+                !model.PhotoDataUrl.StartsWith("data:image/jpeg;base64,"))
+            {
+                return BadRequest(new { message = "Only PNG and JPG images are allowed." });
+            }
+
+            if (model.PhotoDataUrl.Length > 1_500_000)
+            {
+                return BadRequest(new { message = "Photo is too large. Please choose a smaller image." });
+            }
+
+            if (model.ViewDurationSeconds < 1 || model.ViewDurationSeconds > 10)
+            {
+                return BadRequest(new { message = "View duration must be between 1 and 10 seconds." });
+            }
+
+            var streak = await _context.Streaks
+                .FirstOrDefaultAsync(s => s.Id == model.StreakId && s.IsActive);
+
+            if (streak == null)
+            {
+                return NotFound(new { message = "Active streak not found." });
+            }
+
+            if (model.SenderId != streak.UserOneId && model.SenderId != streak.UserTwoId)
+            {
+                return BadRequest(new { message = "Sender is not part of this streak." });
+            }
+
+            var receiverId = model.SenderId == streak.UserOneId
+                ? streak.UserTwoId
+                : streak.UserOneId;
+
+            var content = new CheckInContent
+            {
+                StreakId = streak.Id,
+                SenderId = model.SenderId,
+                ReceiverId = receiverId,
+                ContentType = "Photo",
+                PhotoUrl = model.PhotoDataUrl,
+                ViewDurationSeconds = model.ViewDurationSeconds,
+                CreatedAt = DateTime.UtcNow,
+                IsViewed = false
+            };
+
+            _context.CheckInContents.Add(content);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Check-in photo created.",
+                content.Id,
+                content.StreakId,
+                content.SenderId,
+                content.ReceiverId,
+                content.ContentType,
+                content.PhotoUrl,
+                content.ViewDurationSeconds,
+                content.CreatedAt
+            });
+        }
     }
 }
