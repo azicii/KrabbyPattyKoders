@@ -853,7 +853,7 @@ export function StreakTracker({
                             >
                                 <div className="flex items-center justify-between mb-3">
                                     <p className="text-sm font-bold uppercase tracking-widest text-teal-500">
-                                        Check-in Message
+                                        {viewingContent.contentType === "Photo" ? "Check-in Photo" : "Check-in Message"}
                                     </p>
 
                                     <div
@@ -867,15 +867,25 @@ export function StreakTracker({
                                     </div>
                                 </div>
 
-                                <div className={`rounded-3xl p-5 mb-4 ${isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-800'
+                                <div className={`rounded-3xl p-3 mb-4 ${isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-800'
                                     }`}>
-                                    <p className="text-lg font-semibold leading-relaxed">
-                                        {viewingContent.messageText}
-                                    </p>
+                                    {viewingContent.contentType === "Photo" ? (
+                                        <img
+                                            src={viewingContent.photoUrl}
+                                            alt="Check-in"
+                                            className="w-full max-h-[70vh] object-contain rounded-2xl"
+                                        />
+                                    ) : (
+                                        <p className="text-lg font-semibold leading-relaxed p-2">
+                                            {viewingContent.messageText}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <p className="text-xs text-slate-500 text-center mb-4">
-                                    This message disappears after viewing.
+                                    {viewingContent.contentType === "Photo"
+                                        ? "This photo disappears after viewing."
+                                        : "This message disappears after viewing."}
                                 </p>
 
                                 <button

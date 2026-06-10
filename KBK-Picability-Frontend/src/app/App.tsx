@@ -423,7 +423,8 @@ export default function App() {
         );
 
         if (!response.ok) {
-            alert("Failed to send photo.");
+            const errorText = await response.text();
+            alert(errorText || "Failed to send photo.");
             return;
         }
 
