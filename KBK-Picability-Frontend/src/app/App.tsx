@@ -68,6 +68,7 @@ export default function App() {
     const [sentStreakRequests, setSentStreakRequests] = useState<any[]>([]);
     const [pendingFriendRequestCount, setPendingFriendRequestCount] = useState(0);
     const [unreadContent, setUnreadContent] = useState<any[]>([]);
+    const [draftHabitConfig, setDraftHabitConfig] = useState<Partial<HabitConfiguration> | null>(null);
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -313,6 +314,7 @@ export default function App() {
         setPreSelectedFriend(null);
         setSelectedHabitType(null);
         setCurrentScreen('selector');
+        setDraftHabitConfig(null);
     };
 
     const handleAcceptStreakInvite = async (requestId: number) => {
@@ -381,6 +383,7 @@ export default function App() {
                 });
                 fetchSentStreakRequests();
                 setCurrentScreen('confirmation');
+                setDraftHabitConfig(null);
             } else {
                 const contentType = response.headers.get("content-type");
                 let errorMessage = "Failed to send streak request";
@@ -489,6 +492,8 @@ export default function App() {
                     habitType={selectedHabitType || undefined}
                     presetHabitName={selectedHabitType && typeof selectedHabitType === 'number' ? habitNames[selectedHabitType] : ''}
                     preSelectedFriend={preSelectedFriend}
+                    draftConfig={draftHabitConfig}
+                    onDraftChange={setDraftHabitConfig}
                 />
             )}
 
