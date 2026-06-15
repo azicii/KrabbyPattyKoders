@@ -3,11 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using Picability.Data;
 using Picability.DTOs;
 using Picability.Models;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace Picability.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class StreaksController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -15,6 +18,11 @@ namespace Picability.Controllers
         public StreaksController(ApplicationDbContext context)
         {
             _context = context;
+        }
+
+        private string? GetCurrentUserId()
+        {
+            return User.FindFirstValue(ClaimTypes.NameIdentifier);
         }
 
         private static TimeZoneInfo GetPacificTimeZone()
@@ -54,9 +62,16 @@ namespace Picability.Controllers
         // After: When fetching streaks, we check if any should be marked as failed based 
         // on the last completed date using a foreach loop. This way, dead streaks are automatically marked as 
         // inactive without needing a separate cleanup process.
-        [HttpGet("user/{userId}")]
-        public async Task<IActionResult> GetUserStreaks(string userId)
+        [HttpGet("mine")]
+        public async Task<IActionResult> GetMyStreaks()
         {
+            var userId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
             var streaks = await _context.Streaks
                 .Include(s => s.UserOne)
                 .Include(s => s.UserTwo)
@@ -193,8 +208,16 @@ namespace Picability.Controllers
         [HttpDelete("{id}/dismiss")]
         public async Task<IActionResult> DismissStreak(int id)
         {
-            var streak = await _context.Streaks.FirstOrDefaultAsync(s => s.Id == id);
-            if (streak == null) return NotFound("Streak not found.");
+            var currentUserId = GetCurrentUserId();
+
+            var streak = await _context.Streaks.FirstOrDefaultAsync(s =>
+                s.Id == id &&
+                (s.UserOneId == currentUserId || s.UserTwoId == currentUserId));
+
+            if (streak == null)
+            {
+                return NotFound("Streak not found.");
+            }
 
             _context.Streaks.Remove(streak);
             await _context.SaveChangesAsync();
@@ -207,9 +230,16 @@ namespace Picability.Controllers
         // remain in the database and UI.
         // After: Removing a friend also removes any streaks between the
         // users, also cleaning the UI.
-        [HttpDelete("remove-connection/{userId}/{friendId}")]
-        public async Task<IActionResult> RemoveFriendStreaks(string userId, string friendId)
+        [HttpDelete("remove-connection/{friendId}")]
+        public async Task<IActionResult> RemoveFriendStreaks(string friendId)
         {
+            var userId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
             var sharedStreaks = await _context.Streaks
                 .Where(s => (s.UserOneId == userId && s.UserTwoId == friendId) ||
                             (s.UserOneId == friendId && s.UserTwoId == userId))
@@ -237,10 +267,19 @@ namespace Picability.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized();
+            }
+
             var streak = await _context.Streaks
                 .Include(s => s.UserOne)
                 .Include(s => s.UserTwo)
-                .FirstOrDefaultAsync(s => s.Id == id);
+                .FirstOrDefaultAsync(s =>
+                    s.Id == id &&
+                    (s.UserOneId == currentUserId || s.UserTwoId == currentUserId));
 
             if (streak == null) return NotFound("Streak not found.");
             return Ok(streak);
@@ -249,10 +288,26 @@ namespace Picability.Controllers
         [HttpPost("{id}/complete")]
         public async Task<IActionResult> CompleteStreak(int id, CompleteStreakDto dto)
         {
-            var streak = await _context.Streaks.FirstOrDefaultAsync(s => s.Id == id);
-            if (streak == null) return NotFound("Streak not found.");
-            if (!streak.IsActive) return BadRequest("This streak is no longer active.");
-            if (streak.UserOneId != dto.UserId && streak.UserTwoId != dto.UserId) return Forbid();
+            var currentUserId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var streak = await _context.Streaks.FirstOrDefaultAsync(s =>
+                s.Id == id &&
+                (s.UserOneId == currentUserId || s.UserTwoId == currentUserId));
+
+            if (streak == null)
+            {
+                return NotFound("Streak not found.");
+            }
+
+            if (!streak.IsActive)
+            {
+                return BadRequest("This streak is no longer active.");
+            }
 
             var nowUtc = DateTime.UtcNow;
             var todayPacific = GetPacificToday(nowUtc);
@@ -288,7 +343,7 @@ namespace Picability.Controllers
                 return Conflict(new { message = "Streak broken!" });
             }
 
-            var isUserOne = streak.UserOneId == dto.UserId;
+            var isUserOne = streak.UserOneId == currentUserId;
 
             var userLastCheckIn = isUserOne
                 ? streak.UserOneLastCheckedInAt
