@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Picability.Data;
+using System.Security.Claims;
 
 namespace Picability.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class FriendsController : ControllerBase
@@ -15,15 +18,28 @@ namespace Picability.Controllers
             _context = context;
         }
 
+        private string? GetCurrentUserId()
+        {
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
 
         [HttpPost("accept/{requestId}")]
         public async Task<IActionResult> AcceptFriendRequest(int requestId)
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var request = await _context.FriendRequests
                 .FirstOrDefaultAsync(fr => fr.Id == requestId);
 
             if (request == null)
                 return NotFound("Request not found");
+
+            if (request.ReceiverId != currentUserId)
+                return Forbid();
 
             if (request.Status != "Pending")
                 return BadRequest("Request already handled");
@@ -66,11 +82,19 @@ namespace Picability.Controllers
         [HttpPost("reject/{requestId}")]
         public async Task<IActionResult> RejectFriendRequest(int requestId)
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var request = await _context.FriendRequests
                 .FirstOrDefaultAsync(fr => fr.Id == requestId);
 
             if (request == null)
                 return NotFound("Request not found");
+
+            if (request.ReceiverId != currentUserId)
+                return Forbid();
 
             if (request.Status != "Pending")
                 return BadRequest("Request already handled");
@@ -86,23 +110,20 @@ namespace Picability.Controllers
                 status = request.Status
             });
         }
-        
-        // MODIFIED BY REECE
-        // Before: This method would delete friendship records from the
-        // friends table in the db, but friend requests would remain in the 
-        // db as "accepted". This caused the unfriended user to be unable to 
-        // appear in the unfriending user's friend search results as the system
-        // still considered them to be friends.
-        // After: Method now also deletes the original friend request, allowing
-        // the unfriended user to be re-added in the future (and cleans up the db).
-        [HttpDelete("{userId}/{friendId}")]
-        public async Task<IActionResult> RemoveFriend(string userId, string friendId)
+
+        [HttpDelete("{friendId}")]
+        public async Task<IActionResult> RemoveFriend(string friendId)
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             // 1. Get the friendships
             var friendships = await _context.Friends
                 .Where(f =>
-                    (f.UserId == userId && f.FriendId == friendId) ||
-                    (f.UserId == friendId && f.FriendId == userId))
+                    (f.UserId == currentUserId && f.FriendId == friendId) ||
+                    (f.UserId == friendId && f.FriendId == currentUserId))
                 .ToListAsync();
 
             if (!friendships.Any())
@@ -127,15 +148,16 @@ namespace Picability.Controllers
             return Ok("Friend and original request removed successfully");
         }
 
-        // ADDED BY REECE
-        // Before: No endpoint for the UI to fetch a user's friends for the 
-        // friend list
-        // After: Added this endpoint to fetch a user's friends for the friend list
-        [HttpGet("{userId}")]
-        public async Task<IActionResult> GetFriends(string userId)
+        [HttpGet("mine")]
+        public async Task<IActionResult> GetMyFriends()
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var friends = await _context.Friends
-                .Where(f => f.UserId == userId)
+                .Where(f => f.UserId == currentUserId)
                 .Select(f => new
                 {
                     Id = f.FriendId,

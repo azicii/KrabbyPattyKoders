@@ -1,11 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Picability.Data;
 using Picability.DTOs;
 using Picability.Models;
+using System.Security.Claims;
 
 namespace Picability.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class CheckInContentController : ControllerBase
@@ -15,6 +18,11 @@ namespace Picability.Controllers
         public CheckInContentController(ApplicationDbContext context)
         {
             _context = context;
+        }
+
+        private string? GetCurrentUserId()
+        {
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
 
         [HttpPost("message")]
@@ -30,6 +38,11 @@ namespace Picability.Controllers
                 return BadRequest(new { message = "View duration must be between 1 and 10 seconds." });
             }
 
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var streak = await _context.Streaks
                 .FirstOrDefaultAsync(s => s.Id == model.StreakId && s.IsActive);
 
@@ -38,19 +51,19 @@ namespace Picability.Controllers
                 return NotFound(new { message = "Active streak not found." });
             }
 
-            if (model.SenderId != streak.UserOneId && model.SenderId != streak.UserTwoId)
+            if (currentUserId != streak.UserOneId && currentUserId != streak.UserTwoId)
             {
-                return BadRequest(new { message = "Sender is not part of this streak." });
+                return Forbid();
             }
 
-            var receiverId = model.SenderId == streak.UserOneId
+            var receiverId = currentUserId == streak.UserOneId
                 ? streak.UserTwoId
                 : streak.UserOneId;
 
             var content = new CheckInContent
             {
                 StreakId = streak.Id,
-                SenderId = model.SenderId,
+                SenderId = currentUserId,
                 ReceiverId = receiverId,
                 ContentType = "Message",
                 MessageText = model.MessageText.Trim(),
@@ -76,14 +89,19 @@ namespace Picability.Controllers
             });
         }
 
-        [HttpGet("unread/{userId}")]
-        public async Task<IActionResult> GetUnreadForUser(string userId)
+        [HttpGet("unread")]
+        public async Task<IActionResult> GetUnreadForCurrentUser()
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var contents = await _context.CheckInContents
                 .Include(c => c.Streak)
                 .Include(c => c.Sender)
                 .Where(c =>
-                    c.ReceiverId == userId &&
+                    c.ReceiverId == currentUserId &&
                     !c.IsViewed &&
                     c.Streak.IsActive)
                 .OrderByDescending(c => c.CreatedAt)
@@ -108,12 +126,22 @@ namespace Picability.Controllers
         [HttpPost("{id}/view")]
         public async Task<IActionResult> MarkViewed(int id)
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var content = await _context.CheckInContents
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (content == null)
             {
                 return NotFound();
+            }
+
+            if (content.ReceiverId != currentUserId)
+            {
+                return Forbid();
             }
 
             var response = new
@@ -153,6 +181,11 @@ namespace Picability.Controllers
                 return BadRequest(new { message = "View duration must be between 1 and 10 seconds." });
             }
 
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var streak = await _context.Streaks
                 .FirstOrDefaultAsync(s => s.Id == model.StreakId && s.IsActive);
 
@@ -161,19 +194,19 @@ namespace Picability.Controllers
                 return NotFound(new { message = "Active streak not found." });
             }
 
-            if (model.SenderId != streak.UserOneId && model.SenderId != streak.UserTwoId)
+            if (currentUserId != streak.UserOneId && currentUserId != streak.UserTwoId)
             {
-                return BadRequest(new { message = "Sender is not part of this streak." });
+                return Forbid();
             }
 
-            var receiverId = model.SenderId == streak.UserOneId
+            var receiverId = currentUserId == streak.UserOneId
                 ? streak.UserTwoId
                 : streak.UserOneId;
 
             var content = new CheckInContent
             {
                 StreakId = streak.Id,
-                SenderId = model.SenderId,
+                SenderId = currentUserId,
                 ReceiverId = receiverId,
                 ContentType = "Photo",
                 PhotoUrl = model.PhotoDataUrl,
