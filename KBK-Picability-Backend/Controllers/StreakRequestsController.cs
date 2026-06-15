@@ -1,12 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Picability.Data;
 using Picability.DTOs;
 using Picability.Models;
-using Microsoft.AspNetCore.Cors;
+using System.Security.Claims;
 
 namespace Picability.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class StreakRequestsController : ControllerBase
@@ -18,30 +20,32 @@ namespace Picability.Controllers
             _context = context;
         }
 
-        // MODIFIED BY REECE
-        // Before: Experienced UI issues when creating the element that allows
-        // streaks to be created from the user search screen. Resulted from
-        // non-friend users' streak requests creating NULL values.
-        // After: Verifies users are friends before streak requests can be sent
-        // not really used anymore after fixing the bug, but it's a good safeguard
-        // just in case.
-        // POST api/streakrequests
+        private string? GetCurrentUserId()
+        {
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
         [HttpPost]
         public async Task<IActionResult> SendStreakRequest(CreateStreakRequestDto dto)
         {
-            if (dto.SenderId == dto.ReceiverId)
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
+            if (currentUserId == dto.ReceiverId)
                 return BadRequest("You cannot send a streak request to yourself.");
 
             // Verify friendship exists in the database
             bool areFriends = await _context.Friends.AnyAsync(f =>
-                (f.UserId == dto.SenderId && f.FriendId == dto.ReceiverId) ||
-                (f.UserId == dto.ReceiverId && f.FriendId == dto.SenderId));
+                (f.UserId == currentUserId && f.FriendId == dto.ReceiverId) ||
+                (f.UserId == dto.ReceiverId && f.FriendId == currentUserId));
 
             if (!areFriends)
                 return BadRequest("Users must be friends before starting a streak.");
 
             bool duplicatePending = await _context.StreakRequests.AnyAsync(sr =>
-                sr.SenderId == dto.SenderId &&
+                sr.SenderId == currentUserId &&
                 sr.ReceiverId == dto.ReceiverId &&
                 sr.HabitName == dto.HabitName &&
                 sr.Status == "Pending");
@@ -51,8 +55,8 @@ namespace Picability.Controllers
 
             // Added check to prevent multiple active streaks for the same habit between the same users
             bool duplicateActive = await _context.Streaks.AnyAsync(s =>
-                ((s.UserOneId == dto.SenderId && s.UserTwoId == dto.ReceiverId) ||
-                (s.UserOneId == dto.ReceiverId && s.UserTwoId == dto.SenderId)) &&
+                ((s.UserOneId == currentUserId && s.UserTwoId == dto.ReceiverId) ||
+                (s.UserOneId == dto.ReceiverId && s.UserTwoId == currentUserId)) &&
                 s.HabitName == dto.HabitName &&
                 s.IsActive);
 
@@ -61,7 +65,7 @@ namespace Picability.Controllers
 
             var request = new StreakRequest
             {
-                SenderId = dto.SenderId,
+                SenderId = currentUserId,
                 ReceiverId = dto.ReceiverId,
                 HabitName = dto.HabitName,
                 HabitIcon = dto.HabitIcon,
@@ -80,12 +84,17 @@ namespace Picability.Controllers
         // Before: No endpoint for the UI to fetch incoming streak requests for a user
         // After: Added this endpoint to fetch incoming streak requests for a user, 
         // including sender info
-        [HttpGet("receiver/{receiverId}")]
-        public async Task<IActionResult> GetIncomingRequests(string receiverId)
+        [HttpGet("incoming")]
+        public async Task<IActionResult> GetIncomingRequests()
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var requests = await _context.StreakRequests
                 .Include(sr => sr.Sender)
-                .Where(r => r.ReceiverId == receiverId && r.Status == "Pending")
+                .Where(r => r.ReceiverId == currentUserId && r.Status == "Pending")
                 .Select(sr => new
                 {
                     sr.Id,
@@ -102,12 +111,17 @@ namespace Picability.Controllers
             return Ok(requests);
         }
 
-        [HttpGet("sender/{senderId}")]
-        public async Task<IActionResult> GetOutgoingRequests(string senderId)
+        [HttpGet("outgoing")]
+        public async Task<IActionResult> GetOutgoingRequests()
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var requests = await _context.StreakRequests
                 .Include(sr => sr.Receiver)
-                .Where(r => r.SenderId == senderId && r.Status == "Pending")
+                .Where(r => r.SenderId == currentUserId && r.Status == "Pending")
                 .Select(sr => new
                 {
                     sr.Id,
@@ -125,15 +139,23 @@ namespace Picability.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetMine()
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var requests = await _context.StreakRequests
+                .Where(sr => sr.SenderId == currentUserId || sr.ReceiverId == currentUserId)
                 .Select(sr => new
                 {
                     sr.Id,
                     sr.SenderId,
                     sr.ReceiverId,
                     sr.HabitName,
+                    sr.HabitIcon,
+                    sr.Color,
                     sr.Status,
                     sr.CreatedAt
                 })
@@ -151,11 +173,19 @@ namespace Picability.Controllers
         [HttpPost("accept/{requestId}")]
         public async Task<IActionResult> AcceptStreakRequest(int requestId)
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var request = await _context.StreakRequests
                 .FirstOrDefaultAsync(sr => sr.Id == requestId);
 
             if (request == null)
                 return NotFound("Streak request not found.");
+
+            if (request.ReceiverId != currentUserId)
+                return Forbid();
 
             if (request.Status != "Pending")
                 return BadRequest("Request already handled.");
@@ -206,11 +236,19 @@ namespace Picability.Controllers
         [HttpPost("reject/{requestId}")]
         public async Task<IActionResult> RejectStreakRequest(int requestId)
         {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
             var request = await _context.StreakRequests
                 .FirstOrDefaultAsync(sr => sr.Id == requestId);
 
             if (request == null)
                 return NotFound("Streak request not found.");
+
+            if (request.ReceiverId != currentUserId)
+                return Forbid();
 
             if (request.Status != "Pending")
                 return BadRequest("Request already handled.");
