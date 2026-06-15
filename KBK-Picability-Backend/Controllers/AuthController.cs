@@ -2,6 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Picability.Models;
 using Picability.DTOs;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace Picability.Controllers
 {
@@ -13,12 +17,42 @@ namespace Picability.Controllers
         // 1. We need SignInManager to handle the actual password check
         private readonly SignInManager<ApplicationUser> _signInManager;
 
+        private readonly IConfiguration _configuration;
+
+        private string GenerateJwtToken(ApplicationUser user)
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.UserName ?? ""),
+                new Claim(ClaimTypes.Email, user.Email ?? "")
+            };
+
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!)
+            );
+
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddDays(7),
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
         public AuthController(
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager) // 2. Add it to constructor
+                    UserManager<ApplicationUser> userManager,
+                    SignInManager<ApplicationUser> signInManager,
+                    IConfiguration configuration)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _configuration = configuration;
         }
 
         [HttpPost("register")]
@@ -83,7 +117,8 @@ namespace Picability.Controllers
                     message = "Login successful",
                     id = user.Id,
                     userName = user.UserName,
-                    email = user.Email
+                    email = user.Email,
+                    token = GenerateJwtToken(user)
                 });
             }
 
