@@ -163,6 +163,21 @@ namespace Picability.Controllers
             var nowUtc = DateTime.UtcNow;
             var defaultDate = new DateTime(1900, 1, 1);
 
+            var oldDeadStreaks = await _context.Streaks
+                .Where(s =>
+                    !s.IsActive &&
+                    s.HabitName == request.HabitName &&
+                    (
+                        (s.UserOneId == request.SenderId && s.UserTwoId == request.ReceiverId) ||
+                        (s.UserOneId == request.ReceiverId && s.UserTwoId == request.SenderId)
+                    ))
+                .ToListAsync();
+
+            if (oldDeadStreaks.Any())
+            {
+                _context.Streaks.RemoveRange(oldDeadStreaks);
+            }
+
             var streak = new Streak
             {
                 UserOneId = request.SenderId,

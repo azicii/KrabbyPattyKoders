@@ -116,17 +116,17 @@ namespace Picability.Controllers
                 return NotFound();
             }
 
-            content.IsViewed = true;
-            content.ViewedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new
+            var response = new
             {
                 content.Id,
-                content.ViewedAt,
+                ViewedAt = DateTime.UtcNow,
                 content.ViewDurationSeconds
-            });
+            };
+
+            _context.CheckInContents.Remove(content);
+            await _context.SaveChangesAsync();
+
+            return Ok(response);
         }
 
         [HttpPost("photo")]
