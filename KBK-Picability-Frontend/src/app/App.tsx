@@ -13,6 +13,7 @@ interface AuthUser {
     id: string;
     userName: string;
     email: string;
+    token: string;
 }
 
 const habitNames: { [key: number]: string } = {
@@ -52,6 +53,11 @@ const getColorForHabit = (name: string) => {
 
 // const BASE_URL = 'http://localhost:5232';
 const BASE_URL = 'https://kbk-picability20260528161204-dwgwf6eehmf5bjeu.canadacentral-01.azurewebsites.net';
+const getAuthHeaders = (token?: string) => ({
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+});
+
 
 export default function App() {
     const [user, setUser] = useState<AuthUser | null>(() => {

@@ -14,9 +14,13 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowPicabilityFrontend",
         policy =>
         {
-            policy.WithOrigins("https://picability.vercel.app")
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
+            policy.WithOrigins(
+                    "https://picability.vercel.app",
+                    "http://localhost:5173",
+                    "https://localhost:5173"
+                )
+                .AllowAnyMethod()
+                .AllowAnyHeader();
         });
 });
 
@@ -25,9 +29,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add Identity
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => 
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     {
-        
+
         options.User.RequireUniqueEmail = true;
         options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
     })
