@@ -118,7 +118,9 @@ export default function App() {
     const fetchStreakInvites = async () => {
         if (!user) return;
         try {
-            const response = await fetch(`${BASE_URL}/api/StreakRequests/receiver/${user.id}`);
+            const response = await fetch(`${BASE_URL}/api/StreakRequests/incoming`, {
+                headers: getAuthHeaders(user.token)
+            });
             if (response.ok) {
                 const data = await response.json();
                 setStreakInvites(data);
@@ -132,7 +134,9 @@ export default function App() {
         if (!user) return;
 
         try {
-            const response = await fetch(`${BASE_URL}/api/FriendRequests`);
+            const response = await fetch(`${BASE_URL}/api/FriendRequests`, {
+                headers: getAuthHeaders(user.token)
+            });
             if (response.ok) {
                 const data = await response.json();
                 const count = data.filter(
@@ -155,7 +159,7 @@ export default function App() {
 
         const response = await fetch(`${BASE_URL}/api/CheckInContent/message`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(user.token),
             body: JSON.stringify({
                 streakId,
                 senderId: user.id,
@@ -176,7 +180,8 @@ export default function App() {
     const handleViewCheckInContent = async (contentId: number) => {
         try {
             await fetch(`${BASE_URL}/api/CheckInContent/${contentId}/view`, {
-                method: 'POST'
+                method: 'POST',
+                headers: getAuthHeaders(user.token)
             });
 
             await fetchUnreadContent();
@@ -189,7 +194,10 @@ export default function App() {
         if (!user) return;
 
         const response = await fetch(
-            `${BASE_URL}/api/CheckInContent/unread/${user.id}`
+            `${BASE_URL}/api/CheckInContent/unread`,
+            {
+                headers: getAuthHeaders(user.token)
+            }
         );
 
         if (!response.ok) return;
@@ -201,7 +209,9 @@ export default function App() {
     const fetchSentStreakRequests = async () => {
         if (!user) return;
         try {
-            const response = await fetch(`${BASE_URL}/api/StreakRequests/sender/${user.id}`);
+            const response = await fetch(`${BASE_URL}/api/StreakRequests/outgoing`, {
+                headers: getAuthHeaders(user.token)
+            });
             if (response.ok) {
                 const data = await response.json();
                 setSentStreakRequests(data);
@@ -241,7 +251,7 @@ export default function App() {
         try {
             const response = await fetch(`${BASE_URL}/api/StreakRequests`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(user.token),
                 body: JSON.stringify({
                     senderId: user.id,
                     receiverId: streak.partnerId,
@@ -291,8 +301,9 @@ export default function App() {
             });
 
             // 2. Remove the Friendship
-            const response = await fetch(`${BASE_URL}/api/Friends/${user.id}/${friendId}`, {
-                method: 'DELETE'
+            const response = await fetch(`${BASE_URL}/api/Friends/${friendId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(user.token)
             });
 
             if (response.ok) {
@@ -332,7 +343,8 @@ export default function App() {
     const handleAcceptStreakInvite = async (requestId: number) => {
         try {
             const response = await fetch(`${BASE_URL}/api/StreakRequests/accept/${requestId}`, {
-                method: 'POST'
+                method: 'POST',
+                headers: getAuthHeaders(user.token)
             });
             if (response.ok) {
                 setTimeout(() => {
@@ -349,7 +361,8 @@ export default function App() {
     const handleRejectStreakInvite = async (requestId: number) => {
         try {
             const response = await fetch(`${BASE_URL}/api/StreakRequests/reject/${requestId}`, {
-                method: 'POST'
+                method: 'POST',
+                headers: getAuthHeaders(user.token)
             });
 
             if (response.ok) {
@@ -373,7 +386,7 @@ export default function App() {
         try {
             const response = await fetch(`${BASE_URL}/api/StreakRequests`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(user.token),
                 body: JSON.stringify({
                     senderId: user.id,
                     receiverId: config.friendId,
@@ -425,9 +438,7 @@ export default function App() {
             `${BASE_URL}/api/CheckInContent/photo`,
             {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: getAuthHeaders(user.token),
                 body: JSON.stringify({
                     streakId,
                     senderId: user.id,

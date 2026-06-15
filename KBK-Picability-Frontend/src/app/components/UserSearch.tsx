@@ -36,6 +36,11 @@ export function UserSearch({
 
     // const BASE_URL = 'http://localhost:5232';
     const BASE_URL = 'https://kbk-picability20260528161204-dwgwf6eehmf5bjeu.canadacentral-01.azurewebsites.net';
+
+    const getToken = () => {
+        const savedUser = localStorage.getItem('picabilityUser');
+        return savedUser ? JSON.parse(savedUser).token : null;
+    };
     
 
 
@@ -43,10 +48,20 @@ export function UserSearch({
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [usersRes, requestsRes] = await Promise.all([
-          fetch(`${BASE_URL}/api/Users`),
-          fetch(`${BASE_URL}/api/FriendRequests`)
-        ]);
+          const token = getToken();
+
+          const [usersRes, requestsRes] = await Promise.all([
+              fetch(`${BASE_URL}/api/Users`, {
+                  headers: {
+                      Authorization: `Bearer ${token}`
+                  }
+              }),
+              fetch(`${BASE_URL}/api/FriendRequests`, {
+                  headers: {
+                      Authorization: `Bearer ${token}`
+                  }
+              })
+          ]);
 
         if (!usersRes.ok || !requestsRes.ok) throw new Error('Failed to fetch data');
         
@@ -83,11 +98,16 @@ export function UserSearch({
   const handleAddFriend = async (targetUser: User) => {
     setSendingRequest(targetUser.id);
     try {
-      const response = await fetch(`${BASE_URL}/api/FriendRequests`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ senderId: currentUserId, receiverId: targetUser.id }),
-      });
+        const token = getToken();
+
+        const response = await fetch(`${BASE_URL}/api/FriendRequests`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ receiverId: targetUser.id }),
+        });
 
       if (response.ok) {
         setShowCheckmarkId(targetUser.id);

@@ -56,10 +56,21 @@ export function FriendsList({
     try {
       setLoading(true);
       
-      const [friendsRes, requestsRes] = await Promise.all([
-        fetch(`${BASE_URL}/api/Friends/${currentUserId}`),
-        fetch(`${BASE_URL}/api/FriendRequests`)
-      ]);
+        const savedUser = localStorage.getItem('picabilityUser');
+        const token = savedUser ? JSON.parse(savedUser).token : null;
+
+        const [friendsRes, requestsRes] = await Promise.all([
+            fetch(`${BASE_URL}/api/Friends/mine`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }),
+            fetch(`${BASE_URL}/api/FriendRequests`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            })
+        ]);
 
       const friendsData = await friendsRes.json();
       const requestsData = await requestsRes.json();
@@ -71,7 +82,11 @@ export function FriendsList({
         avatar: u.userName.substring(0, 2).toUpperCase()
       })));
 
-      const usersRes = await fetch(`${BASE_URL}/api/Users`);
+        const usersRes = await fetch(`${BASE_URL}/api/Users`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
       const allUsers: any[] = await usersRes.json();
 
       const incoming = requestsData
@@ -113,7 +128,15 @@ export function FriendsList({
   const handleAccept = async (requestId: number) => {
     setActionId(requestId);
     try {
-      const res = await fetch(`${BASE_URL}/api/Friends/accept/${requestId}`, { method: 'POST' });
+        const savedUser = localStorage.getItem('picabilityUser');
+        const token = savedUser ? JSON.parse(savedUser).token : null;
+
+        const res = await fetch(`${BASE_URL}/api/Friends/accept/${requestId}`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
       if (res.ok) fetchData(); 
     } finally {
       setActionId(null);
@@ -123,7 +146,15 @@ export function FriendsList({
   const handleReject = async (requestId: number) => {
     setActionId(requestId);
     try {
-      const res = await fetch(`${BASE_URL}/api/Friends/reject/${requestId}`, { method: 'POST' });
+        const savedUser = localStorage.getItem('picabilityUser');
+        const token = savedUser ? JSON.parse(savedUser).token : null;
+
+        const res = await fetch(`${BASE_URL}/api/Friends/reject/${requestId}`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
       if (res.ok) fetchData(); 
     } finally {
       setActionId(null);
