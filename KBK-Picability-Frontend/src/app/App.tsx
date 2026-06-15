@@ -79,8 +79,12 @@ export default function App() {
     const fetchStreaks = async () => {
         if (!user) return;
         try {
-            const response = await fetch(`${BASE_URL}/api/Streaks/user/${user.id}`);
-            if (response.ok) {
+            const response = await fetch(
+                `${BASE_URL}/api/Streaks/mine`,
+                {
+                    headers: getAuthHeaders(user.token)
+                }
+            );            if (response.ok) {
                 const data = await response.json();
                 const formattedStreaks: Streak[] = data.map((s: any) => ({
                     id: s.id,
@@ -222,8 +226,8 @@ export default function App() {
         try {
             const response = await fetch(`${BASE_URL}/api/Streaks/${streakId}/complete`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.id })
+                headers: getAuthHeaders(user.token),
+                body: JSON.stringify({})
             });
             if (response.ok) fetchStreaks();
         } catch (err) {
@@ -263,7 +267,8 @@ export default function App() {
     const handleDismissStreak = async (streakId: number) => {
         try {
             const response = await fetch(`${BASE_URL}/api/Streaks/${streakId}/dismiss`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: getAuthHeaders(user.token)
             });
             if (response.ok) fetchStreaks();
         } catch (err) {
@@ -280,8 +285,9 @@ export default function App() {
 
         try {
             // 1. Remove Shared Streaks first
-            await fetch(`${BASE_URL}/api/Streaks/remove-connection/${user.id}/${friendId}`, {
-                method: 'DELETE'
+            await fetch(`${BASE_URL}/api/Streaks/remove-connection/${friendId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(user.token)
             });
 
             // 2. Remove the Friendship
