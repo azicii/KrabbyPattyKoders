@@ -6,8 +6,17 @@ import { AuthScreen } from './components/AuthScreen';
 import { UserSearch, User } from './components/UserSearch.tsx';
 import { FriendsList, PendingRequest } from './components/FriendList.tsx';
 import { RequestConfirmation } from './components/RequestConfirmation.tsx';
+import { PublicFeed, PublicFeedItem } from './components/PublicFeed.tsx';
 
-type Screen = 'auth' | 'tracker' | 'selector' | 'config' | 'friends-list' | 'user-search' | 'confirmation';
+type Screen =
+    | 'auth'
+    | 'tracker'
+    | 'public-feed'
+    | 'selector'
+    | 'config'
+    | 'friends-list'
+    | 'user-search'
+    | 'confirmation';
 
 interface AuthUser {
     id: string;
@@ -75,6 +84,7 @@ export default function App() {
     const [pendingFriendRequestCount, setPendingFriendRequestCount] = useState(0);
     const [unreadContent, setUnreadContent] = useState<any[]>([]);
     const [draftHabitConfig, setDraftHabitConfig] = useState<Partial<HabitConfiguration> | null>(null);
+    const [publicFeed, setPublicFeed] = useState<PublicFeedItem[]>([]);
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -112,6 +122,26 @@ export default function App() {
             }
         } catch (err) {
             console.error("Error fetching streaks:", err);
+        }
+    };
+
+    const fetchPublicFeed = async () => {
+        if (!user) return;
+
+        try {
+            const response = await fetch(
+                `${BASE_URL}/api/Streaks/public-feed`,
+                {
+                    headers: getAuthHeaders(user.token)
+                }
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                setPublicFeed(data);
+            }
+        } catch (err) {
+            console.error("Error fetching public feed:", err);
         }
     };
 
@@ -228,6 +258,7 @@ export default function App() {
             fetchSentStreakRequests();
             fetchPendingFriendRequestCount();
             fetchUnreadContent();
+            fetchPublicFeed();
         }
     }, [user]);
 
@@ -487,6 +518,15 @@ export default function App() {
                     unreadContent={unreadContent}
                     onViewCheckInContent={handleViewCheckInContent}
                     onSendCheckInPhoto={handleSendCheckInPhoto}
+                    onPublicFeed={() => setCurrentScreen('public-feed')}
+                />
+            )}
+
+            {currentScreen === 'public-feed' && (
+                <PublicFeed
+                    isDark={isDark}
+                    items={publicFeed}
+                    onBack={() => setCurrentScreen('tracker')}
                 />
             )}
 

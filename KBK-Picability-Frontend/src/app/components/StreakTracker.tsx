@@ -1,4 +1,4 @@
-import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle } from 'lucide-react';
+import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 
@@ -58,6 +58,7 @@ interface StreakTrackerProps {
         photoDataUrl: string,
         viewDurationSeconds: number
     ) => void;
+    onPublicFeed?: () => void;
 }
 
 export function StreakTracker({
@@ -73,6 +74,7 @@ export function StreakTracker({
     streakInvites = [],
     sentStreakRequests = [],
     onAcceptInvite,
+    onPublicFeed,
     onRestartStreak,
     pendingFriendRequestCount = 0,
     onSendCheckInMessage,
@@ -419,6 +421,14 @@ export function StreakTracker({
                             )}
                         </button>
 
+                        <button
+                            onClick={onPublicFeed}
+                            className={`relative flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'
+                                }`}
+                            title="Friend Flex Feed"
+                        >
+                            <Flame className={`w-5 h-5 ${isDark ? 'text-orange-400' : 'text-orange-500'}`} />
+                        </button>
 
                         <button onClick={onLogout} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all border border-transparent hover:border-rose-500/30 ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
                             <LogOut className="w-5 h-5 text-rose-500" />
