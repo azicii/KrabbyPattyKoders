@@ -28,5 +28,7 @@
         public DateTime? UserOneLastCheckedInAt { get; set; }
         public DateTime? UserTwoLastCheckedInAt { get; set; }
         public DateTime? LastFullyCompletedAt { get; set; }
+        public bool UserOneVisibilityPublic { get; set; } = true;
+        public bool UserTwoVisibilityPublic { get; set; } = true;
     }
 }
