@@ -246,20 +246,21 @@ export function StreakTracker({
     };
 
     const getStreakReward = (count: number) => {
-        if (count >= 1000) return "🌟";
-        if (count >= 500) return "🚀";
-        if (count >= 400) return "🌋";
-        if (count >= 300) return "🐉";
-        if (count >= 200) return "💎";
-        if (count >= 150) return "👑";
-        if (count >= 100) return "🏆";
-        if (count >= 80) return "☄️";
-        if (count >= 50) return "🌶️";
-        if (count >= 30) return "💥";
-        if (count >= 20) return "⚡";
-        if (count >= 10) return "🔥🔥";
-        if (count >= 5) return "🔥";
-        if (count >= 3) return "✨";
+        if (count >= 1000) return "🚀🌟";
+        if (count >= 500) return "🌋";
+        if (count >= 400) return "🐉";
+        if (count >= 300) return "💎";
+        if (count >= 200) return "👑";
+        if (count >= 150) return "🏆";
+        if (count >= 100) return "☄️";
+        if (count >= 80) return "🌶️";
+        if (count >= 50) return "💥";
+        if (count >= 30) return "⚡";
+        if (count >= 20) return "🔥";
+        if (count >= 10) return "✨";
+        if (count >= 5) return "💨";
+        if (count >= 3) return "💧";
+        if (count >= 1) return "🧊";
 
         return null;
     };
