@@ -412,28 +412,13 @@ namespace Picability.Controllers
                         return feedItems;
                     }
 
-                    if (friendIds.Contains(s.UserOneId) && s.UserOneVisibilityPublic)
-                    {
-                        feedItems.Add(new
-                        {
-                            s.Id,
-                            s.HabitName,
-                            s.HabitIcon,
-                            s.Color,
-                            s.CurrentCount,
-                            s.IsActive,
-                            FriendName = s.UserOne.UserName,
-                            PartnerName = s.UserTwo.UserName,
-                            CompletedToday = completedToday,
-                            FailedToday = failedToday,
-                            s.LastFullyCompletedAt,
-                            s.FailedAt,
-                            KilledBy = failedToday ? GetStreakKillerName(s, s.UserOneId) : null
-                        });
-                    }
+                    var userOneVisibleToMe = friendIds.Contains(s.UserOneId) && s.UserOneVisibilityPublic;
+                    var userTwoVisibleToMe = friendIds.Contains(s.UserTwoId) && s.UserTwoVisibilityPublic;
 
-                    if (friendIds.Contains(s.UserTwoId) && s.UserTwoVisibilityPublic)
+                    if (userOneVisibleToMe || userTwoVisibleToMe)
                     {
+                        var displayFriendIsUserOne = userOneVisibleToMe;
+
                         feedItems.Add(new
                         {
                             s.Id,
@@ -442,13 +427,15 @@ namespace Picability.Controllers
                             s.Color,
                             s.CurrentCount,
                             s.IsActive,
-                            FriendName = s.UserTwo.UserName,
-                            PartnerName = s.UserOne.UserName,
+                            FriendName = displayFriendIsUserOne ? s.UserOne.UserName : s.UserTwo.UserName,
+                            PartnerName = displayFriendIsUserOne ? s.UserTwo.UserName : s.UserOne.UserName,
                             CompletedToday = completedToday,
                             FailedToday = failedToday,
                             s.LastFullyCompletedAt,
                             s.FailedAt,
-                            KilledBy = failedToday ? GetStreakKillerName(s, s.UserTwoId) : null
+                            KilledBy = failedToday
+                                ? GetStreakKillerName(s, displayFriendIsUserOne ? s.UserOneId : s.UserTwoId)
+                                : null
                         });
                     }
 

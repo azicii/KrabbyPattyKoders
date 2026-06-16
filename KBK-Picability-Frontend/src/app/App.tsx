@@ -113,6 +113,7 @@ export default function App() {
                     bothCheckedInToday: s.bothCheckedInToday,
                     brokenMessage: s.brokenMessage,
                     isActive: s.isActive,
+                    isPublic: s.isPublic,
                     canCheckInToday: s.canCheckInToday,
                     hoursUntilMidnight: s.hoursUntilMidnight,
                     timeMessage: s.timeMessage,
@@ -177,6 +178,29 @@ export default function App() {
             }
         } catch (err) {
             console.error("Error fetching friend request count:", err);
+        }
+    };
+
+    const handleToggleStreakVisibility = async (streakId: number, isPublic: boolean) => {
+        if (!user) return;
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/Streaks/${streakId}/visibility`, {
+                method: 'PUT',
+                headers: getAuthHeaders(user.token),
+                body: JSON.stringify({ isPublic })
+            });
+
+            if (response.ok) {
+                await fetchStreaks();
+                await fetchPublicFeed();
+            } else {
+                const errorText = await response.text();
+                alert(errorText || "Failed to update streak visibility.");
+            }
+        } catch (err) {
+            console.error("Visibility update error:", err);
+            alert("Network error while updating streak visibility.");
         }
     };
 
@@ -519,6 +543,7 @@ export default function App() {
                     onViewCheckInContent={handleViewCheckInContent}
                     onSendCheckInPhoto={handleSendCheckInPhoto}
                     onPublicFeed={() => setCurrentScreen('public-feed')}
+                    onToggleVisibility={handleToggleStreakVisibility}
                 />
             )}
 

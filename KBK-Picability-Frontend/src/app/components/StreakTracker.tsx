@@ -26,6 +26,7 @@ interface Streak {
     hasUnreadPhoto?: boolean;
     partnerId?: string;
     unreadContent?: any[];
+    isPublic?: boolean;
 }
 
 export type { Streak };
@@ -59,6 +60,7 @@ interface StreakTrackerProps {
         viewDurationSeconds: number
     ) => void;
     onPublicFeed?: () => void;
+    onToggleVisibility?: (streakId: number, isPublic: boolean) => void;
 }
 
 export function StreakTracker({
@@ -81,6 +83,7 @@ export function StreakTracker({
     unreadContent = [],
     onViewCheckInContent,
     onRejectInvite,
+    onToggleVisibility,
     onSendCheckInPhoto
 }: StreakTrackerProps) {
     const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
@@ -714,7 +717,29 @@ export function StreakTracker({
 
                                                             </>
                                                         )}
-                                                    </button>
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                onToggleVisibility?.(streak.id, !(streak.isPublic ?? true));
+                                                            }}
+                                                            className={`w-full flex items-center justify-between gap-3 py-3 px-4 rounded-2xl border transition-all font-bold ${streak.isPublic ?? true
+                                                                    ? isDark
+                                                                        ? 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20'
+                                                                        : 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100'
+                                                                    : isDark
+                                                                        ? 'bg-slate-700/40 text-slate-300 border-slate-600 hover:bg-slate-700'
+                                                                        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                                                                }`}
+                                                        >
+                                                            <span>{streak.isPublic ?? true ? 'Public on Friend Feed' : 'Private Streak'}</span>
+                                                            <span className="text-sm">
+                                                                {streak.isPublic ?? true ? '🔥 Visible' : '🔒 Hidden'}
+                                                            </span>
+                                                        </button>
+
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
