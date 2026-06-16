@@ -179,6 +179,9 @@ namespace Picability.Controllers
                     s.Color,
                     s.CurrentCount,
                     s.IsActive,
+                    IsPublic = isUserOne
+                        ? s.UserOneVisibilityPublic
+                        : s.UserTwoVisibilityPublic,
                     PartnerName = isUserOne ? s.UserTwo.UserName : s.UserOne.UserName,
                     s.LastCompletedAt,
                     s.LastFullyCompletedAt,
