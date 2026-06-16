@@ -1,4 +1,4 @@
-import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame } from 'lucide-react';
+import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 
@@ -725,18 +725,34 @@ export function StreakTracker({
                                                                 e.stopPropagation();
                                                                 onToggleVisibility?.(streak.id, !(streak.isPublic ?? true));
                                                             }}
-                                                            className={`w-full flex items-center justify-between gap-3 py-3 px-4 rounded-2xl border transition-all font-bold ${streak.isPublic ?? true
-                                                                    ? isDark
-                                                                        ? 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20'
-                                                                        : 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100'
-                                                                    : isDark
-                                                                        ? 'bg-slate-700/40 text-slate-300 border-slate-600 hover:bg-slate-700'
-                                                                        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                                                            className={`w-full flex items-center justify-between gap-4 py-3 px-4 rounded-2xl border transition-all ${isDark
+                                                                    ? 'bg-slate-800/60 border-slate-700 hover:bg-slate-700/60'
+                                                                    : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                                                                 }`}
                                                         >
-                                                            <span>{streak.isPublic ?? true ? 'Public on Friend Feed' : 'Private Streak'}</span>
-                                                            <span className="text-sm">
-                                                                {streak.isPublic ?? true ? '🔥 Visible' : '🔒 Hidden'}
+                                                            <span className={`font-bold ${streak.isPublic ?? true
+                                                                    ? 'text-orange-400'
+                                                                    : isDark ? 'text-slate-300' : 'text-slate-600'
+                                                                }`}>
+                                                                {streak.isPublic ?? true ? 'Public' : 'Private'}
+                                                            </span>
+
+                                                            <span
+                                                                className={`relative w-20 h-10 rounded-full transition-all duration-300 ${streak.isPublic ?? true
+                                                                        ? 'bg-gradient-to-r from-sky-500 to-indigo-600'
+                                                                        : isDark ? 'bg-slate-700' : 'bg-slate-300'
+                                                                    }`}
+                                                            >
+                                                                <span
+                                                                    className={`absolute top-1 left-1 w-8 h-8 rounded-full bg-sky-500 shadow-lg flex items-center justify-center transition-all duration-300 ${streak.isPublic ?? true ? 'translate-x-10' : 'translate-x-0'
+                                                                        }`}
+                                                                >
+                                                                    {streak.isPublic ?? true ? (
+                                                                        <Eye className="w-5 h-5 text-white" />
+                                                                    ) : (
+                                                                        <EyeClosed className="w-5 h-5 text-white" />
+                                                                    )}
+                                                                </span>
                                                             </span>
                                                         </button>
 

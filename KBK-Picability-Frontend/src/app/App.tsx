@@ -113,7 +113,7 @@ export default function App() {
                     bothCheckedInToday: s.bothCheckedInToday,
                     brokenMessage: s.brokenMessage,
                     isActive: s.isActive,
-                    isPublic: s.isPublic,
+                    isPublic: s.isPublic ?? true,
                     canCheckInToday: s.canCheckInToday,
                     hoursUntilMidnight: s.hoursUntilMidnight,
                     timeMessage: s.timeMessage,
