@@ -333,6 +333,134 @@ namespace Picability.Controllers
             });
         }
 
+        private static string GetStreakKillerName(Streak streak, string viewingFriendId)
+        {
+            if (!streak.FailedAt.HasValue)
+            {
+                return "Unknown";
+            }
+
+            var failedPacificDate = ToPacificDate(streak.FailedAt.Value);
+            var missedPacificDate = failedPacificDate.AddDays(-1);
+
+            var userOneCheckedMissedDay =
+                streak.UserOneLastCheckedInAt.HasValue &&
+                ToPacificDate(streak.UserOneLastCheckedInAt.Value) == missedPacificDate;
+
+            var userTwoCheckedMissedDay =
+                streak.UserTwoLastCheckedInAt.HasValue &&
+                ToPacificDate(streak.UserTwoLastCheckedInAt.Value) == missedPacificDate;
+
+            if (!userOneCheckedMissedDay && userTwoCheckedMissedDay)
+            {
+                return streak.UserOne.UserName ?? "User One";
+            }
+
+            if (userOneCheckedMissedDay && !userTwoCheckedMissedDay)
+            {
+                return streak.UserTwo.UserName ?? "User Two";
+            }
+
+            return "Both users";
+        }
+
+        [HttpGet("public-feed")]
+        public async Task<IActionResult> GetPublicFeed()
+        {
+            var currentUserId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var nowUtc = DateTime.UtcNow;
+            var todayPacific = GetPacificToday(nowUtc);
+
+            var friendIds = await _context.FriendRequests
+                .Where(fr =>
+                    fr.Status == "Accepted" &&
+                    (fr.SenderId == currentUserId || fr.ReceiverId == currentUserId))
+                .Select(fr => fr.SenderId == currentUserId ? fr.ReceiverId : fr.SenderId)
+                .Distinct()
+                .ToListAsync();
+
+            var streaks = await _context.Streaks
+                .Include(s => s.UserOne)
+                .Include(s => s.UserTwo)
+                .Where(s =>
+                    friendIds.Contains(s.UserOneId) ||
+                    friendIds.Contains(s.UserTwoId))
+                .ToListAsync();
+
+            var result = streaks
+                .SelectMany(s =>
+                {
+                    var feedItems = new List<object>();
+
+                    var completedToday =
+                        s.LastFullyCompletedAt.HasValue &&
+                        ToPacificDate(s.LastFullyCompletedAt.Value) == todayPacific;
+
+                    var failedToday =
+                        !s.IsActive &&
+                        s.FailedAt.HasValue &&
+                        ToPacificDate(s.FailedAt.Value) == todayPacific;
+
+                    if (!completedToday && !failedToday)
+                    {
+                        return feedItems;
+                    }
+
+                    if (friendIds.Contains(s.UserOneId) && s.UserOneVisibilityPublic)
+                    {
+                        feedItems.Add(new
+                        {
+                            s.Id,
+                            s.HabitName,
+                            s.HabitIcon,
+                            s.Color,
+                            s.CurrentCount,
+                            s.IsActive,
+                            FriendName = s.UserOne.UserName,
+                            PartnerName = s.UserTwo.UserName,
+                            CompletedToday = completedToday,
+                            FailedToday = failedToday,
+                            s.LastFullyCompletedAt,
+                            s.FailedAt,
+                            KilledBy = failedToday ? GetStreakKillerName(s, s.UserOneId) : null
+                        });
+                    }
+
+                    if (friendIds.Contains(s.UserTwoId) && s.UserTwoVisibilityPublic)
+                    {
+                        feedItems.Add(new
+                        {
+                            s.Id,
+                            s.HabitName,
+                            s.HabitIcon,
+                            s.Color,
+                            s.CurrentCount,
+                            s.IsActive,
+                            FriendName = s.UserTwo.UserName,
+                            PartnerName = s.UserOne.UserName,
+                            CompletedToday = completedToday,
+                            FailedToday = failedToday,
+                            s.LastFullyCompletedAt,
+                            s.FailedAt,
+                            KilledBy = failedToday ? GetStreakKillerName(s, s.UserTwoId) : null
+                        });
+                    }
+
+                    return feedItems;
+                })
+                .OrderByDescending(item => item.GetType().GetProperty("LastFullyCompletedAt")?.GetValue(item)
+                    ?? item.GetType().GetProperty("FailedAt")?.GetValue(item))
+                .ToList();
+
+            return Ok(result);
+        }
+
         [HttpPost("{id}/complete")]
         public async Task<IActionResult> CompleteStreak(int id, CompleteStreakDto dto)
         {
