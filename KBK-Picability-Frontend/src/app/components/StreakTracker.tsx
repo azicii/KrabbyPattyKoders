@@ -245,6 +245,25 @@ export function StreakTracker({
         };
     };
 
+    const getStreakReward = (count: number) => {
+        if (count >= 1000) return "🌟";
+        if (count >= 500) return "🚀";
+        if (count >= 400) return "🌋";
+        if (count >= 300) return "🐉";
+        if (count >= 200) return "💎";
+        if (count >= 150) return "👑";
+        if (count >= 100) return "🏆";
+        if (count >= 80) return "☄️";
+        if (count >= 50) return "🌶️";
+        if (count >= 30) return "💥";
+        if (count >= 20) return "⚡";
+        if (count >= 10) return "🔥🔥";
+        if (count >= 5) return "🔥";
+        if (count >= 3) return "✨";
+
+        return null;
+    };
+
     const sortedStreaks = [...streaks].sort((a, b) => {
         return getStreakVisualState(a).priority - getStreakVisualState(b).priority;
     });
@@ -543,6 +562,7 @@ export function StreakTracker({
                                             : 'border-teal-500 text-teal-400';
 
                         const unreadForThisStreak = getUnreadForStreak(streak.id);
+                        const rewardEmoji = getStreakReward(streak.streakCount);
 
                         const hasMessageBubble =
                             unreadForThisStreak?.contentType === "Message";
@@ -569,9 +589,23 @@ export function StreakTracker({
                                                 <IconComponent className="w-8 h-8 text-white" />
                                             </div>
                                             <div className="text-left">
-                                                <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
-                                                    {streak.habitName} {isBroken && '💔'}
-                                                </h3>
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                                                        {streak.habitName} {isBroken && '💔'}
+                                                    </h3>
+
+                                                    {rewardEmoji && (
+                                                        <div
+                                                            title={`${streak.streakCount} day streak reward`}
+                                                            className={`px-2 py-1 rounded-full text-sm ${isDark
+                                                                    ? 'bg-slate-700/60'
+                                                                    : 'bg-slate-100'
+                                                                }`}
+                                                        >
+                                                            {rewardEmoji}
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>{streak.userAvatar}</div>
                                                     <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>with {streak.userName}</span>
