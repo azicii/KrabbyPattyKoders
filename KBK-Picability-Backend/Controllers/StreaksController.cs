@@ -285,6 +285,51 @@ namespace Picability.Controllers
             return Ok(streak);
         }
 
+        public class UpdateStreakVisibilityDto
+        {
+            public bool IsPublic { get; set; }
+        }
+
+        [HttpPut("{id}/visibility")]
+        public async Task<IActionResult> UpdateVisibility(int id, UpdateStreakVisibilityDto dto)
+        {
+            var currentUserId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var streak = await _context.Streaks.FirstOrDefaultAsync(s =>
+                s.Id == id &&
+                (s.UserOneId == currentUserId || s.UserTwoId == currentUserId));
+
+            if (streak == null)
+            {
+                return NotFound("Streak not found.");
+            }
+
+            if (streak.UserOneId == currentUserId)
+            {
+                streak.UserOneVisibilityPublic = dto.IsPublic;
+            }
+            else if (streak.UserTwoId == currentUserId)
+            {
+                streak.UserTwoVisibilityPublic = dto.IsPublic;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                streak.Id,
+                IsPublic = dto.IsPublic,
+                message = dto.IsPublic
+                    ? "Streak is now public."
+                    : "Streak is now private."
+            });
+        }
+
         [HttpPost("{id}/complete")]
         public async Task<IActionResult> CompleteStreak(int id, CompleteStreakDto dto)
         {
