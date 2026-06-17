@@ -191,7 +191,7 @@ namespace Picability.Controllers
                 return BadRequest("Request already handled.");
 
             var nowUtc = DateTime.UtcNow;
-            var defaultDate = new DateTime(1900, 1, 1);
+            var defaultDate = new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
             var oldDeadStreaks = await _context.Streaks
                 .Where(s =>
