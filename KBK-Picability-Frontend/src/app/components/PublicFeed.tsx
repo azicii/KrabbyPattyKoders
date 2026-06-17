@@ -118,7 +118,7 @@ export function PublicFeed({ isDark, items, onBack }: PublicFeedProps) {
                     </h1>
                     <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'
                         }`}>
-                        Public streaks from friends that were completed or broken today
+                        Public streaks from friends!
                     </p>
                 </div>
 
