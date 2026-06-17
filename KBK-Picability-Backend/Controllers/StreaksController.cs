@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Picability.Data;
 using Picability.DTOs;
@@ -393,8 +393,15 @@ namespace Picability.Controllers
                     friendIds.Contains(s.UserTwoId))
                 .ToListAsync();
 
+            var streakIds = streaks.Select(s => s.Id).ToList();
+
+            var reactions = await _context.StreakReactions
+                .Include(r => r.User)
+                .Where(r => streakIds.Contains(r.StreakId))
+                .ToListAsync();
+
             var result = streaks
-                .SelectMany(s =>
+                            .SelectMany(s =>
                 {
                     var feedItems = new List<object>();
 
@@ -435,7 +442,16 @@ namespace Picability.Controllers
                             s.FailedAt,
                             KilledBy = failedToday
                                 ? GetStreakKillerName(s, displayFriendIsUserOne ? s.UserOneId : s.UserTwoId)
-                                : null
+                                : null,
+                            ReactionType = failedToday ? "HeartBreak" : "FistBump",
+                            ReactionEmoji = failedToday ? "💔" : "👊",
+                            ReactionCount = reactions.Count(r =>
+                                r.StreakId == s.Id &&
+                                r.ReactionType == (failedToday ? "HeartBreak" : "FistBump")),
+                            CurrentUserReacted = reactions.Any(r =>
+                                r.StreakId == s.Id &&
+                                r.UserId == currentUserId &&
+                                r.ReactionType == (failedToday ? "HeartBreak" : "FistBump"))
                         });
                     }
 
@@ -446,6 +462,135 @@ namespace Picability.Controllers
                 .ToList();
 
             return Ok(result);
+        }
+
+        [HttpPost("{id}/react")]
+        public async Task<IActionResult> ToggleReaction(int id)
+        {
+            var currentUserId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var streak = await _context.Streaks
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (streak == null)
+            {
+                return NotFound("Streak not found.");
+            }
+
+            var friendIds = await _context.FriendRequests
+                .Where(fr =>
+                    fr.Status == "Accepted" &&
+                    (fr.SenderId == currentUserId || fr.ReceiverId == currentUserId))
+                .Select(fr => fr.SenderId == currentUserId ? fr.ReceiverId : fr.SenderId)
+                .Distinct()
+                .ToListAsync();
+
+            var isParticipant =
+                streak.UserOneId == currentUserId ||
+                streak.UserTwoId == currentUserId;
+
+            var canSeePublicStreak =
+                (friendIds.Contains(streak.UserOneId) && streak.UserOneVisibilityPublic) ||
+                (friendIds.Contains(streak.UserTwoId) && streak.UserTwoVisibilityPublic);
+
+            if (!isParticipant && !canSeePublicStreak)
+            {
+                return Forbid();
+            }
+
+            var reactionType = streak.IsActive ? "FistBump" : "HeartBreak";
+
+            var existingReaction = await _context.StreakReactions
+                .FirstOrDefaultAsync(r =>
+                    r.StreakId == id &&
+                    r.UserId == currentUserId);
+
+            if (existingReaction != null)
+            {
+                _context.StreakReactions.Remove(existingReaction);
+                await _context.SaveChangesAsync();
+
+                var newCount = await _context.StreakReactions
+                    .CountAsync(r => r.StreakId == id && r.ReactionType == reactionType);
+
+                return Ok(new
+                {
+                    reacted = false,
+                    reactionType,
+                    reactionEmoji = reactionType == "HeartBreak" ? "💔" : "👊",
+                    reactionCount = newCount
+                });
+            }
+
+            var reaction = new StreakReaction
+            {
+                StreakId = id,
+                UserId = currentUserId,
+                ReactionType = reactionType,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.StreakReactions.Add(reaction);
+            await _context.SaveChangesAsync();
+
+            var count = await _context.StreakReactions
+                .CountAsync(r => r.StreakId == id && r.ReactionType == reactionType);
+
+            return Ok(new
+            {
+                reacted = true,
+                reactionType,
+                reactionEmoji = reactionType == "HeartBreak" ? "💔" : "👊",
+                reactionCount = count
+            });
+        }
+
+        [HttpGet("{id}/reactions")]
+        public async Task<IActionResult> GetReactions(int id)
+        {
+            var currentUserId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var streak = await _context.Streaks
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (streak == null)
+            {
+                return NotFound("Streak not found.");
+            }
+
+            var reactionType = streak.IsActive ? "FistBump" : "HeartBreak";
+
+            var reactions = await _context.StreakReactions
+                .Include(r => r.User)
+                .Where(r => r.StreakId == id && r.ReactionType == reactionType)
+                .OrderBy(r => r.User.UserName)
+                .Select(r => new
+                {
+                    r.UserId,
+                    UserName = r.User.UserName,
+                    r.ReactionType,
+                    r.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                streakId = id,
+                reactionType,
+                reactionEmoji = reactionType == "HeartBreak" ? "💔" : "👊",
+                count = reactions.Count,
+                users = reactions
+            });
         }
 
         [HttpPost("{id}/complete")]

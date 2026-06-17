@@ -16,6 +16,7 @@ namespace Picability.Data
         public DbSet<StreakRequest> StreakRequests { get; set; }
         public DbSet<Streak> Streaks { get; set; }
         public DbSet<CheckInContent> CheckInContents { get; set; }
+        public DbSet<StreakReaction> StreakReactions { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -99,6 +100,22 @@ namespace Picability.Data
                 .WithMany()
                 .HasForeignKey(c => c.StreakId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<StreakReaction>()
+                .HasOne(r => r.Streak)
+                .WithMany()
+                .HasForeignKey(r => r.StreakId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<StreakReaction>()
+                .HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<StreakReaction>()
+                .HasIndex(r => new { r.StreakId, r.UserId })
+                .IsUnique();
         }
     }
 }
