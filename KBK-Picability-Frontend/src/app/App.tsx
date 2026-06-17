@@ -85,6 +85,8 @@ export default function App() {
     const [unreadContent, setUnreadContent] = useState<any[]>([]);
     const [draftHabitConfig, setDraftHabitConfig] = useState<Partial<HabitConfiguration> | null>(null);
     const [publicFeed, setPublicFeed] = useState<PublicFeedItem[]>([]);
+    const [touchStartX, setTouchStartX] = useState<number | null>(null);
+    const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -512,47 +514,92 @@ export default function App() {
         await handleCheckIn(streakId);
     };
 
+    const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+        setTouchEndX(null);
+        setTouchStartX(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+        setTouchEndX(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchEnd = () => {
+        if (touchStartX === null || touchEndX === null) return;
+
+        const swipeDistance = touchStartX - touchEndX;
+        const minSwipeDistance = 75;
+
+        if (swipeDistance > minSwipeDistance && currentScreen === 'tracker') {
+            fetchPublicFeed();
+            setCurrentScreen('public-feed');
+        }
+
+        if (swipeDistance < -minSwipeDistance && currentScreen === 'public-feed') {
+            setCurrentScreen('tracker');
+        }
+
+        setTouchStartX(null);
+        setTouchEndX(null);
+    };
+
     if (!user) {
         return <AuthScreen isDark={isDark} onToggleDark={() => setIsDark(!isDark)} onSuccess={handleAuthSuccess} />;
     }
 
     return (
         <div className="size-full">
-            {currentScreen === 'tracker' && (
-                <StreakTracker
-                    isDark={isDark}
-                    user={user}
-                    onLogout={() => {
-                        localStorage.removeItem('picabilityUser');
-                        setUser(null);
-                    }}
-                    onToggleDark={() => setIsDark(!isDark)}
-                    onFriends={() => setCurrentScreen('friends-list')}
-                    onAddHabit={handleAddHabit}
-                    onStreakTap={handleCheckIn}
-                    onDismissStreak={handleDismissStreak}
-                    streaks={streaks}
-                    streakInvites={streakInvites}
-                    sentStreakRequests={sentStreakRequests}
-                    onAcceptInvite={handleAcceptStreakInvite}
-                    onRejectInvite={handleRejectStreakInvite}
-                    onRestartStreak={handleRestartStreak}
-                    pendingFriendRequestCount={pendingFriendRequestCount}
-                    onSendCheckInMessage={handleSendCheckInMessage}
-                    unreadContent={unreadContent}
-                    onViewCheckInContent={handleViewCheckInContent}
-                    onSendCheckInPhoto={handleSendCheckInPhoto}
-                    onPublicFeed={() => setCurrentScreen('public-feed')}
-                    onToggleVisibility={handleToggleStreakVisibility}
-                />
-            )}
+            {(currentScreen === 'tracker' || currentScreen === 'public-feed') && (
+                <div
+                    className="w-full overflow-hidden"
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                >
+                    <div
+                        className={`flex w-[200%] transition-transform duration-300 ease-out ${currentScreen === 'public-feed' ? '-translate-x-1/2' : 'translate-x-0'
+                            }`}
+                    >
+                        <div className="w-1/2 shrink-0">
+                            <StreakTracker
+                                isDark={isDark}
+                                user={user}
+                                onLogout={() => {
+                                    localStorage.removeItem('picabilityUser');
+                                    setUser(null);
+                                }}
+                                onToggleDark={() => setIsDark(!isDark)}
+                                onFriends={() => setCurrentScreen('friends-list')}
+                                onAddHabit={handleAddHabit}
+                                onStreakTap={handleCheckIn}
+                                onDismissStreak={handleDismissStreak}
+                                streaks={streaks}
+                                streakInvites={streakInvites}
+                                sentStreakRequests={sentStreakRequests}
+                                onAcceptInvite={handleAcceptStreakInvite}
+                                onRejectInvite={handleRejectStreakInvite}
+                                onRestartStreak={handleRestartStreak}
+                                pendingFriendRequestCount={pendingFriendRequestCount}
+                                onSendCheckInMessage={handleSendCheckInMessage}
+                                unreadContent={unreadContent}
+                                onViewCheckInContent={handleViewCheckInContent}
+                                onSendCheckInPhoto={handleSendCheckInPhoto}
+                                onPublicFeed={() => {
+                                    fetchPublicFeed();
+                                    setCurrentScreen('public-feed');
+                                }}
+                                onToggleVisibility={handleToggleStreakVisibility}
+                            />
+                        </div>
 
-            {currentScreen === 'public-feed' && (
-                <PublicFeed
-                    isDark={isDark}
-                    items={publicFeed}
-                    onBack={() => setCurrentScreen('tracker')}
-                />
+                        <div className="w-1/2 shrink-0">
+                            <PublicFeed
+                                isDark={isDark}
+                                items={publicFeed}
+                                onBack={() => setCurrentScreen('tracker')}
+                            />
+                        </div>
+                    </div>
+                </div>
             )}
 
             {currentScreen === 'selector' && (
