@@ -7,6 +7,7 @@ import { UserSearch, User } from './components/UserSearch.tsx';
 import { FriendsList, PendingRequest } from './components/FriendList.tsx';
 import { RequestConfirmation } from './components/RequestConfirmation.tsx';
 import { PublicFeed, PublicFeedItem } from './components/PublicFeed.tsx';
+import { OnboardingSlides } from './components/OnboardingSlides.tsx';
 
 type Screen =
     | 'auth'
@@ -16,7 +17,8 @@ type Screen =
     | 'config'
     | 'friends-list'
     | 'user-search'
-    | 'confirmation';
+    | 'confirmation'
+    | 'onboarding';
 
 interface AuthUser {
     id: string;
@@ -373,10 +375,17 @@ export default function App() {
         }
     };
 
-    const handleAuthSuccess = (userData: AuthUser) => {
+    const handleAuthSuccess = (userData: AuthUser, showOnboarding = false) => {
         localStorage.setItem('picabilityUser', JSON.stringify(userData));
         setUser(userData);
-        setCurrentScreen('tracker');
+
+        const onboardingKey = `picabilityOnboardingComplete:${userData.id}`;
+
+        if (showOnboarding && localStorage.getItem(onboardingKey) !== 'true') {
+            setCurrentScreen('onboarding');
+        } else {
+            setCurrentScreen('tracker');
+        }
     };
 
     const handleSelectFriend = (friend: User) => {
@@ -518,6 +527,15 @@ export default function App() {
 
     return (
         <div className="size-full">
+            {currentScreen === 'onboarding' && user && (
+                <OnboardingSlides
+                    isDark={isDark}
+                    onComplete={() => {
+                        localStorage.setItem(`picabilityOnboardingComplete:${user.id}`, 'true');
+                        setCurrentScreen('tracker');
+                    }}
+                />
+            )}
             {currentScreen === 'tracker' && (
                 <StreakTracker
                     isDark={isDark}

@@ -4,7 +4,7 @@ import { Mail, Lock, User, Eye, EyeOff, LogIn, UserPlus, AlertCircle, CheckCircl
 interface AuthScreenProps {
   isDark: boolean;
   onToggleDark: () => void;
-  onSuccess: (userData: any) => void;
+  onSuccess: (userData: any, showOnboarding?: boolean) => void;
 }
 
 export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps) {
@@ -69,10 +69,20 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
           setSuccess('Welcome back!');
           // Passes the C# result (id, userName, email) back to App.tsx
           setTimeout(() => {
-            onSuccess(result); 
+              const pendingOnboardingEmail = localStorage.getItem('picabilityPendingOnboardingEmail');
+              const shouldShowOnboarding =
+                  pendingOnboardingEmail &&
+                  pendingOnboardingEmail.toLowerCase() === result.email?.toLowerCase();
+
+              if (shouldShowOnboarding) {
+                  localStorage.removeItem('picabilityPendingOnboardingEmail');
+              }
+
+              onSuccess(result, !!shouldShowOnboarding);
           }, 1000);
         } else {
           setSuccess('Account created! Please sign in.');
+          localStorage.setItem('picabilityPendingOnboardingEmail', formData.email);
           setFormData({ username: '', email: formData.email, password: '' });
 
           setTimeout(() => {

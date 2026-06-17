@@ -1,0 +1,94 @@
+import { useState } from 'react';
+import { UserPlus, Zap, Camera, Globe2, ChevronRight } from 'lucide-react';
+
+interface OnboardingSlidesProps {
+    isDark: boolean;
+    onComplete: () => void;
+}
+
+const slides = [
+    {
+        icon: UserPlus,
+        title: 'Add a friend',
+        text: 'Find a friend and send them a request so you can keep each other accountable.'
+    },
+    {
+        icon: Zap,
+        title: 'Start a streak',
+        text: 'Pick a habit, choose your friend, and send a streak request.'
+    },
+    {
+        icon: Camera,
+        title: 'Check in daily',
+        text: 'Complete your streak each day with a simple check-in, message, or photo.'
+    },
+    {
+        icon: Globe2,
+        title: 'Flex your progress',
+        text: 'Public streaks can show up on your friends feed when you complete them.'
+    }
+];
+
+export function OnboardingSlides({ isDark, onComplete }: OnboardingSlidesProps) {
+    const [index, setIndex] = useState(0);
+    const slide = slides[index];
+    const Icon = slide.icon;
+    const isLast = index === slides.length - 1;
+
+    const handleContinue = () => {
+        if (isLast) {
+            onComplete();
+        } else {
+            setIndex(prev => prev + 1);
+        }
+    };
+
+    return (
+        <div className={`min-h-screen p-6 flex flex-col transition-colors duration-300 ${isDark
+                ? 'bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100'
+                : 'bg-gradient-to-br from-slate-50 to-slate-100 text-slate-800'
+            }`}>
+            <div className="flex-1 flex items-center justify-center">
+                <div className={`w-full max-w-md rounded-3xl p-8 text-center shadow-xl border ${isDark
+                        ? 'bg-slate-800/50 border-slate-700'
+                        : 'bg-white border-slate-100'
+                    }`}>
+                    <div className="mx-auto mb-8 w-24 h-24 rounded-3xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-lg">
+                        <Icon className="w-12 h-12 text-white" />
+                    </div>
+
+                    <h1 className="text-3xl font-bold mb-4">
+                        {slide.title}
+                    </h1>
+
+                    <p className={`text-base leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'
+                        }`}>
+                        {slide.text}
+                    </p>
+
+                    <div className="flex justify-center gap-2 mt-8">
+                        {slides.map((_, dotIndex) => (
+                            <div
+                                key={dotIndex}
+                                className={`h-2 rounded-full transition-all ${dotIndex === index
+                                        ? 'w-8 bg-teal-500'
+                                        : isDark
+                                            ? 'w-2 bg-slate-600'
+                                            : 'w-2 bg-slate-300'
+                                    }`}
+                            />
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <button
+                onClick={handleContinue}
+                className="w-full max-w-md mx-auto py-5 rounded-3xl font-bold text-lg shadow-xl bg-gradient-to-r from-teal-600 to-cyan-700 text-white hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+            >
+                <span>{isLast ? 'Start using Picability' : 'Continue'}</span>
+                <ChevronRight className="w-6 h-6" />
+            </button>
+        </div>
+    );
+}
