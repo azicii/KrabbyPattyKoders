@@ -1,4 +1,4 @@
-﻿import { ArrowLeft, Flame, Skull } from 'lucide-react';
+﻿import { ArrowLeft } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 
 export interface PublicFeedItem {
@@ -142,14 +142,6 @@ export function PublicFeed({ isDark, items, onBack }: PublicFeedProps) {
                                         {item.currentCount === 1 ? 'day' : 'days'}
                                     </span>
                                 </div>
-                            </div>
-
-                            <div className={`mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold ${item.failedToday
-                                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                                    : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                                }`}>
-                                {item.failedToday ? <Skull className="w-4 h-4" /> : <Flame className="w-4 h-4" />}
-                                <span>{item.failedToday ? 'Fallen streak' : 'Hot streak'}</span>
                             </div>
                         </div>
                     );
