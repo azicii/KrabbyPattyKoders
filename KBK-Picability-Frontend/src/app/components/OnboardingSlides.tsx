@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { UserPlus, Zap, Camera, Globe2, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+import onboardingFlow from '../onboarding-flow/onboarding-flow.png';
 
 interface OnboardingSlidesProps {
     isDark: boolean;
@@ -8,39 +9,35 @@ interface OnboardingSlidesProps {
 
 const slides = [
     {
-        icon: UserPlus,
         title: 'Add a friend',
-        text: 'Find a friend and send them a request so you can keep each other accountable.'
+        text: 'Search for a friend and send them a request.',
+        imagePosition: 'object-left-top'
     },
     {
-        icon: Zap,
         title: 'Start a streak',
-        text: 'Pick a habit, choose your friend, and send a streak request.'
+        text: 'Pick a habit and invite your accountability partner.',
+        imagePosition: 'object-right-top'
     },
     {
-        icon: Camera,
         title: 'Check in daily',
-        text: 'Complete your streak each day with a simple check-in, message, or photo.'
+        text: 'Complete your streak every day to keep it alive.',
+        imagePosition: 'object-left-bottom'
     },
     {
-        icon: Globe2,
-        title: 'Flex your progress',
-        text: 'Public streaks can show up on your friends feed when you complete them.'
+        title: 'Support your friends',
+        text: 'React to streaks and celebrate progress together.',
+        imagePosition: 'object-right-bottom'
     }
 ];
 
 export function OnboardingSlides({ isDark, onComplete }: OnboardingSlidesProps) {
     const [index, setIndex] = useState(0);
     const slide = slides[index];
-    const Icon = slide.icon;
     const isLast = index === slides.length - 1;
 
     const handleContinue = () => {
-        if (isLast) {
-            onComplete();
-        } else {
-            setIndex(prev => prev + 1);
-        }
+        if (isLast) onComplete();
+        else setIndex(prev => prev + 1);
     };
 
     return (
@@ -49,32 +46,30 @@ export function OnboardingSlides({ isDark, onComplete }: OnboardingSlidesProps) 
                 : 'bg-gradient-to-br from-slate-50 to-slate-100 text-slate-800'
             }`}>
             <div className="flex-1 flex items-center justify-center">
-                <div className={`w-full max-w-md rounded-3xl p-8 text-center shadow-xl border ${isDark
-                        ? 'bg-slate-800/50 border-slate-700'
-                        : 'bg-white border-slate-100'
+                <div className={`w-full max-w-md rounded-3xl p-6 text-center shadow-xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'
                     }`}>
-                    <div className="mx-auto mb-8 w-24 h-24 rounded-3xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-lg">
-                        <Icon className="w-12 h-12 text-white" />
+                    <div className="w-full aspect-[4/3] rounded-3xl overflow-hidden mb-6 bg-slate-900">
+                        <img
+                            src={onboardingFlow}
+                            alt={slide.title}
+                            className={`w-full h-full object-cover ${slide.imagePosition}`}
+                        />
                     </div>
 
-                    <h1 className="text-3xl font-bold mb-4">
-                        {slide.title}
-                    </h1>
+                    <h1 className="text-3xl font-bold mb-3">{slide.title}</h1>
 
                     <p className={`text-base leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'
                         }`}>
                         {slide.text}
                     </p>
 
-                    <div className="flex justify-center gap-2 mt-8">
+                    <div className="flex justify-center gap-2 mt-6">
                         {slides.map((_, dotIndex) => (
                             <div
                                 key={dotIndex}
                                 className={`h-2 rounded-full transition-all ${dotIndex === index
                                         ? 'w-8 bg-teal-500'
-                                        : isDark
-                                            ? 'w-2 bg-slate-600'
-                                            : 'w-2 bg-slate-300'
+                                        : isDark ? 'w-2 bg-slate-600' : 'w-2 bg-slate-300'
                                     }`}
                             />
                         ))}
