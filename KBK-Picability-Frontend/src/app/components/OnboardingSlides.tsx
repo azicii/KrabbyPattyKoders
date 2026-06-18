@@ -11,22 +11,22 @@ const slides = [
     {
         title: 'Add a friend',
         text: 'Search for a friend and send them a request.',
-        imagePosition: 'object-left-top'
+        bgPosition: 'left top'
     },
     {
         title: 'Start a streak',
         text: 'Pick a habit and invite your accountability partner.',
-        imagePosition: 'object-right-top'
+        bgPosition: 'right top'
     },
     {
         title: 'Check in daily',
         text: 'Complete your streak every day to keep it alive.',
-        imagePosition: 'object-left-bottom'
+        bgPosition: 'left bottom'
     },
     {
         title: 'Support your friends',
         text: 'React to streaks and celebrate progress together.',
-        imagePosition: 'object-right-bottom'
+        bgPosition: 'right bottom'
     }
 ];
 
@@ -48,13 +48,14 @@ export function OnboardingSlides({ isDark, onComplete }: OnboardingSlidesProps) 
             <div className="flex-1 flex items-center justify-center">
                 <div className={`w-full max-w-md rounded-3xl p-6 text-center shadow-xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'
                     }`}>
-                    <div className="w-full aspect-[4/3] rounded-3xl overflow-hidden mb-6 bg-slate-900">
-                        <img
-                            src={onboardingFlow}
-                            alt={slide.title}
-                            className={`w-full h-full object-cover ${slide.imagePosition}`}
-                        />
-                    </div>
+                    <div
+                        className="w-full aspect-[3/2] rounded-3xl overflow-hidden mb-8 bg-slate-950 bg-no-repeat"
+                        style={{
+                            backgroundImage: `url(${onboardingFlow})`,
+                            backgroundSize: '200% 200%',
+                            backgroundPosition: slide.bgPosition
+                        }}
+                    />
 
                     <h1 className="text-3xl font-bold mb-3">{slide.title}</h1>
 
