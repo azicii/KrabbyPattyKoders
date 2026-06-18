@@ -10,22 +10,22 @@ interface OnboardingSlidesProps {
 const slides = [
     {
         title: 'Add a friend',
-        text: 'Search for a friend and send them a request.',
+        text: 'Find an accountability partner and send them a request.',
         bgPosition: 'left top'
     },
     {
         title: 'Start a streak',
-        text: 'Pick a habit and invite your accountability partner.',
+        text: 'Pick a healthy habit and invite your accountability partner.',
         bgPosition: 'right top'
     },
     {
         title: 'Check in daily',
-        text: 'Complete your streak every day to keep it alive.',
+        text: 'Check in every day to keep your streak alive.',
         bgPosition: 'left bottom'
     },
     {
         title: 'Support your friends',
-        text: 'React to streaks and celebrate progress together.',
+        text: 'React to streaks and celebrate progress together!',
         bgPosition: 'right bottom'
     }
 ];
