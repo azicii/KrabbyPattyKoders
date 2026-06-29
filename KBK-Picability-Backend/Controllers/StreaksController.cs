@@ -105,7 +105,7 @@ namespace Picability.Controllers
 
                 var startedBeforeTodayAndNeverCompleted =
                     (lastFullyCompleted == null || lastFullyCompleted == defaultDate) &&
-                    anchorPacificDate < todayPacific;
+                    anchorPacificDate < todayPacific.AddDays(-1);
 
                 if (missedYesterdayOrEarlier || startedBeforeTodayAndNeverCompleted)
                 {
@@ -641,7 +641,7 @@ namespace Picability.Controllers
 
             var startedBeforeTodayAndNeverCompleted =
                 (lastFullyCompleted == null || lastFullyCompleted == defaultDate) &&
-                anchorPacificDate < todayPacific;
+                anchorPacificDate < todayPacific.AddDays(-1);
 
             if (missedYesterdayOrEarlier || startedBeforeTodayAndNeverCompleted)
             {
