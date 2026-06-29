@@ -138,6 +138,36 @@ namespace Picability.Controllers
             return Ok(requests);
         }
 
+        [HttpDelete("cancel/{requestId}")]
+        public async Task<IActionResult> CancelStreakRequest(int requestId)
+        {
+            var currentUserId = GetCurrentUserId();
+
+            if (currentUserId == null)
+                return Unauthorized();
+
+            var request = await _context.StreakRequests
+                .FirstOrDefaultAsync(sr => sr.Id == requestId);
+
+            if (request == null)
+                return NotFound("Streak request not found.");
+
+            if (request.SenderId != currentUserId)
+                return Forbid();
+
+            if (request.Status != "Pending")
+                return BadRequest("Only pending streak requests can be cancelled.");
+
+            _context.StreakRequests.Remove(request);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Streak request cancelled.",
+                requestId = request.Id
+            });
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetMine()
         {
