@@ -375,6 +375,27 @@ export default function App() {
         }
     };
 
+    const handleCancelPendingStreakRequest = async (requestId: number) => {
+        if (!user) return;
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/StreakRequests/cancel/${requestId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(user.token)
+            });
+
+            if (response.ok) {
+                await fetchSentStreakRequests();
+            } else {
+                const errorText = await response.text();
+                alert(errorText || "Failed to cancel streak request.");
+            }
+        } catch (err) {
+            console.error("Error cancelling streak request:", err);
+            alert("Network error while cancelling streak request.");
+        }
+    };
+
     const handleAuthSuccess = (userData: AuthUser, showOnboarding = false) => {
         localStorage.setItem('picabilityUser', JSON.stringify(userData));
         setUser(userData);
@@ -554,6 +575,7 @@ export default function App() {
                     sentStreakRequests={sentStreakRequests}
                     onAcceptInvite={handleAcceptStreakInvite}
                     onRejectInvite={handleRejectStreakInvite}
+                    onCancelPendingStreakRequest={handleCancelPendingStreakRequest}
                     onRestartStreak={handleRestartStreak}
                     pendingFriendRequestCount={pendingFriendRequestCount}
                     onSendCheckInMessage={handleSendCheckInMessage}

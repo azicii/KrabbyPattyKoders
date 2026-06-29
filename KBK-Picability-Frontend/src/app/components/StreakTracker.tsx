@@ -45,6 +45,7 @@ interface StreakTrackerProps {
     sentStreakRequests?: any[];
     onAcceptInvite?: (id: number) => void;
     onRejectInvite?: (id: number) => void;
+    onCancelPendingStreakRequest?: (id: number) => void;
     onRestartStreak?: (streak: Streak) => void;
     pendingFriendRequestCount?: number;
     onSendCheckInMessage?: (
@@ -83,6 +84,7 @@ export function StreakTracker({
     unreadContent = [],
     onViewCheckInContent,
     onRejectInvite,
+    onCancelPendingStreakRequest,
     onToggleVisibility,
     onSendCheckInPhoto
 }: StreakTrackerProps) {
@@ -96,6 +98,7 @@ export function StreakTracker({
     const [viewingContent, setViewingContent] = useState<any | null>(null);
     const [viewerProgress, setViewerProgress] = useState(100);
     const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+    const [cancelPendingRequest, setCancelPendingRequest] = useState<any | null>(null);
 
     const getUnreadForStreak = (streakId: number) => {
         return unreadContent?.find(c => c.streakId === streakId);
@@ -537,9 +540,20 @@ export function StreakTracker({
                                                 </div>
                                             </div>
 
-                                            <div className={`px-4 py-2 rounded-2xl text-sm font-bold ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'
-                                                }`}>
-                                                Pending
+                                            <div className="flex items-center gap-2">
+                                                <div className={`px-4 py-2 rounded-2xl text-sm font-bold ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'
+                                                    }`}>
+                                                    Pending
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCancelPendingRequest(request)}
+                                                    className="w-9 h-9 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center"
+                                                    title="Cancel pending streak request"
+                                                >
+                                                    <X className="w-5 h-5" />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -1116,6 +1130,52 @@ export function StreakTracker({
                         </div>
                     </button>
                 </div>
+
+                {cancelPendingRequest && (
+                    <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className={`w-full max-w-md rounded-3xl p-6 shadow-2xl border ${isDark
+                                ? 'bg-slate-900 border-slate-700 text-slate-100'
+                                : 'bg-white border-slate-200 text-slate-800'
+                            }`}>
+                            <div className="mb-5">
+                                <p className="text-sm font-bold uppercase tracking-widest text-rose-500 mb-2">
+                                    Cancel Request
+                                </p>
+
+                                <h2 className="text-2xl font-bold">
+                                    Cancel pending streak request?
+                                </h2>
+
+                                <p className={`text-sm mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    This will cancel your request for {cancelPendingRequest.habitName}
+                                    {cancelPendingRequest.receiverName ? ` with ${cancelPendingRequest.receiverName}` : ''}.
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <button
+                                    onClick={() => {
+                                        onCancelPendingStreakRequest?.(cancelPendingRequest.id);
+                                        setCancelPendingRequest(null);
+                                    }}
+                                    className="w-full py-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all"
+                                >
+                                    Yes, cancel request
+                                </button>
+
+                                <button
+                                    onClick={() => setCancelPendingRequest(null)}
+                                    className={`w-full py-3 rounded-2xl font-semibold transition-all ${isDark
+                                            ? 'text-slate-400 hover:bg-slate-800'
+                                            : 'text-slate-500 hover:bg-slate-100'
+                                        }`}
+                                >
+                                    Keep request
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {streaks.length === 0 && (
                     <div className="max-w-2xl mx-auto text-center py-16">
