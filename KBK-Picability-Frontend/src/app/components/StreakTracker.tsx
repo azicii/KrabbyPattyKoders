@@ -462,7 +462,7 @@ export function StreakTracker({
                                             : 'bg-amber-50 border-amber-300'
                                             }`}
                                     >
-                                        <div className="flex flex-col gap-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                             <div className="flex items-center gap-4 w-full min-w-0">
                                                 <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${invite.color || 'from-amber-500 to-orange-600'} shadow-lg`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
@@ -521,7 +521,7 @@ export function StreakTracker({
                                             : 'bg-white border-slate-200'
                                             }`}
                                     >
-                                        <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                                        <div className="flex flex-col gap-4">
                                             <div className="flex items-center gap-4">
                                                 <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${request.color || 'from-slate-500 to-slate-600'} shadow-lg opacity-80`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
@@ -613,7 +613,7 @@ export function StreakTracker({
                                 >
                                     <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
                                         <div className="flex items-start sm:items-center gap-3 min-w-0 pr-2">
-                                            <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${isBroken ? 'from-slate-500 to-slate-600' : streak.color} shadow-lg`}>
+                                            <div className={`flex items-center justify-center w-16 h-16 min-w-16 min-h-16 shrink-0 rounded-2xl bg-gradient-to-br ${isBroken ? 'from-slate-500 to-slate-600' : streak.color} shadow-lg`}>
                                                 <IconComponent className="w-8 h-8 text-white" />
                                             </div>
                                             <div className="text-left">
@@ -665,7 +665,7 @@ export function StreakTracker({
                                                 openUnreadContent(unreadForThisStreak);
                                             }
                                         }}
-                                        className={`absolute top-[78px] right-3 sm:top-1/2 sm:-right-12 sm:-translate-y-1/2 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
+                                        className={`absolute top-[72px] -right-1 sm:top-1/2 sm:-right-12 sm:-translate-y-1/2 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
                                             } ${bubbleAccentClass}`}
                                     >
 
@@ -1105,7 +1105,7 @@ export function StreakTracker({
                                                         openUnreadContent(unreadForThisStreak);
                                                     }
                                                 }}
-                                                className={`absolute top-[78px] right-3 sm:top-1/2 sm:-right-12 sm:-translate-y-1/2 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all opacity-70 grayscale ${isDark ? 'bg-slate-800' : 'bg-white'
+                                                className={`absolute top-[72px] -right-1 sm:top-1/2 sm:-right-12 sm:-translate-y-1/2 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all opacity-70 grayscale ${isDark ? 'bg-slate-800' : 'bg-white'
                                                     } ${bubbleAccentClass}`}
                                             >
                                                 {hasPhotoBubble ? (
