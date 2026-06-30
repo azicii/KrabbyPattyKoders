@@ -521,8 +521,8 @@ export function StreakTracker({
                                             : 'bg-white border-slate-200'
                                             }`}
                                     >
-                                        <div className="relative min-h-[96px]">
-                                            <div className="flex items-center gap-4">
+                                        <div className="relative min-h-[132px] sm:min-h-[72px]">
+                                            <div className="flex items-center gap-4 pr-0 sm:pr-40">
                                                 <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${request.color || 'from-slate-500 to-slate-600'} shadow-lg opacity-80`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
                                                 </div>
@@ -540,7 +540,7 @@ export function StreakTracker({
                                                 </div>
                                             </div>
 
-                                            <div className="absolute right-0 bottom-0 flex items-center justify-end gap-2">
+                                            <div className="absolute right-0 bottom-0 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 flex items-center justify-end gap-2">
                                                 <div className={`px-4 py-2 rounded-2xl text-sm font-bold ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'
                                                     }`}>
                                                     Pending
