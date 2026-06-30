@@ -462,7 +462,7 @@ export function StreakTracker({
                                             : 'bg-amber-50 border-amber-300'
                                             }`}
                                     >
-                                        <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                                        <div className="flex flex-col gap-4">
                                             <div className="flex items-center gap-4 w-full min-w-0">
                                                 <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${invite.color || 'from-amber-500 to-orange-600'} shadow-lg`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
@@ -540,7 +540,7 @@ export function StreakTracker({
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-end gap-2 shrink-0">
+                                            <div className="flex items-center justify-end gap-2 w-full">
                                                 <div className={`px-4 py-2 rounded-2xl text-sm font-bold ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'
                                                     }`}>
                                                     Pending
@@ -611,7 +611,7 @@ export function StreakTracker({
                                     className={`group w-full relative overflow-hidden rounded-3xl p-6 shadow-sm transition-all duration-300 hover:scale-[1.01] ${isDark ? 'bg-slate-800/50 backdrop-blur-sm' : 'bg-white'
                                         } ${isExpanded ? 'rounded-b-none' : ''}`}
                                 >
-                                    <div className="grid grid-cols-[1fr_auto] gap-4 items-center">
+                                    <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
                                         <div className="flex items-start sm:items-center gap-3 min-w-0 pr-2">
                                             <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${isBroken ? 'from-slate-500 to-slate-600' : streak.color} shadow-lg`}>
                                                 <IconComponent className="w-8 h-8 text-white" />
@@ -638,7 +638,7 @@ export function StreakTracker({
                                                     <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>{streak.userAvatar}</div>
                                                     <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>with {streak.userName}</span>
                                                     {!isBroken && (
-                                                        <div className={`inline-flex items-center gap-2 mt-2 px-3 py-1 rounded-full border text-xs font-bold ${visualState.chipClass}`}>
+                                                        <div className={`inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full border text-[11px] sm:text-xs font-bold whitespace-nowrap ${visualState.chipClass}`}>
                                                             <span>{visualState.emoji}</span>
                                                             <span>{visualState.label}</span>
                                                         </div>
@@ -665,7 +665,7 @@ export function StreakTracker({
                                                 openUnreadContent(unreadForThisStreak);
                                             }
                                         }}
-                                        className={`absolute top-[102px] right-6 sm:top-1/2 sm:-right-12 sm:-translate-y-1/2 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
+                                        className={`absolute top-[78px] right-3 sm:top-1/2 sm:-right-12 sm:-translate-y-1/2 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
                                             } ${bubbleAccentClass}`}
                                     >
 
@@ -1105,7 +1105,7 @@ export function StreakTracker({
                                                         openUnreadContent(unreadForThisStreak);
                                                     }
                                                 }}
-                                                className={`absolute top-1/2 right-2 sm:-right-12 -translate-y-1/2 z-20 w-11 h-11 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all opacity-70 grayscale ${isDark ? 'bg-slate-800' : 'bg-white'
+                                                className={`absolute top-[78px] right-3 sm:top-1/2 sm:-right-12 sm:-translate-y-1/2 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all opacity-70 grayscale ${isDark ? 'bg-slate-800' : 'bg-white'
                                                     } ${bubbleAccentClass}`}
                                             >
                                                 {hasPhotoBubble ? (
