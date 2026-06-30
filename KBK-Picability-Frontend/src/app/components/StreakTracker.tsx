@@ -521,7 +521,7 @@ export function StreakTracker({
                                             : 'bg-white border-slate-200'
                                             }`}
                                     >
-                                        <div className="flex flex-col gap-4">
+                                        <div className="relative min-h-[96px]">
                                             <div className="flex items-center gap-4">
                                                 <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${request.color || 'from-slate-500 to-slate-600'} shadow-lg opacity-80`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
@@ -540,7 +540,7 @@ export function StreakTracker({
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-end gap-2 w-full">
+                                            <div className="absolute right-0 bottom-0 flex items-center justify-end gap-2">
                                                 <div className={`px-4 py-2 rounded-2xl text-sm font-bold ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'
                                                     }`}>
                                                     Pending
@@ -665,7 +665,7 @@ export function StreakTracker({
                                                 openUnreadContent(unreadForThisStreak);
                                             }
                                         }}
-                                        className={`absolute top-[72px] -right-1 sm:top-1/2 sm:-right-12 sm:-translate-y-1/2 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
+                                        className={`absolute top-1/2 -right-1 -translate-y-1/2 sm:-right-12 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
                                             } ${bubbleAccentClass}`}
                                     >
 
@@ -1105,7 +1105,7 @@ export function StreakTracker({
                                                         openUnreadContent(unreadForThisStreak);
                                                     }
                                                 }}
-                                                className={`absolute top-[72px] -right-1 sm:top-1/2 sm:-right-12 sm:-translate-y-1/2 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all opacity-70 grayscale ${isDark ? 'bg-slate-800' : 'bg-white'
+                                                className={`absolute top-1/2 -right-1 -translate-y-1/2 sm:-right-12 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all opacity-70 grayscale ${isDark ? 'bg-slate-800' : 'bg-white'
                                                     } ${bubbleAccentClass}`}
                                             >
                                                 {hasPhotoBubble ? (
