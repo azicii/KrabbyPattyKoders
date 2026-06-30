@@ -521,7 +521,7 @@ export function StreakTracker({
                                             : 'bg-white border-slate-200'
                                             }`}
                                     >
-                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                        <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
                                             <div className="flex items-center gap-4">
                                                 <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${request.color || 'from-slate-500 to-slate-600'} shadow-lg opacity-80`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
@@ -552,7 +552,7 @@ export function StreakTracker({
                                                     className="w-9 h-9 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-sm shrink-0"
                                                     title="Cancel pending streak request"
                                                 >
-                                                    <X className="w-5 h-5" />
+                                                    <X className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </div>
@@ -611,8 +611,8 @@ export function StreakTracker({
                                     className={`group w-full relative overflow-hidden rounded-3xl p-6 shadow-sm transition-all duration-300 hover:scale-[1.01] ${isDark ? 'bg-slate-800/50 backdrop-blur-sm' : 'bg-white'
                                         } ${isExpanded ? 'rounded-b-none' : ''}`}
                                 >
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                        <div className="flex items-start sm:items-center gap-3 min-w-0">
+                                    <div className="grid grid-cols-[1fr_auto] gap-4 items-center">
+                                        <div className="flex items-start sm:items-center gap-3 min-w-0 pr-2">
                                             <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${isBroken ? 'from-slate-500 to-slate-600' : streak.color} shadow-lg`}>
                                                 <IconComponent className="w-8 h-8 text-white" />
                                             </div>
@@ -634,7 +634,7 @@ export function StreakTracker({
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                <div className="flex flex-wrap items-center gap-2 mt-1 max-w-[210px] sm:max-w-none">
                                                     <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>{streak.userAvatar}</div>
                                                     <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>with {streak.userName}</span>
                                                     {!isBroken && (
@@ -646,7 +646,7 @@ export function StreakTracker({
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-start justify-end gap-2 shrink-0 pt-0 min-w-[74px]">
+                                        <div className="flex items-start justify-end gap-2 shrink-0 pt-0 w-[72px]">
                                             <div className="flex flex-col items-center">
                                                 <div className={`text-2xl sm:text-3xl font-bold ${isBroken ? 'text-slate-500' : 'bg-gradient-to-br ' + streak.color + ' bg-clip-text text-transparent'}`}>{streak.streakCount}</div>
                                                 <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{streak.streakCount === 1 ? 'day' : 'days'}</span>
@@ -665,7 +665,7 @@ export function StreakTracker({
                                                 openUnreadContent(unreadForThisStreak);
                                             }
                                         }}
-                                        className={`absolute top-[92px] right-5 sm:top-1/2 sm:-right-12 sm:-translate-y-1/2 z-20 w-10 h-10 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
+                                        className={`absolute top-[102px] right-6 sm:top-1/2 sm:-right-12 sm:-translate-y-1/2 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
                                             } ${bubbleAccentClass}`}
                                     >
 
@@ -1058,7 +1058,7 @@ export function StreakTracker({
                                         className={`relative w-full rounded-3xl p-6 shadow-sm border transition-all grayscale opacity-80 ${isDark ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'
                                             }`}
                                     >
-                                        <div className="grid grid-cols-[1fr_auto] gap-4 items-center">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                             <div className="flex items-start sm:items-center gap-4 w-full min-w-0">
                                                 <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-700 shadow-lg">
                                                     <IconComponent className="w-8 h-8 text-white" />
