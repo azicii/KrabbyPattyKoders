@@ -462,7 +462,7 @@ export function StreakTracker({
                                             : 'bg-amber-50 border-amber-300'
                                             }`}
                                     >
-                                        <div className="flex items-start justify-between gap-4">
+                                        <div className="grid grid-cols-[1fr_auto] gap-4 items-start">
                                             <div className="flex items-center gap-4 w-full min-w-0">
                                                 <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${invite.color || 'from-amber-500 to-orange-600'} shadow-lg`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
@@ -549,7 +549,7 @@ export function StreakTracker({
                                                 <button
                                                     type="button"
                                                     onClick={() => setCancelPendingRequest(request)}
-                                                    className="absolute top-1/2 -right-4 sm:-right-12 -translate-y-1/2 z-20 w-[52px] h-[44px] rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-xl"
+                                                    className="w-11 h-11 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-sm shrink-0"
                                                     title="Cancel pending streak request"
                                                 >
                                                     <X className="w-5 h-5" />
@@ -612,13 +612,13 @@ export function StreakTracker({
                                         } ${isExpanded ? 'rounded-b-none' : ''}`}
                                 >
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                        <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
+                                        <div className="flex items-start sm:items-center gap-3 min-w-0">
                                             <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${isBroken ? 'from-slate-500 to-slate-600' : streak.color} shadow-lg`}>
                                                 <IconComponent className="w-8 h-8 text-white" />
                                             </div>
                                             <div className="text-left">
                                                 <div className="flex items-center gap-2">
-                                                    <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                                                    <h3 className={`text-base sm:text-lg font-semibold leading-tight truncate max-w-[150px] sm:max-w-none ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                                                         {streak.habitName} {isBroken && '💔'}
                                                     </h3>
 
@@ -646,9 +646,9 @@ export function StreakTracker({
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-end gap-3 shrink-0 pt-1">
+                                        <div className="flex items-start justify-end gap-2 shrink-0 pt-1">
                                             <div className="flex flex-col items-center">
-                                                <div className={`text-3xl font-bold ${isBroken ? 'text-slate-500' : 'bg-gradient-to-br ' + streak.color + ' bg-clip-text text-transparent'}`}>{streak.streakCount}</div>
+                                                <div className={`text-2xl sm:text-3xl font-bold ${isBroken ? 'text-slate-500' : 'bg-gradient-to-br ' + streak.color + ' bg-clip-text text-transparent'}`}>{streak.streakCount}</div>
                                                 <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{streak.streakCount === 1 ? 'day' : 'days'}</span>
                                             </div>
                                             <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isDark ? 'text-slate-400' : 'text-slate-600'} ${isExpanded ? 'rotate-180' : ''}`} />
@@ -665,14 +665,14 @@ export function StreakTracker({
                                                 openUnreadContent(unreadForThisStreak);
                                             }
                                         }}
-                                        className={`absolute top-1/2 -right-4 sm:-right-12 -translate-y-1/2 z-20 w-[60px] h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
+                                        className={`absolute top-1/2 right-2 sm:-right-12 -translate-y-1/2 z-20 w-11 h-11 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
                                             } ${bubbleAccentClass}`}
                                     >
 
                                         {hasPhotoBubble ? (
-                                            <ImageIcon className="w-6 h-6 relative z-10" />
+                                            <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6 relative z-10" />
                                         ) : (
-                                            <MessageCircle className="w-7 h-7 relative z-10" />
+                                            <MessageCircle className="w-5 h-5 sm:w-7 sm:h-7 relative z-10" />
                                         )}
                                     </button>
                                 )}
@@ -972,7 +972,7 @@ export function StreakTracker({
                     )}
 
                     {viewingContent && (
-                        <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                             <div
                                 className={`w-full max-w-md rounded-3xl p-6 shadow-2xl border animate-in fade-in slide-in-from-bottom-4 duration-200 ${isDark
                                         ? 'bg-slate-900 border-slate-700 text-slate-100'
@@ -1105,13 +1105,13 @@ export function StreakTracker({
                                                         openUnreadContent(unreadForThisStreak);
                                                     }
                                                 }}
-                                                className={`absolute top-1/2 -right-4 sm:-right-12 -translate-y-1/2 z-20 w-[60px] h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all opacity-70 grayscale ${isDark ? 'bg-slate-800' : 'bg-white'
+                                                className={`absolute top-1/2 right-2 sm:-right-12 -translate-y-1/2 z-20 w-11 h-11 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all opacity-70 grayscale ${isDark ? 'bg-slate-800' : 'bg-white'
                                                     } ${bubbleAccentClass}`}
                                             >
                                                 {hasPhotoBubble ? (
-                                                    <ImageIcon className="w-6 h-6 relative z-10" />
+                                                    <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6 relative z-10" />
                                                 ) : (
-                                                    <MessageCircle className="w-7 h-7 relative z-10" />
+                                                    <MessageCircle className="w-5 h-5 sm:w-7 sm:h-7 relative z-10" />
                                                 )}
                                             </button>
                                         )}
