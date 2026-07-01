@@ -91,6 +91,7 @@ export default function App() {
     const [mobileTab, setMobileTab] = useState<MobileTab>('tracker');
     const [touchStartX, setTouchStartX] = useState<number | null>(null);
     const [touchStartY, setTouchStartY] = useState<number | null>(null);
+    const [touchStartTime, setTouchStartTime] = useState<number | null>(null);
     const [touchDeltaX, setTouchDeltaX] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const [swipeIntent, setSwipeIntent] = useState<'horizontal' | 'vertical' | null>(null);
@@ -185,6 +186,7 @@ export default function App() {
 
         setTouchStartX(e.touches[0].clientX);
         setTouchStartY(e.touches[0].clientY);
+        setTouchStartTime(Date.now());
         setTouchDeltaX(0);
         setIsDragging(false);
         setSwipeIntent(null);
@@ -215,31 +217,47 @@ export default function App() {
         }
 
         if (swipeIntent === 'horizontal') {
-            setTouchDeltaX(deltaX);
+            const isAtLeftEdge = activePrimaryIndex === 0 && deltaX > 0;
+            const isAtRightEdge = activePrimaryIndex === primaryTabs.length - 1 && deltaX < 0;
+
+            if (isAtLeftEdge || isAtRightEdge) {
+                const resistedDelta = Math.sign(deltaX) * Math.min(Math.abs(deltaX) * 0.28, 48);
+                setTouchDeltaX(resistedDelta);
+            } else {
+                setTouchDeltaX(deltaX);
+            }
         }
     };
 
     const handleTouchEnd = () => {
         if (window.innerWidth >= 768 || touchStartX === null) return;
 
-        const threshold = 110;
+        const elapsedMs = touchStartTime ? Date.now() - touchStartTime : 999;
+        const velocity = Math.abs(touchDeltaX) / Math.max(elapsedMs, 1);
+
+        const distanceThreshold = 110;
+        const flickThreshold = 0.65;
 
         if (swipeIntent === 'horizontal') {
-            if (touchDeltaX < -threshold) {
-                goToPrimaryIndex(activePrimaryIndex + 1);
-            } else if (touchDeltaX > threshold) {
-                goToPrimaryIndex(activePrimaryIndex - 1);
+            const shouldMoveByDistance = Math.abs(touchDeltaX) > distanceThreshold;
+            const shouldMoveByVelocity = Math.abs(touchDeltaX) > 35 && velocity > flickThreshold;
+
+            if (shouldMoveByDistance || shouldMoveByVelocity) {
+                if (touchDeltaX < 0) {
+                    goToPrimaryIndex(activePrimaryIndex + 1);
+                } else {
+                    goToPrimaryIndex(activePrimaryIndex - 1);
+                }
             }
         }
 
         setTouchStartX(null);
         setTouchStartY(null);
+        setTouchStartTime(null);
         setTouchDeltaX(0);
         setIsDragging(false);
         setSwipeIntent(null);
     };
-
-   
 
     const fetchStreakInvites = async () => {
         if (!user) return;
@@ -673,7 +691,7 @@ export default function App() {
                     onTouchEnd={handleTouchEnd}
                 >
                     <div
-                        className={`flex w-[300%] items-start ${isDragging ? '' : 'transition-transform duration-300 ease-out'}`}
+                        className={`flex w-[300%] items-start ${isDragging ? '' : 'transition-transform duration-[360ms] ease-out'}`}
                         style={{
                             transform: `translateX(calc(-${activePrimaryIndex * 33.333333}% + ${touchDeltaX}px))`
                         }}
