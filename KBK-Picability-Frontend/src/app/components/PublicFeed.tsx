@@ -124,7 +124,7 @@ export function PublicFeed({ isDark, items, onBack }: PublicFeedProps) {
 
                 <button
                     onClick={onBack}
-                    className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'
+                    className={`hidden md:flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'
                         }`}
                 >
                     <ArrowLeft className={`w-5 h-5 ${isDark ? 'text-slate-300' : 'text-slate-700'
