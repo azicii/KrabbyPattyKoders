@@ -90,8 +90,10 @@ export default function App() {
     const [publicFeed, setPublicFeed] = useState<PublicFeedItem[]>([]);
     const [mobileTab, setMobileTab] = useState<MobileTab>('tracker');
     const [touchStartX, setTouchStartX] = useState<number | null>(null);
+    const [touchStartY, setTouchStartY] = useState<number | null>(null);
     const [touchDeltaX, setTouchDeltaX] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
+    const [swipeIntent, setSwipeIntent] = useState<'horizontal' | 'vertical' | null>(null);
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -182,32 +184,62 @@ export default function App() {
         if (window.innerWidth >= 768) return;
 
         setTouchStartX(e.touches[0].clientX);
+        setTouchStartY(e.touches[0].clientY);
         setTouchDeltaX(0);
-        setIsDragging(true);
+        setIsDragging(false);
+        setSwipeIntent(null);
     };
 
     const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-        if (window.innerWidth >= 768 || touchStartX === null) return;
+        if (window.innerWidth >= 768 || touchStartX === null || touchStartY === null) return;
 
-        const delta = e.touches[0].clientX - touchStartX;
-        setTouchDeltaX(delta);
+        const deltaX = e.touches[0].clientX - touchStartX;
+        const deltaY = e.touches[0].clientY - touchStartY;
+
+        if (swipeIntent === null) {
+            const absX = Math.abs(deltaX);
+            const absY = Math.abs(deltaY);
+
+            if (absX < 18 && absY < 18) return;
+
+            if (absY > absX * 1.2) {
+                setSwipeIntent('vertical');
+                setIsDragging(false);
+                return;
+            }
+
+            if (absX > absY * 1.5) {
+                setSwipeIntent('horizontal');
+                setIsDragging(true);
+            }
+        }
+
+        if (swipeIntent === 'horizontal') {
+            setTouchDeltaX(deltaX);
+        }
     };
 
     const handleTouchEnd = () => {
         if (window.innerWidth >= 768 || touchStartX === null) return;
 
-        const threshold = 80;
+        const threshold = 110;
 
-        if (touchDeltaX < -threshold) {
-            goToPrimaryIndex(activePrimaryIndex + 1);
-        } else if (touchDeltaX > threshold) {
-            goToPrimaryIndex(activePrimaryIndex - 1);
+        if (swipeIntent === 'horizontal') {
+            if (touchDeltaX < -threshold) {
+                goToPrimaryIndex(activePrimaryIndex + 1);
+            } else if (touchDeltaX > threshold) {
+                goToPrimaryIndex(activePrimaryIndex - 1);
+            }
         }
 
         setTouchStartX(null);
+        setTouchStartY(null);
         setTouchDeltaX(0);
         setIsDragging(false);
+        setSwipeIntent(null);
     };
+
+   
 
     const fetchStreakInvites = async () => {
         if (!user) return;
