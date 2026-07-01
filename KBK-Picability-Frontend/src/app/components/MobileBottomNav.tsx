@@ -36,7 +36,7 @@ export function MobileBottomNav({
     isDark
 }: MobileBottomNavProps) {
     return (
-        <div className="fixed bottom-4 left-1/2 z-[80] -translate-x-1/2 md:hidden">
+        <div className="fixed bottom-4 left-1/2 z-[80] -translate-x-1/2">
             <div
                 className={`flex items-center gap-2 rounded-full px-3 py-2 shadow-lg border backdrop-blur-xl ${isDark
                         ? 'bg-slate-900/45 border-slate-700/40'

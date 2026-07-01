@@ -166,6 +166,10 @@ export default function App() {
         }
     };
 
+    const primaryTabs: MobileTab[] = ['friends', 'tracker', 'feed'];
+    const activePrimaryIndex = primaryTabs.indexOf(mobileTab);
+    const isPrimaryScreen = ['tracker', 'friends-list', 'public-feed'].includes(currentScreen);
+
     const fetchStreakInvites = async () => {
         if (!user) return;
         try {
@@ -575,42 +579,70 @@ export default function App() {
                     }}
                 />
             )}
-            {currentScreen === 'tracker' && (
-                <StreakTracker
-                    isDark={isDark}
-                    user={user}
-                    onLogout={() => {
-                        localStorage.removeItem('picabilityUser');
-                        setUser(null);
-                    }}
-                    onToggleDark={() => setIsDark(!isDark)}
-                    onFriends={() => handleMobileTabChange('friends')}
-                    onAddHabit={handleAddHabit}
-                    onStreakTap={handleCheckIn}
-                    onDismissStreak={handleDismissStreak}
-                    streaks={streaks}
-                    streakInvites={streakInvites}
-                    sentStreakRequests={sentStreakRequests}
-                    onAcceptInvite={handleAcceptStreakInvite}
-                    onRejectInvite={handleRejectStreakInvite}
-                    onCancelPendingStreakRequest={handleCancelPendingStreakRequest}
-                    onRestartStreak={handleRestartStreak}
-                    pendingFriendRequestCount={pendingFriendRequestCount}
-                    onSendCheckInMessage={handleSendCheckInMessage}
-                    unreadContent={unreadContent}
-                    onViewCheckInContent={handleViewCheckInContent}
-                    onSendCheckInPhoto={handleSendCheckInPhoto}
-                    onPublicFeed={() => handleMobileTabChange('feed')}
-                    onToggleVisibility={handleToggleStreakVisibility}
-                />
-            )}
 
-            {currentScreen === 'public-feed' && (
-                <PublicFeed
-                    isDark={isDark}
-                    items={publicFeed}
-                    onBack={() => handleMobileTabChange('tracker')}
-                />
+            {isPrimaryScreen && (
+                <div className="relative size-full overflow-hidden pb-20">
+                    <div
+                        className="flex w-[300%] transition-transform duration-300 ease-out"
+                        style={{ transform: `translateX(-${activePrimaryIndex * 33.333333}%)` }}
+                    >
+                        <div className="w-1/3 shrink-0">
+                            <FriendsList
+                                isDark={isDark}
+                                onToggleDark={() => setIsDark(!isDark)}
+                                onBack={() => handleMobileTabChange('tracker')}
+                                onSelectFriend={handleSelectFriend}
+                                onFindFriends={() => setCurrentScreen('user-search')}
+                                currentUserId={user.id}
+                                onRemoveFriend={handleRemoveFriend}
+                            />
+                        </div>
+
+                        <div className="w-1/3 shrink-0">
+                            <StreakTracker
+                                isDark={isDark}
+                                user={user}
+                                onLogout={() => {
+                                    localStorage.removeItem('picabilityUser');
+                                    setUser(null);
+                                }}
+                                onToggleDark={() => setIsDark(!isDark)}
+                                onFriends={() => handleMobileTabChange('friends')}
+                                onAddHabit={handleAddHabit}
+                                onStreakTap={handleCheckIn}
+                                onDismissStreak={handleDismissStreak}
+                                streaks={streaks}
+                                streakInvites={streakInvites}
+                                sentStreakRequests={sentStreakRequests}
+                                onAcceptInvite={handleAcceptStreakInvite}
+                                onRejectInvite={handleRejectStreakInvite}
+                                onCancelPendingStreakRequest={handleCancelPendingStreakRequest}
+                                onRestartStreak={handleRestartStreak}
+                                pendingFriendRequestCount={pendingFriendRequestCount}
+                                onSendCheckInMessage={handleSendCheckInMessage}
+                                unreadContent={unreadContent}
+                                onViewCheckInContent={handleViewCheckInContent}
+                                onSendCheckInPhoto={handleSendCheckInPhoto}
+                                onPublicFeed={() => handleMobileTabChange('feed')}
+                                onToggleVisibility={handleToggleStreakVisibility}
+                            />
+                        </div>
+
+                        <div className="w-1/3 shrink-0">
+                            <PublicFeed
+                                isDark={isDark}
+                                items={publicFeed}
+                                onBack={() => handleMobileTabChange('tracker')}
+                            />
+                        </div>
+                    </div>
+
+                    <MobileBottomNav
+                        activeTab={mobileTab}
+                        onChangeTab={handleMobileTabChange}
+                        isDark={isDark}
+                    />
+                </div>
             )}
 
             {currentScreen === 'selector' && (
@@ -643,18 +675,6 @@ export default function App() {
                 />
             )}
 
-            {currentScreen === 'friends-list' && (
-                <FriendsList
-                    isDark={isDark}
-                    onToggleDark={() => setIsDark(!isDark)}
-                    onBack={() => setCurrentScreen('tracker')}
-                    onSelectFriend={handleSelectFriend}
-                    onFindFriends={() => setCurrentScreen('user-search')}
-                    currentUserId={user.id}
-                    onRemoveFriend={handleRemoveFriend}
-                />
-            )}
-
             {currentScreen === 'user-search' && (
                 <UserSearch
                     isDark={isDark}
@@ -676,14 +696,6 @@ export default function App() {
                         setPreSelectedFriend(null);
                         setCurrentScreen('tracker');
                     }}
-                />
-            )}
-
-            {['tracker', 'friends-list', 'public-feed'].includes(currentScreen) && (
-                <MobileBottomNav
-                    activeTab={mobileTab}
-                    onChangeTab={handleMobileTabChange}
-                    isDark={isDark}
                 />
             )}
         </div>
