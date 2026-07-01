@@ -586,7 +586,7 @@ export default function App() {
                         className="flex w-[300%] items-start transition-transform duration-300 ease-out"
                         style={{ transform: `translateX(-${activePrimaryIndex * 33.333333}%)` }}
                     >
-                        <div className="w-1/3 shrink-0">
+                        <div className={`w-1/3 shrink-0 ${mobileTab === 'friends' ? '' : 'h-0 overflow-hidden'}`}>
                             <FriendsList
                                 isDark={isDark}
                                 onToggleDark={() => setIsDark(!isDark)}
@@ -598,7 +598,7 @@ export default function App() {
                             />
                         </div>
 
-                        <div className="w-1/3 shrink-0">
+                        <div className={`w-1/3 shrink-0 ${mobileTab === 'tracker' ? '' : 'h-0 overflow-hidden'}`}>
                             <StreakTracker
                                 isDark={isDark}
                                 user={user}
@@ -628,7 +628,7 @@ export default function App() {
                             />
                         </div>
 
-                        <div className="w-1/3 shrink-0">
+                        <div className={`w-1/3 shrink-0 ${mobileTab === 'feed' ? '' : 'h-0 overflow-hidden'}`}>
                             <PublicFeed
                                 isDark={isDark}
                                 items={publicFeed}
