@@ -310,6 +310,20 @@ export default function App() {
         }
     }, [user]);
 
+    useEffect(() => {
+        let themeMeta = document.querySelector('meta[name="theme-color"]');
+
+        if (!themeMeta) {
+            themeMeta = document.createElement('meta');
+            themeMeta.setAttribute('name', 'theme-color');
+            document.head.appendChild(themeMeta);
+        }
+
+        themeMeta.setAttribute('content', isDark ? '#0f172a' : '#f8fafc');
+
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    }, [isDark]);
+
     const handleCheckIn = async (streakId: number) => {
         if (!user) return;
         try {
@@ -581,7 +595,7 @@ export default function App() {
             )}
 
             {isPrimaryScreen && (
-                <div className="relative w-full min-h-screen overflow-x-hidden pb-20">
+                <div className={`relative w-full min-h-screen overflow-x-hidden pb-20 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
                     <div
                         className="flex w-[300%] items-start transition-transform duration-300 ease-out"
                         style={{ transform: `translateX(-${activePrimaryIndex * 33.333333}%)` }}
