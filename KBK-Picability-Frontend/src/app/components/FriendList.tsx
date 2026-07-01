@@ -183,7 +183,12 @@ export function FriendsList({
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <button onClick={onBack} className={`hidden md:p-3 rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-white shadow-sm'}`}><ArrowLeft className={isDark ? 'text-slate-300' : 'text-slate-700'} /></button>
+              <button
+                  onClick={onBack}
+                  className={`hidden md:flex items-center justify-center p-3 rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-white shadow-sm'}`}
+              >
+                  <ArrowLeft className={isDark ? 'text-slate-300' : 'text-slate-700'} />
+              </button>
         <h1 className={`text-2xl font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>My Friends</h1>
         <button onClick={onToggleDark} className={`p-3 rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-white shadow-sm'}`}>{isDark ? <Sun className="text-amber-400" /> : <Moon className="text-slate-600" />}</button>
       </div>
