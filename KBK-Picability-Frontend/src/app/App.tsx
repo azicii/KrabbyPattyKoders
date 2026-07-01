@@ -581,9 +581,9 @@ export default function App() {
             )}
 
             {isPrimaryScreen && (
-                <div className="relative size-full overflow-hidden pb-20">
+                <div className="relative w-full min-h-screen overflow-x-hidden pb-20">
                     <div
-                        className="flex w-[300%] transition-transform duration-300 ease-out"
+                        className="flex w-[300%] items-start transition-transform duration-300 ease-out"
                         style={{ transform: `translateX(-${activePrimaryIndex * 33.333333}%)` }}
                     >
                         <div className="w-1/3 shrink-0">
