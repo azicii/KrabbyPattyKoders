@@ -89,6 +89,9 @@ export default function App() {
     const [draftHabitConfig, setDraftHabitConfig] = useState<Partial<HabitConfiguration> | null>(null);
     const [publicFeed, setPublicFeed] = useState<PublicFeedItem[]>([]);
     const [mobileTab, setMobileTab] = useState<MobileTab>('tracker');
+    const [touchStartX, setTouchStartX] = useState<number | null>(null);
+    const [touchDeltaX, setTouchDeltaX] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -169,6 +172,42 @@ export default function App() {
     const primaryTabs: MobileTab[] = ['friends', 'tracker', 'feed'];
     const activePrimaryIndex = primaryTabs.indexOf(mobileTab);
     const isPrimaryScreen = ['tracker', 'friends-list', 'public-feed'].includes(currentScreen);
+
+    const goToPrimaryIndex = (index: number) => {
+        const clampedIndex = Math.max(0, Math.min(primaryTabs.length - 1, index));
+        handleMobileTabChange(primaryTabs[clampedIndex]);
+    };
+
+    const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+        if (window.innerWidth >= 768) return;
+
+        setTouchStartX(e.touches[0].clientX);
+        setTouchDeltaX(0);
+        setIsDragging(true);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+        if (window.innerWidth >= 768 || touchStartX === null) return;
+
+        const delta = e.touches[0].clientX - touchStartX;
+        setTouchDeltaX(delta);
+    };
+
+    const handleTouchEnd = () => {
+        if (window.innerWidth >= 768 || touchStartX === null) return;
+
+        const threshold = 80;
+
+        if (touchDeltaX < -threshold) {
+            goToPrimaryIndex(activePrimaryIndex + 1);
+        } else if (touchDeltaX > threshold) {
+            goToPrimaryIndex(activePrimaryIndex - 1);
+        }
+
+        setTouchStartX(null);
+        setTouchDeltaX(0);
+        setIsDragging(false);
+    };
 
     const fetchStreakInvites = async () => {
         if (!user) return;
@@ -595,10 +634,17 @@ export default function App() {
             )}
 
             {isPrimaryScreen && (
-                <div className={`relative w-full min-h-screen overflow-x-hidden pb-20 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
+                <div
+                    className={`relative w-full min-h-screen overflow-x-hidden pb-20 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                >
                     <div
-                        className="flex w-[300%] items-start transition-transform duration-300 ease-out"
-                        style={{ transform: `translateX(-${activePrimaryIndex * 33.333333}%)` }}
+                        className={`flex w-[300%] items-start ${isDragging ? '' : 'transition-transform duration-300 ease-out'}`}
+                        style={{
+                            transform: `translateX(calc(-${activePrimaryIndex * 33.333333}% + ${touchDeltaX}px))`
+                        }}
                     >
                         <div className={`w-1/3 shrink-0 ${mobileTab === 'friends' ? '' : 'h-0 overflow-hidden'}`}>
                             <FriendsList
