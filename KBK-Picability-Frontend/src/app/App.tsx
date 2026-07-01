@@ -8,6 +8,7 @@ import { FriendsList, PendingRequest } from './components/FriendList.tsx';
 import { RequestConfirmation } from './components/RequestConfirmation.tsx';
 import { PublicFeed, PublicFeedItem } from './components/PublicFeed.tsx';
 import { OnboardingSlides } from './components/OnboardingSlides.tsx';
+import { MobileBottomNav, MobileTab } from './components/MobileBottomNav.tsx';
 
 type Screen =
     | 'auth'
@@ -87,6 +88,7 @@ export default function App() {
     const [unreadContent, setUnreadContent] = useState<any[]>([]);
     const [draftHabitConfig, setDraftHabitConfig] = useState<Partial<HabitConfiguration> | null>(null);
     const [publicFeed, setPublicFeed] = useState<PublicFeedItem[]>([]);
+    const [mobileTab, setMobileTab] = useState<MobileTab>('tracker');
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -145,6 +147,22 @@ export default function App() {
             }
         } catch (err) {
             console.error("Error fetching public feed:", err);
+        }
+    };
+
+    const handleMobileTabChange = (tab: MobileTab) => {
+        setMobileTab(tab);
+
+        if (tab === 'friends') {
+            setCurrentScreen('friends-list');
+        }
+
+        if (tab === 'tracker') {
+            setCurrentScreen('tracker');
+        }
+
+        if (tab === 'feed') {
+            setCurrentScreen('public-feed');
         }
     };
 
@@ -566,7 +584,7 @@ export default function App() {
                         setUser(null);
                     }}
                     onToggleDark={() => setIsDark(!isDark)}
-                    onFriends={() => setCurrentScreen('friends-list')}
+                    onFriends={() => handleMobileTabChange('friends')}
                     onAddHabit={handleAddHabit}
                     onStreakTap={handleCheckIn}
                     onDismissStreak={handleDismissStreak}
@@ -582,7 +600,7 @@ export default function App() {
                     unreadContent={unreadContent}
                     onViewCheckInContent={handleViewCheckInContent}
                     onSendCheckInPhoto={handleSendCheckInPhoto}
-                    onPublicFeed={() => setCurrentScreen('public-feed')}
+                    onPublicFeed={() => handleMobileTabChange('feed')}
                     onToggleVisibility={handleToggleStreakVisibility}
                 />
             )}
@@ -591,7 +609,7 @@ export default function App() {
                 <PublicFeed
                     isDark={isDark}
                     items={publicFeed}
-                    onBack={() => setCurrentScreen('tracker')}
+                    onBack={() => handleMobileTabChange('tracker')}
                 />
             )}
 
@@ -601,7 +619,7 @@ export default function App() {
                     user={user}
                     onLogout={() => setUser(null)}
                     onToggleDark={() => setIsDark(!isDark)}
-                    onBack={() => setCurrentScreen('tracker')}
+                    onBack={() => handleMobileTabChange('tracker')}
                     onFriends={() => setCurrentScreen('friends-list')}
                     onSelectHabit={(id) => {
                         setSelectedHabitType(id);
@@ -658,6 +676,14 @@ export default function App() {
                         setPreSelectedFriend(null);
                         setCurrentScreen('tracker');
                     }}
+                />
+            )}
+
+            {['tracker', 'friends-list', 'public-feed'].includes(currentScreen) && (
+                <MobileBottomNav
+                    activeTab={mobileTab}
+                    onChangeTab={handleMobileTabChange}
+                    isDark={isDark}
                 />
             )}
         </div>
