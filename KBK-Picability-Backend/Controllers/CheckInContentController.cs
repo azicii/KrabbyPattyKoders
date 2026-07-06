@@ -15,6 +15,9 @@ namespace Picability.Controllers
     {
         private readonly ApplicationDbContext _context;
 
+        private const int MaxPhotoDataUrlLength = 4_000_000;
+        private const int StaleContentRetentionDays = 365;
+
         public CheckInContentController(ApplicationDbContext context)
         {
             _context = context;
@@ -23,6 +26,21 @@ namespace Picability.Controllers
         private string? GetCurrentUserId()
         {
             return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        private async Task DeleteStaleCheckInContentAsync()
+        {
+            var cutoffDate = DateTime.UtcNow.AddDays(-StaleContentRetentionDays);
+
+            var staleContents = await _context.CheckInContents
+                .Where(c => !c.IsViewed && c.CreatedAt < cutoffDate)
+                .ToListAsync();
+
+            if (staleContents.Count == 0)
+                return;
+
+            _context.CheckInContents.RemoveRange(staleContents);
+            await _context.SaveChangesAsync();
         }
 
         [HttpPost("message")]
@@ -37,6 +55,8 @@ namespace Picability.Controllers
             {
                 return BadRequest(new { message = "View duration must be between 1 and 10 seconds." });
             }
+
+            await DeleteStaleCheckInContentAsync();
 
             var currentUserId = GetCurrentUserId();
 
@@ -92,6 +112,10 @@ namespace Picability.Controllers
         [HttpGet("unread")]
         public async Task<IActionResult> GetUnreadForCurrentUser()
         {
+            await DeleteStaleCheckInContentAsync();
+
+            await DeleteStaleCheckInContentAsync();
+
             var currentUserId = GetCurrentUserId();
 
             if (currentUserId == null)
@@ -171,7 +195,7 @@ namespace Picability.Controllers
                 return BadRequest(new { message = "Only PNG and JPG images are allowed." });
             }
 
-            if (model.PhotoDataUrl.Length > 1_500_000)
+            if (model.PhotoDataUrl.Length > MaxPhotoDataUrlLength)
             {
                 return BadRequest(new { message = "Photo is too large. Please choose a smaller image." });
             }
@@ -180,6 +204,8 @@ namespace Picability.Controllers
             {
                 return BadRequest(new { message = "View duration must be between 1 and 10 seconds." });
             }
+
+            await DeleteStaleCheckInContentAsync();
 
             var currentUserId = GetCurrentUserId();
 
