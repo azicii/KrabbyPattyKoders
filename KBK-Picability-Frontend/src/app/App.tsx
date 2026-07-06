@@ -95,6 +95,8 @@ export default function App() {
     const [touchDeltaX, setTouchDeltaX] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const [swipeIntent, setSwipeIntent] = useState<'horizontal' | 'vertical' | null>(null);
+    const [pullDistance, setPullDistance] = useState(0);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -104,7 +106,7 @@ export default function App() {
                 {
                     headers: getAuthHeaders(user.token)
                 }
-            );            if (response.ok) {
+            ); if (response.ok) {
                 const data = await response.json();
                 const formattedStreaks: Streak[] = data.map((s: any) => ({
                     id: s.id,
@@ -197,6 +199,13 @@ export default function App() {
 
         const deltaX = e.touches[0].clientX - touchStartX;
         const deltaY = e.touches[0].clientY - touchStartY;
+        const isPullingDownAtTop = window.scrollY <= 0 && deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX);
+
+        if (isPullingDownAtTop && swipeIntent !== 'horizontal') {
+            setSwipeIntent('vertical');
+            setPullDistance(Math.min(deltaY * 0.45, 90));
+            return;
+        }
 
         if (swipeIntent === null) {
             const absX = Math.abs(deltaX);
@@ -238,6 +247,22 @@ export default function App() {
         const distanceThreshold = 110;
         const flickThreshold = 0.65;
 
+        if (swipeIntent === 'vertical' && pullDistance > 65) {
+            setIsRefreshing(true);
+
+            refreshAppData().finally(() => {
+                setIsRefreshing(false);
+                setPullDistance(0);
+            });
+
+            setTouchStartX(null);
+            setTouchStartY(null);
+            setTouchStartTime(null);
+            setIsDragging(false);
+            setSwipeIntent(null);
+            return;
+        }
+
         if (swipeIntent === 'horizontal') {
             const shouldMoveByDistance = Math.abs(touchDeltaX) > distanceThreshold;
             const shouldMoveByVelocity = Math.abs(touchDeltaX) > 35 && velocity > flickThreshold;
@@ -257,6 +282,7 @@ export default function App() {
         setTouchDeltaX(0);
         setIsDragging(false);
         setSwipeIntent(null);
+        setPullDistance(0);
     };
 
     const fetchStreakInvites = async () => {
@@ -534,6 +560,19 @@ export default function App() {
         }
     };
 
+    const refreshAppData = async () => {
+        if (!user) return;
+
+        await Promise.all([
+            fetchStreaks(),
+            fetchStreakInvites(),
+            fetchSentStreakRequests(),
+            fetchPendingFriendRequestCount(),
+            fetchUnreadContent(),
+            fetchPublicFeed()
+        ]);
+    };
+
     const handleSelectFriend = (friend: User) => {
         setPreSelectedFriend(friend);
         if (selectedHabitType) {
@@ -691,6 +730,20 @@ export default function App() {
                     onTouchEnd={handleTouchEnd}
                 >
                     <div
+                        className={`fixed top-4 left-1/2 z-[90] -translate-x-1/2 transition-all duration-200 ${pullDistance > 0 || isRefreshing
+                                ? 'opacity-100 translate-y-0'
+                                : 'opacity-0 -translate-y-4 pointer-events-none'
+                            }`}
+                    >
+                        <div className={`rounded-full px-4 py-2 shadow-lg border backdrop-blur-xl text-sm font-bold ${isDark
+                                ? 'bg-slate-900/70 border-slate-700 text-slate-200'
+                                : 'bg-white/80 border-slate-200 text-slate-700'
+                            }`}>
+                            {isRefreshing ? 'Refreshing…' : pullDistance > 65 ? 'Release to refresh' : 'Pull to refresh'}
+                        </div>
+                    </div>
+
+                    <div
                         className={`flex w-[300%] items-start ${isDragging ? '' : 'transition-transform duration-[360ms] ease-out'}`}
                         style={{
                             transform: `translateX(calc(-${activePrimaryIndex * 33.333333}% + ${touchDeltaX}px))`
@@ -755,59 +808,67 @@ export default function App() {
                 </div>
             )}
 
-            {currentScreen === 'selector' && (
-                <HabitSelector
-                    isDark={isDark}
-                    user={user}
-                    onLogout={() => setUser(null)}
-                    onToggleDark={() => setIsDark(!isDark)}
-                    onBack={() => handleMobileTabChange('tracker')}
-                    onFriends={() => setCurrentScreen('friends-list')}
-                    onSelectHabit={(id) => {
-                        setSelectedHabitType(id);
-                        setCurrentScreen('config');
-                    }}
-                />
-            )}
+{
+    currentScreen === 'selector' && (
+        <HabitSelector
+            isDark={isDark}
+            user={user}
+            onLogout={() => setUser(null)}
+            onToggleDark={() => setIsDark(!isDark)}
+            onBack={() => handleMobileTabChange('tracker')}
+            onFriends={() => setCurrentScreen('friends-list')}
+            onSelectHabit={(id) => {
+                setSelectedHabitType(id);
+                setCurrentScreen('config');
+            }}
+        />
+    )
+}
 
-            {currentScreen === 'config' && (
-                <HabitConfig
-                    isDark={isDark}
-                    onToggleDark={() => setIsDark(!isDark)}
-                    onBack={() => setCurrentScreen('selector')}
-                    onFriends={() => setCurrentScreen('friends-list')}
-                    onConfirm={handleConfirmConfig}
-                    habitType={selectedHabitType || undefined}
-                    presetHabitName={selectedHabitType && typeof selectedHabitType === 'number' ? habitNames[selectedHabitType] : ''}
-                    preSelectedFriend={preSelectedFriend}
-                    draftConfig={draftHabitConfig}
-                    onDraftChange={setDraftHabitConfig}
-                />
-            )}
+{
+    currentScreen === 'config' && (
+        <HabitConfig
+            isDark={isDark}
+            onToggleDark={() => setIsDark(!isDark)}
+            onBack={() => setCurrentScreen('selector')}
+            onFriends={() => setCurrentScreen('friends-list')}
+            onConfirm={handleConfirmConfig}
+            habitType={selectedHabitType || undefined}
+            presetHabitName={selectedHabitType && typeof selectedHabitType === 'number' ? habitNames[selectedHabitType] : ''}
+            preSelectedFriend={preSelectedFriend}
+            draftConfig={draftHabitConfig}
+            onDraftChange={setDraftHabitConfig}
+        />
+    )
+}
 
-            {currentScreen === 'user-search' && (
-                <UserSearch
-                    isDark={isDark}
-                    onToggleDark={() => setIsDark(!isDark)}
-                    onBack={() => setCurrentScreen('friends-list')}
-                    onSelectUser={(u) => console.log(u)}
-                    selectedUserId={preSelectedFriend?.id}
-                    currentUserId={user.id}
-                />
-            )}
+{
+    currentScreen === 'user-search' && (
+        <UserSearch
+            isDark={isDark}
+            onToggleDark={() => setIsDark(!isDark)}
+            onBack={() => setCurrentScreen('friends-list')}
+            onSelectUser={(u) => console.log(u)}
+            selectedUserId={preSelectedFriend?.id}
+            currentUserId={user.id}
+        />
+    )
+}
 
-            {currentScreen === 'confirmation' && lastRequestConfig && (
-                <RequestConfirmation
-                    isDark={isDark}
-                    selectedUser={lastRequestConfig.user}
-                    habitName={lastRequestConfig.habitName}
-                    onComplete={() => {
-                        setLastRequestConfig(null);
-                        setPreSelectedFriend(null);
-                        setCurrentScreen('tracker');
-                    }}
-                />
-            )}
-        </div>
+{
+    currentScreen === 'confirmation' && lastRequestConfig && (
+        <RequestConfirmation
+            isDark={isDark}
+            selectedUser={lastRequestConfig.user}
+            habitName={lastRequestConfig.habitName}
+            onComplete={() => {
+                setLastRequestConfig(null);
+                setPreSelectedFriend(null);
+                setCurrentScreen('tracker');
+            }}
+        />
+    )
+}
+        </div >
     );
 }
