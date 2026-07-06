@@ -35,7 +35,7 @@ export function UserSearch({
   const [error, setError] = useState<string | null>(null);
 
     // const BASE_URL = 'http://localhost:5232';
-    const BASE_URL = 'https://kbk-picability20260528161204-dwgwf6eehmf5bjeu.canadacentral-01.azurewebsites.net';
+    const BASE_URL = 'https://kbk-picability-backend.onrender.com';
 
     const getToken = () => {
         const savedUser = localStorage.getItem('picabilityUser');

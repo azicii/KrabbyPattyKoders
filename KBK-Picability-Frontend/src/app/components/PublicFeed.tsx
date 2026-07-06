@@ -50,7 +50,7 @@ export function PublicFeed({ isDark, items, onBack }: PublicFeedProps) {
     const [feedItems, setFeedItems] = useState<PublicFeedItem[]>(items);
     const [reactionModal, setReactionModal] = useState<any | null>(null);
 
-    const BASE_URL = 'https://kbk-picability20260528161204-dwgwf6eehmf5bjeu.canadacentral-01.azurewebsites.net';
+    const BASE_URL = 'https://kbk-picability-backend.onrender.com';
 
     const getToken = () => {
         const savedUser = localStorage.getItem('picabilityUser');

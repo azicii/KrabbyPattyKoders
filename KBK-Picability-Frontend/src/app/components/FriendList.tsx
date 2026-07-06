@@ -46,7 +46,7 @@ export function FriendsList({
   const [removedName, setRemovedName] = useState("");
 
     // const BASE_URL = 'http://localhost:5232';
-    const BASE_URL = 'https://kbk-picability20260528161204-dwgwf6eehmf5bjeu.canadacentral-01.azurewebsites.net';
+    const BASE_URL = 'https://kbk-picability-backend.onrender.com';
 
   useEffect(() => {
     fetchData();
