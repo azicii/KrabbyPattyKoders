@@ -64,7 +64,7 @@ const getColorForHabit = (name: string) => {
 };
 
 // const BASE_URL = 'http://localhost:5232';
-const BASE_URL = 'https://kbk-picability20260528161204-dwgwf6eehmf5bjeu.canadacentral-01.azurewebsites.net';
+const BASE_URL = 'https://kbk-picability-backend.onrender.com';
 const getAuthHeaders = (token?: string) => ({
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {})
