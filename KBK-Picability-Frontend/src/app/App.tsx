@@ -730,16 +730,25 @@ export default function App() {
                     onTouchEnd={handleTouchEnd}
                 >
                     <div
-                        className={`fixed top-4 left-1/2 z-[90] -translate-x-1/2 transition-all duration-200 ${pullDistance > 0 || isRefreshing
+                        className={`fixed top-5 left-1/2 z-[90] -translate-x-1/2 transition-all duration-200 ${pullDistance > 0 || isRefreshing
                                 ? 'opacity-100 translate-y-0'
-                                : 'opacity-0 -translate-y-4 pointer-events-none'
+                                : 'opacity-0 -translate-y-3 pointer-events-none'
                             }`}
                     >
-                        <div className={`rounded-full px-4 py-2 shadow-lg border backdrop-blur-xl text-sm font-bold ${isDark
-                                ? 'bg-slate-900/70 border-slate-700 text-slate-200'
-                                : 'bg-white/80 border-slate-200 text-slate-700'
-                            }`}>
-                            {isRefreshing ? 'Refreshing…' : pullDistance > 65 ? 'Release to refresh' : 'Pull to refresh'}
+                        <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md ${isDark ? 'bg-slate-900/40' : 'bg-white/50'
+                                }`}
+                        >
+                            <div
+                                className={`w-5 h-5 rounded-full border-2 border-t-transparent ${isDark ? 'border-slate-200' : 'border-slate-700'
+                                    } ${isRefreshing ? 'animate-spin' : ''}`}
+                                style={{
+                                    transform: isRefreshing
+                                        ? undefined
+                                        : `rotate(${Math.min(pullDistance, 80) * 4}deg)`,
+                                    opacity: Math.min(Math.max(pullDistance / 65, 0.25), 1)
+                                }}
+                            />
                         </div>
                     </div>
 
