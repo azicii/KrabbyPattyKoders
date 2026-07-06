@@ -97,6 +97,7 @@ export default function App() {
     const [swipeIntent, setSwipeIntent] = useState<'horizontal' | 'vertical' | null>(null);
     const [pullDistance, setPullDistance] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isSelectingFriendForStreak, setIsSelectingFriendForStreak] = useState(false);
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -575,11 +576,14 @@ export default function App() {
 
     const handleSelectFriend = (friend: User) => {
         setPreSelectedFriend(friend);
-        if (selectedHabitType) {
+
+        if (isSelectingFriendForStreak) {
+            setIsSelectingFriendForStreak(false);
             setCurrentScreen('config');
-        } else {
-            setCurrentScreen('selector');
+            return;
         }
+
+        handleMobileTabChange('tracker');
     };
 
     const handleAddHabit = () => {
@@ -762,7 +766,14 @@ export default function App() {
                             <FriendsList
                                 isDark={isDark}
                                 onToggleDark={() => setIsDark(!isDark)}
-                                onBack={() => handleMobileTabChange('tracker')}
+                                onBack={() => {
+                                    if (isSelectingFriendForStreak) {
+                                        setIsSelectingFriendForStreak(false);
+                                        setCurrentScreen('config');
+                                    } else {
+                                        handleMobileTabChange('tracker');
+                                    }
+                                }}
                                 onSelectFriend={handleSelectFriend}
                                 onFindFriends={() => setCurrentScreen('user-search')}
                                 currentUserId={user.id}
@@ -840,7 +851,11 @@ export default function App() {
             isDark={isDark}
             onToggleDark={() => setIsDark(!isDark)}
             onBack={() => setCurrentScreen('selector')}
-            onFriends={() => setCurrentScreen('friends-list')}
+            onFriends={() => {
+                setIsSelectingFriendForStreak(true);
+                setCurrentScreen('friends-list');
+                setMobileTab('friends');
+            }}
             onConfirm={handleConfirmConfig}
             habitType={selectedHabitType || undefined}
             presetHabitName={selectedHabitType && typeof selectedHabitType === 'number' ? habitNames[selectedHabitType] : ''}
