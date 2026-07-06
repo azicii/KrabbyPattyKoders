@@ -1,6 +1,7 @@
 import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 interface Streak {
     id: number;
@@ -797,7 +798,7 @@ export function StreakTracker({
                         );
                     })}
 
-                    {checkInModalStreak && (
+                    {checkInModalStreak && createPortal (
                         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                             <div
                                 className={`w-full max-w-md rounded-3xl p-6 shadow-2xl border animate-in fade-in slide-in-from-bottom-4 duration-200 ${isDark
@@ -968,10 +969,11 @@ export function StreakTracker({
                                     Cancel
                                 </button>
                             </div>
-                        </div>
+                        </div>,
+                        document.body
                     )}
 
-                    {viewingContent && (
+                    {viewingContent && createPortal(
                         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                             <div
                                 className={`w-full max-w-md rounded-3xl p-6 shadow-2xl border animate-in fade-in slide-in-from-bottom-4 duration-200 ${isDark
@@ -1027,7 +1029,8 @@ export function StreakTracker({
                                     Done
                                 </button>
                             </div>
-                        </div>
+                        </div>,
+                        document.body
                     )}
 
                     {brokenStreaks.length > 0 && (
@@ -1131,7 +1134,7 @@ export function StreakTracker({
                     </button>
                 </div>
 
-                {cancelPendingRequest && (
+                {cancelPendingRequest && createPortal(
                     <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                         <div className={`w-full max-w-md rounded-3xl p-6 shadow-2xl border ${isDark
                                 ? 'bg-slate-900 border-slate-700 text-slate-100'
@@ -1174,7 +1177,8 @@ export function StreakTracker({
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
 
                 {streaks.length === 0 && (
