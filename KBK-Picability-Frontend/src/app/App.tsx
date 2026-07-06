@@ -576,7 +576,13 @@ export default function App() {
 
     const handleSelectFriend = (friend: User) => {
         setPreSelectedFriend(friend);
-        setIsSelectingFriendForStreak(false);
+
+        if (isSelectingFriendForStreak) {
+            setIsSelectingFriendForStreak(false);
+            setCurrentScreen('config');
+            return;
+        }
+
         setSelectedHabitType(null);
         setDraftHabitConfig(null);
         setCurrentScreen('selector');
@@ -832,7 +838,11 @@ export default function App() {
             onLogout={() => setUser(null)}
             onToggleDark={() => setIsDark(!isDark)}
             onBack={() => handleMobileTabChange('tracker')}
-            onFriends={() => setCurrentScreen('friends-list')}
+            onFriends={() => {
+                setIsSelectingFriendForStreak(true);
+                setCurrentScreen('friends-list');
+                setMobileTab('friends');
+            }}
             onSelectHabit={(id) => {
                 setSelectedHabitType(id);
                 setCurrentScreen('config');
