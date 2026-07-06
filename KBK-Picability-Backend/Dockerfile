@@ -3,8 +3,6 @@ WORKDIR /src
 
 COPY . .
 
-WORKDIR /src/KBK-Picability-Backend
-
 RUN dotnet restore "KBK - Picability.csproj"
 RUN dotnet publish "KBK - Picability.csproj" -c Release -o /app/publish
 
