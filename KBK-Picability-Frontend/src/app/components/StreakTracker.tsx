@@ -464,13 +464,13 @@ export function StreakTracker({
                                             }`}
                                     >
                                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                            <div className="flex items-center gap-4 w-full min-w-0">
-                                                <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${invite.color || 'from-amber-500 to-orange-600'} shadow-lg`}>
+                                            <div className="flex items-start gap-4 w-full min-w-0">
+                                                <div className={`flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br ${invite.color || 'from-amber-500 to-orange-600'} shadow-lg`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
                                                 </div>
 
-                                                <div>
-                                                    <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                                                <div className="min-w-0 flex-1">
+                                                    <h3 className={`text-lg font-semibold leading-tight whitespace-normal break-words ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                                                         {invite.habitName}
                                                     </h3>
                                                     <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
@@ -523,13 +523,13 @@ export function StreakTracker({
                                             }`}
                                     >
                                         <div className="relative min-h-[132px] sm:min-h-[72px]">
-                                            <div className="flex items-center gap-4 pr-0 sm:pr-40">
+                                            <div className="flex items-start gap-4 pr-0 sm:pr-40 min-w-0">
                                                 <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${request.color || 'from-slate-500 to-slate-600'} shadow-lg opacity-80`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
                                                 </div>
 
-                                                <div>
-                                                    <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                                                <div className="min-w-0 flex-1">
+                                                    <h3 className={`text-lg font-semibold leading-tight whitespace-normal break-words ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                                                         {request.habitName}
                                                     </h3>
                                                     <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
@@ -612,23 +612,23 @@ export function StreakTracker({
                                     className={`group w-full relative overflow-hidden rounded-3xl p-6 shadow-sm transition-all duration-300 hover:scale-[1.01] ${isDark ? 'bg-slate-800/50 backdrop-blur-sm' : 'bg-white'
                                         } ${isExpanded ? 'rounded-b-none' : ''}`}
                                 >
-                                    <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
-                                        <div className="flex items-start sm:items-center gap-3 min-w-0 pr-2">
-                                            <div className={`flex items-center justify-center w-16 h-16 min-w-16 min-h-16 shrink-0 rounded-2xl bg-gradient-to-br ${isBroken ? 'from-slate-500 to-slate-600' : streak.color} shadow-lg`}>
+                                    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-start">
+                                        <div className="flex items-start sm:items-center gap-3 min-w-0 pr-4">
+                                            <div className={`flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br ${isBroken ? 'from-slate-500 to-slate-600' : streak.color} shadow-lg`}>
                                                 <IconComponent className="w-8 h-8 text-white" />
                                             </div>
-                                            <div className="text-left">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className={`text-base sm:text-lg font-semibold leading-tight truncate max-w-[150px] sm:max-w-none ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                                            <div className="text-left min-w-0 flex-1">
+                                                <div className="flex items-start gap-2 min-w-0">
+                                                    <h3 className={`text-base sm:text-lg font-semibold leading-tight whitespace-normal break-words min-w-0 ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                                                         {streak.habitName} {isBroken && '💔'}
                                                     </h3>
 
                                                     {rewardEmoji && (
                                                         <div
                                                             title={`${streak.streakCount} day streak reward`}
-                                                            className={`px-2 py-1 rounded-full text-sm ${isDark
-                                                                    ? 'bg-slate-700/60'
-                                                                    : 'bg-slate-100'
+                                                            className={`shrink-0 px-2 py-1 rounded-full text-sm leading-none ${isDark
+                                                                ? 'bg-slate-700/60'
+                                                                : 'bg-slate-100'
                                                                 }`}
                                                         >
                                                             {rewardEmoji}
