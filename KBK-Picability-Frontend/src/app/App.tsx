@@ -576,14 +576,10 @@ export default function App() {
 
     const handleSelectFriend = (friend: User) => {
         setPreSelectedFriend(friend);
-
-        if (isSelectingFriendForStreak) {
-            setIsSelectingFriendForStreak(false);
-            setCurrentScreen('config');
-            return;
-        }
-
-        handleMobileTabChange('tracker');
+        setIsSelectingFriendForStreak(false);
+        setSelectedHabitType(null);
+        setDraftHabitConfig(null);
+        setCurrentScreen('selector');
     };
 
     const handleAddHabit = () => {
