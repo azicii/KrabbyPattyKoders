@@ -103,6 +103,7 @@ export function StreakTracker({
     const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
     const [cancelPendingRequest, setCancelPendingRequest] = useState<any | null>(null);
     const pushStorageKey = `picabilityPushEnabled:${user?.id}`;
+    const [showPushPrompt, setShowPushPrompt] = useState(false);
 
     const [pushEnabled, setPushEnabled] = useState(
         localStorage.getItem(pushStorageKey) === 'true'
@@ -311,7 +312,18 @@ export function StreakTracker({
         return () => window.clearInterval(interval);
     }, [viewingContent]);
 
-    
+    useEffect(() => {
+        if (pushEnabled) return;
+        if (!canUsePushNotifications()) return;
+        if (Notification.permission !== 'default') return;
+
+        const promptKey = `picabilityPushPromptShown:${user?.id}`;
+
+        if (localStorage.getItem(promptKey) === 'true') return;
+
+        setShowPushPrompt(true);
+        localStorage.setItem(promptKey, 'true');
+    }, [pushEnabled, user?.id]);
 
     return (
         <>
@@ -575,6 +587,46 @@ export function StreakTracker({
                             }`}>
                             Active Streaks
                         </h2>
+                    )}
+
+                    {showPushPrompt && createPortal(
+                        <div className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                            <div className={`w-full max-w-sm rounded-3xl p-6 shadow-2xl border ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+                                }`}>
+                                <h2 className="text-xl font-bold mb-2">
+                                    Stay accountable 🔥
+                                </h2>
+
+                                <p className={`text-sm mb-5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    Get notified when your partner completes a streak so you don’t leave them hanging.
+                                </p>
+
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await enablePushNotifications(user.token);
+                                            setPushEnabled(true);
+                                            localStorage.setItem(pushStorageKey, 'true');
+                                            setShowPushPrompt(false);
+                                        } catch (err: any) {
+                                            alert(err.message || "Could not enable notifications.");
+                                        }
+                                    }}
+                                    className="w-full py-4 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold transition-all"
+                                >
+                                    Enable notifications
+                                </button>
+
+                                <button
+                                    onClick={() => setShowPushPrompt(false)}
+                                    className={`w-full mt-3 py-3 rounded-2xl font-semibold transition-all ${isDark ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-100'
+                                        }`}
+                                >
+                                    Not now
+                                </button>
+                            </div>
+                        </div>,
+                        document.body
                     )}
 
                     {activeStreaks.map((streak) => {

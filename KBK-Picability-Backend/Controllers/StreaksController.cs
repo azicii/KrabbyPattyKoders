@@ -693,9 +693,7 @@ namespace Picability.Controllers
 
             var bothCheckedInToday = userOneCheckedInToday && userTwoCheckedInToday;
 
-            var shouldNotifyPartner = isUserOne
-                ? !userTwoCheckedInToday
-                : !userOneCheckedInToday;
+            var shouldNotifyPartner = true;
 
             var receiverId = isUserOne ? streak.UserTwoId : streak.UserOneId;
             var partnerName = isUserOne ? streak.UserOne.UserName : streak.UserTwo.UserName;
