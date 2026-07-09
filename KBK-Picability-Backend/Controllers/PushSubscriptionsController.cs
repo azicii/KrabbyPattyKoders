@@ -5,6 +5,7 @@ using Picability.Data;
 using Picability.DTOs;
 using Picability.Models;
 using System.Security.Claims;
+using Picability.Services;
 
 namespace Picability.Controllers
 {
@@ -14,10 +15,14 @@ namespace Picability.Controllers
     public class PushSubscriptionsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly PushNotificationService _pushNotificationService;
 
-        public PushSubscriptionsController(ApplicationDbContext context)
+        public PushSubscriptionsController(
+            ApplicationDbContext context,
+            PushNotificationService pushNotificationService)
         {
             _context = context;
+            _pushNotificationService = pushNotificationService;
         }
 
         private string? GetCurrentUserId()
@@ -87,6 +92,26 @@ namespace Picability.Controllers
                 .ToListAsync();
 
             return Ok(subscriptions);
+        }
+
+        [HttpPost("test")]
+        public async Task<IActionResult> SendTestPush()
+        {
+            var userId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            await _pushNotificationService.NotifyPartnerCheckedInAsync(
+                userId,
+                "Picability",
+                "Test Streak",
+                1,
+                false,
+                false
+            );
+
+            return Ok(new { message = "Test push attempted." });
         }
     }
 }

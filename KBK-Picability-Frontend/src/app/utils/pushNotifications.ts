@@ -55,6 +55,4 @@ export async function enablePushNotifications(token: string) {
     if (!response.ok) {
         throw new Error("Failed to save push subscription.");
     }
-
-    localStorage.setItem('picabilityPushEnabled', 'true');
 }

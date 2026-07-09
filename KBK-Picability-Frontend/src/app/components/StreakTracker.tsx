@@ -102,8 +102,10 @@ export function StreakTracker({
     const [viewerProgress, setViewerProgress] = useState(100);
     const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
     const [cancelPendingRequest, setCancelPendingRequest] = useState<any | null>(null);
+    const pushStorageKey = `picabilityPushEnabled:${user?.id}`;
+
     const [pushEnabled, setPushEnabled] = useState(
-        localStorage.getItem('picabilityPushEnabled') === 'true'
+        localStorage.getItem(pushStorageKey) === 'true'
     );
 
     const getUnreadForStreak = (streakId: number) => {
@@ -425,6 +427,7 @@ export function StreakTracker({
                                     try {
                                         await enablePushNotifications(user.token);
                                         setPushEnabled(true);
+                                        localStorage.setItem(pushStorageKey, 'true');
                                         alert("Notifications enabled!");
                                     } catch (err: any) {
                                         alert(err.message || "Could not enable notifications.");
