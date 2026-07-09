@@ -26,6 +26,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
         registerType: 'autoUpdate',
+        strategies: 'injectManifest',
+        srcDir: 'src',
+        filename: 'sw.ts',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
         manifest: {
             name: 'Picability',

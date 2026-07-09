@@ -2,6 +2,8 @@ import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check,
 import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { Bell } from 'lucide-react';
+import { canUsePushNotifications, enablePushNotifications } from '../utils/pushNotifications';
 
 interface Streak {
     id: number;
@@ -100,6 +102,9 @@ export function StreakTracker({
     const [viewerProgress, setViewerProgress] = useState(100);
     const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
     const [cancelPendingRequest, setCancelPendingRequest] = useState<any | null>(null);
+    const [pushEnabled, setPushEnabled] = useState(
+        localStorage.getItem('picabilityPushEnabled') === 'true'
+    );
 
     const getUnreadForStreak = (streakId: number) => {
         return unreadContent?.find(c => c.streakId === streakId);
@@ -414,7 +419,24 @@ export function StreakTracker({
                                 )}
                             </div>
                         )}
-
+                        {!pushEnabled && canUsePushNotifications() && (
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await enablePushNotifications(user.token);
+                                        setPushEnabled(true);
+                                        alert("Notifications enabled!");
+                                    } catch (err: any) {
+                                        alert(err.message || "Could not enable notifications.");
+                                    }
+                                }}
+                                className={`md:hidden flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'
+                                    }`}
+                                title="Enable notifications"
+                            >
+                                <Bell className="w-5 h-5 text-teal-500" />
+                            </button>
+                        )}
                         <button onClick={onToggleDark} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
                             {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
                         </button>
