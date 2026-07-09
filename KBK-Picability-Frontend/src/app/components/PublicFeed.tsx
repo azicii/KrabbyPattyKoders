@@ -158,21 +158,36 @@ export function PublicFeed({ isDark, items, onBack }: PublicFeedProps) {
                                 }`}
                         >
                             <div className="flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-4">
-                                    <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${item.failedToday ? 'from-slate-500 to-slate-700' : item.color
-                                        } shadow-lg`}>
+                                <div className="flex items-start gap-4 min-w-0 flex-1">
+                                    <div
+                                        className={`flex items-center justify-center
+                                            w-16 h-16
+                                            min-w-[4rem]
+                                            min-h-[4rem]
+                                            shrink-0
+                                            rounded-2xl
+                                            bg-gradient-to-br
+                                            ${item.failedToday ? 'from-slate-500 to-slate-700' : item.color}
+                                            shadow-lg`}
+                                    >
                                         <IconComponent className="w-8 h-8 text-white" />
                                     </div>
 
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'
-                                                }`}>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-start gap-2 min-w-0">
+                                            <h3
+                                                className={`text-lg font-semibold
+                                                    leading-tight
+                                                    whitespace-normal
+                                                    break-words
+                                                    min-w-0
+                                                    ${isDark ? 'text-slate-100' : 'text-slate-800'}`}
+                                            >
                                                 {item.habitName}
                                             </h3>
 
                                             {rewardEmoji && (
-                                                <span className={`px-2 py-1 rounded-full text-sm ${isDark ? 'bg-slate-700/60' : 'bg-slate-100'
+                                                <span className={`shrink-0 px-2 py-1 rounded-full text-sm leading-none ${isDark ? 'bg-slate-700/60' : 'bg-slate-100'
                                                     }`}>
                                                     {rewardEmoji}
                                                 </span>
@@ -193,7 +208,7 @@ export function PublicFeed({ isDark, items, onBack }: PublicFeedProps) {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col items-center">
+                                <div className="flex flex-col items-center shrink-0 w-[64px]">
                                     <div className={`text-3xl font-bold ${item.failedToday
                                             ? 'text-slate-500'
                                             : `bg-gradient-to-br ${item.color} bg-clip-text text-transparent`

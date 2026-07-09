@@ -524,7 +524,7 @@ export function StreakTracker({
                                     >
                                         <div className="relative min-h-[132px] sm:min-h-[72px]">
                                             <div className="flex items-start gap-4 pr-0 sm:pr-40 min-w-0">
-                                                <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${request.color || 'from-slate-500 to-slate-600'} shadow-lg opacity-80`}>
+                                                <div className={`flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br ${request.color || 'from-slate-500 to-slate-600'} shadow-lg opacity-80`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
                                                 </div>
 
@@ -1063,12 +1063,29 @@ export function StreakTracker({
                                     >
                                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                             <div className="flex items-start sm:items-center gap-4 w-full min-w-0">
-                                                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-700 shadow-lg">
+                                                <div
+                                                    className="flex items-center justify-center
+                                                        w-16 h-16
+                                                        min-w-[4rem]
+                                                        min-h-[4rem]
+                                                        shrink-0
+                                                        rounded-2xl
+                                                        bg-gradient-to-br
+                                                        from-slate-500
+                                                        to-slate-700
+                                                        shadow-lg"
+                                                >
                                                     <IconComponent className="w-8 h-8 text-white" />
                                                 </div>
 
-                                                <div>
-                                                    <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                                                <div className="min-w-0 flex-1">
+                                                    <h3
+                                                        className={`text-lg font-semibold
+                                                            leading-tight
+                                                            whitespace-normal
+                                                            break-words
+                                                            ${isDark ? 'text-slate-100' : 'text-slate-800'}`}
+                                                    >
                                                         {streak.habitName} 💔
                                                     </h3>
                                                     <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
