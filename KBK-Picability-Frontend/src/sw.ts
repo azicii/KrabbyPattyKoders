@@ -28,23 +28,20 @@ self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
     const url = event.notification.data?.url || "/";
+    const refreshUrl = `${url}?refresh=push`;
 
     event.waitUntil(
         self.clients.matchAll({ type: "window", includeUncontrolled: true })
             .then((clients) => {
-                const existingClient = clients.find((client) =>
-                    "focus" in client
-                );
+                const existingClient = clients[0];
 
                 if (existingClient) {
-                    existingClient.postMessage({
-                        type: "PICABILITY_PUSH_OPENED"
-                    });
-
-                    return existingClient.focus();
+                    return existingClient
+                        .navigate(refreshUrl)
+                        .then((client) => client?.focus());
                 }
 
-                return self.clients.openWindow(`${url}?refresh=push`);
+                return self.clients.openWindow(refreshUrl);
             })
     );
 });

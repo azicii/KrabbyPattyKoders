@@ -458,11 +458,12 @@ export default function App() {
         const params = new URLSearchParams(window.location.search);
 
         if (params.get('refresh') === 'push') {
-            refreshAppData();
             setCurrentScreen('tracker');
             setMobileTab('tracker');
 
-            window.history.replaceState({}, '', '/');
+            refreshAppData().finally(() => {
+                window.history.replaceState({}, '', '/');
+            });
         }
     }, [user]);
 
