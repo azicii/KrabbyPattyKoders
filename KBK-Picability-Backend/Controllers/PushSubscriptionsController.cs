@@ -102,7 +102,7 @@ namespace Picability.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            await _pushNotificationService.NotifyPartnerCheckedInAsync(
+            var result = await _pushNotificationService.NotifyPartnerCheckedInAsync(
                 userId,
                 "Picability",
                 "Test Streak",
@@ -111,7 +111,7 @@ namespace Picability.Controllers
                 false
             );
 
-            return Ok(new { message = "Test push attempted." });
+            return Ok(result);
         }
     }
 }
