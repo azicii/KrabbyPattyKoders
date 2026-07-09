@@ -336,8 +336,8 @@ export function StreakTracker({
                 : 'bg-gradient-to-br from-slate-50 to-slate-100'
                 }`}>
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-                    <div className="flex flex-col">
+                <div className="flex items-start justify-between gap-4 mb-8">
+                    <div className="flex flex-col min-w-0">
                         <h1 className={`text-2xl font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                             My Streaks
                         </h1>
@@ -348,7 +348,7 @@ export function StreakTracker({
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 relative flex-wrap sm:flex-nowrap">
+                    <div className="flex items-center gap-2 shrink-0">
                         {/*<button*/}
                         {/*  onClick={() => setShowInvites(!showInvites)}*/}
                         {/*  className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 relative ${*/}
@@ -417,24 +417,6 @@ export function StreakTracker({
 
                         <button onClick={onToggleDark} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
                             {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
-                        </button>
-
-                        <button onClick={onFriends} className={`relative flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
-                            <Users className={`w-5 h-5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
-                            {pendingFriendRequestCount > 0 && (
-                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full border-2 border-slate-900 flex items-center justify-center text-[10px] text-white font-bold">
-                                    {pendingFriendRequestCount}
-                                </span>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={onPublicFeed}
-                            className={`relative flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'
-                                }`}
-                            title="Friend Flex Feed"
-                        >
-                            <Flame className={`w-5 h-5 ${isDark ? 'text-orange-400' : 'text-orange-500'}`} />
                         </button>
 
                         <button onClick={onLogout} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all border border-transparent hover:border-rose-500/30 ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
