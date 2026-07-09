@@ -37,10 +37,14 @@ self.addEventListener('notificationclick', (event) => {
                 );
 
                 if (existingClient) {
+                    existingClient.postMessage({
+                        type: "PICABILITY_PUSH_OPENED"
+                    });
+
                     return existingClient.focus();
                 }
 
-                return self.clients.openWindow(url);
+                return self.clients.openWindow(`${url}?refresh=push`);
             })
     );
 });

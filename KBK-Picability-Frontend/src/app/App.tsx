@@ -435,6 +435,38 @@ export default function App() {
     }, [user]);
 
     useEffect(() => {
+        if (!user) return;
+
+        const handleServiceWorkerMessage = (event: MessageEvent) => {
+            if (event.data?.type === "PICABILITY_PUSH_OPENED") {
+                refreshAppData();
+                setCurrentScreen('tracker');
+                setMobileTab('tracker');
+            }
+        };
+
+        navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+
+        return () => {
+            navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+        };
+    }, [user]);
+
+    useEffect(() => {
+        if (!user) return;
+
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.get('refresh') === 'push') {
+            refreshAppData();
+            setCurrentScreen('tracker');
+            setMobileTab('tracker');
+
+            window.history.replaceState({}, '', '/');
+        }
+    }, [user]);
+
+    useEffect(() => {
         let themeMeta = document.querySelector('meta[name="theme-color"]');
 
         if (!themeMeta) {
