@@ -66,5 +66,27 @@ namespace Picability.Controllers
 
             return Ok(new { message = "Push subscription saved." });
         }
+
+        [HttpGet("mine")]
+        public async Task<IActionResult> GetMySubscriptions()
+        {
+            var userId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var subscriptions = await _context.PushSubscriptions
+                .Where(p => p.UserId == userId)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Endpoint,
+                    p.CreatedAt,
+                    p.LastUsedAt
+                })
+                .ToListAsync();
+
+            return Ok(subscriptions);
+        }
     }
 }
