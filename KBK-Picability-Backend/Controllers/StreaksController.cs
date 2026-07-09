@@ -5,6 +5,7 @@ using Picability.DTOs;
 using Picability.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using Picability.Services;
 
 namespace Picability.Controllers
 {
@@ -14,10 +15,14 @@ namespace Picability.Controllers
     public class StreaksController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly PushNotificationService _pushNotificationService;
 
-        public StreaksController(ApplicationDbContext context)
+        public StreaksController(
+            ApplicationDbContext context,
+            PushNotificationService pushNotificationService)
         {
             _context = context;
+            _pushNotificationService = pushNotificationService;
         }
 
         private string? GetCurrentUserId()
@@ -603,9 +608,12 @@ namespace Picability.Controllers
                 return Unauthorized();
             }
 
-            var streak = await _context.Streaks.FirstOrDefaultAsync(s =>
-                s.Id == id &&
-                (s.UserOneId == currentUserId || s.UserTwoId == currentUserId));
+            var streak = await _context.Streaks
+                .Include(s => s.UserOne)
+                .Include(s => s.UserTwo)
+                .FirstOrDefaultAsync(s =>
+                    s.Id == id &&
+                    (s.UserOneId == currentUserId || s.UserTwoId == currentUserId));
 
             if (streak == null)
             {
@@ -685,6 +693,14 @@ namespace Picability.Controllers
 
             var bothCheckedInToday = userOneCheckedInToday && userTwoCheckedInToday;
 
+            var shouldNotifyPartner = isUserOne
+                ? !userTwoCheckedInToday
+                : !userOneCheckedInToday;
+
+            var receiverId = isUserOne ? streak.UserTwoId : streak.UserOneId;
+            var partnerName = isUserOne ? streak.UserOne.UserName : streak.UserTwo.UserName;
+            var notificationStreakDay = streak.CurrentCount + 1;
+
             if (bothCheckedInToday && !alreadyFullyCompletedToday)
             {
                 streak.CurrentCount++;
@@ -693,6 +709,30 @@ namespace Picability.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            if (shouldNotifyPartner)
+            {
+                var recentContent = await _context.CheckInContents
+                    .Where(c =>
+                        c.StreakId == streak.Id &&
+                        c.SenderId == currentUserId &&
+                        c.ReceiverId == receiverId &&
+                        !c.IsViewed &&
+                        c.CreatedAt >= nowUtc.AddMinutes(-5))
+                    .ToListAsync();
+
+                var sentMessage = recentContent.Any(c => c.ContentType == "Message");
+                var sentPhoto = recentContent.Any(c => c.ContentType == "Photo");
+
+                await _pushNotificationService.NotifyPartnerCheckedInAsync(
+                    receiverId,
+                    partnerName ?? "Your partner",
+                    streak.HabitName,
+                    notificationStreakDay,
+                    sentMessage,
+                    sentPhoto
+                );
+            }
 
             return Ok(new
             {
