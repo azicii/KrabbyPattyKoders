@@ -1,6 +1,7 @@
 ﻿import { ArrowLeft, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 export interface PublicFeedItem {
     id: number;
@@ -256,7 +257,7 @@ export function PublicFeed({ isDark, items, onBack }: PublicFeedProps) {
                 })}
             </div>
 
-            {reactionModal && (
+            {reactionModal && createPortal(
                 <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className={`w-full max-w-sm rounded-3xl p-6 shadow-2xl border ${isDark
                             ? 'bg-slate-900 border-slate-700 text-slate-100'
@@ -292,7 +293,8 @@ export function PublicFeed({ isDark, items, onBack }: PublicFeedProps) {
                             )}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
