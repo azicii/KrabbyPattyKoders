@@ -179,13 +179,19 @@ export default function App() {
     const activePrimaryIndex = primaryTabs.indexOf(mobileTab);
     const isPrimaryScreen = ['tracker', 'friends-list', 'public-feed'].includes(currentScreen);
 
+    const refreshTriggerDistance = 65;
+    const refreshHoldDistance = 58;
+    const visiblePullDistance = isRefreshing
+        ? refreshHoldDistance
+        : pullDistance;
+
     const goToPrimaryIndex = (index: number) => {
         const clampedIndex = Math.max(0, Math.min(primaryTabs.length - 1, index));
         handleMobileTabChange(primaryTabs[clampedIndex]);
     };
 
     const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-        if (window.innerWidth >= 768) return;
+        if (window.innerWidth >= 768 || isRefreshing) return;
 
         setTouchStartX(e.touches[0].clientX);
         setTouchStartY(e.touches[0].clientY);
@@ -248,8 +254,9 @@ export default function App() {
         const distanceThreshold = 110;
         const flickThreshold = 0.65;
 
-        if (swipeIntent === 'vertical' && pullDistance > 65) {
+        if (swipeIntent === 'vertical' && pullDistance > refreshTriggerDistance) {
             setIsRefreshing(true);
+            setPullDistance(refreshHoldDistance);
 
             refreshAppData().finally(() => {
                 setIsRefreshing(false);
@@ -259,6 +266,7 @@ export default function App() {
             setTouchStartX(null);
             setTouchStartY(null);
             setTouchStartTime(null);
+            setTouchDeltaX(0);
             setIsDragging(false);
             setSwipeIntent(null);
             return;
@@ -751,8 +759,8 @@ export default function App() {
                                 style={{
                                     transform: isRefreshing
                                         ? undefined
-                                        : `rotate(${Math.min(pullDistance, 80) * 4}deg)`,
-                                    opacity: Math.min(Math.max(pullDistance / 65, 0.25), 1)
+                                        : `rotate(${Math.min(visiblePullDistance, 80) * 4}deg)`,
+                                    opacity: Math.min(Math.max(visiblePullDistance / refreshTriggerDistance, 0.25), 1)
                                 }}
                             />
                         </div>
@@ -761,7 +769,7 @@ export default function App() {
                     <div
                         className={`flex w-[300%] items-start ${isDragging ? '' : 'transition-transform duration-[360ms] ease-out'}`}
                         style={{
-                            transform: `translateX(calc(-${activePrimaryIndex * 33.333333}% + ${touchDeltaX}px))`
+                            transform: `translateX(calc(-${activePrimaryIndex * 33.333333}% + ${touchDeltaX}px)) translateY(${visiblePullDistance}px)`
                         }}
                     >
                         <div className={`w-1/3 shrink-0 ${mobileTab === 'friends' ? '' : 'h-0 overflow-hidden'}`}>
