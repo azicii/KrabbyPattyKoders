@@ -25,6 +25,7 @@ interface FriendsListProps {
   onFindFriends?: () => void;
   onRemoveFriend?: (friendId: string, friendName: string) => Promise<boolean>; // Updated signature
   currentUserId: string; // From App.tsx
+  refreshKey: number;
 }
 
 export function FriendsList({
@@ -34,7 +35,8 @@ export function FriendsList({
   onSelectFriend,
   onFindFriends,
   onRemoveFriend,
-  currentUserId
+  currentUserId,
+  refreshKey
 }: FriendsListProps) {
   const [friends, setFriends] = useState<User[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<(User & { requestId: number })[]>([]);
@@ -48,9 +50,9 @@ export function FriendsList({
     // const BASE_URL = 'http://localhost:5232';
     const BASE_URL = 'https://kbk-picability-backend.onrender.com';
 
-  useEffect(() => {
-    fetchData();
-  }, [currentUserId]);
+    useEffect(() => {
+        fetchData();
+    }, [currentUserId, refreshKey]);
 
   const fetchData = async () => {
     try {
