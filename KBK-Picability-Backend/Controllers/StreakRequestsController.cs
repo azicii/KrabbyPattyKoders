@@ -5,6 +5,7 @@ using Picability.Data;
 using Picability.DTOs;
 using Picability.Models;
 using System.Security.Claims;
+using Picability.Services;
 
 namespace Picability.Controllers
 {
@@ -14,10 +15,14 @@ namespace Picability.Controllers
     public class StreakRequestsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly PushNotificationService _pushNotificationService;
 
-        public StreakRequestsController(ApplicationDbContext context)
+        public StreakRequestsController(
+            ApplicationDbContext context,
+            PushNotificationService pushNotificationService)
         {
             _context = context;
+            _pushNotificationService = pushNotificationService;
         }
 
         private string? GetCurrentUserId()
@@ -76,6 +81,17 @@ namespace Picability.Controllers
 
             _context.StreakRequests.Add(request);
             await _context.SaveChangesAsync();
+
+            var senderName = await _context.Users
+                .Where(u => u.Id == currentUserId)
+                .Select(u => u.UserName)
+                .FirstOrDefaultAsync();
+
+            await _pushNotificationService.NotifyStreakRequestAsync(
+                dto.ReceiverId,
+                senderName ?? "Your friend",
+                dto.HabitName
+            );
 
             return Ok(request);
         }
