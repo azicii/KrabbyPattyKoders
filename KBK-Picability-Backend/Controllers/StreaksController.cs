@@ -598,6 +598,86 @@ namespace Picability.Controllers
             });
         }
 
+        [HttpPost("{id}/remind")]
+        public async Task<IActionResult> SendStreakReminder(int id)
+        {
+            var currentUserId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var streak = await _context.Streaks
+                .Include(s => s.UserOne)
+                .Include(s => s.UserTwo)
+                .FirstOrDefaultAsync(s =>
+                    s.Id == id &&
+                    s.IsActive &&
+                    (s.UserOneId == currentUserId ||
+                     s.UserTwoId == currentUserId));
+
+            if (streak == null)
+            {
+                return NotFound(new
+                {
+                    message = "Active streak not found."
+                });
+            }
+
+            var nowUtc = DateTime.UtcNow;
+            var todayPacific = GetPacificToday(nowUtc);
+            var isUserOne = streak.UserOneId == currentUserId;
+
+            var currentUserCheckedInToday = isUserOne
+                ? streak.UserOneLastCheckedInAt.HasValue &&
+                  ToPacificDate(streak.UserOneLastCheckedInAt.Value) == todayPacific
+                : streak.UserTwoLastCheckedInAt.HasValue &&
+                  ToPacificDate(streak.UserTwoLastCheckedInAt.Value) == todayPacific;
+
+            var partnerCheckedInToday = isUserOne
+                ? streak.UserTwoLastCheckedInAt.HasValue &&
+                  ToPacificDate(streak.UserTwoLastCheckedInAt.Value) == todayPacific
+                : streak.UserOneLastCheckedInAt.HasValue &&
+                  ToPacificDate(streak.UserOneLastCheckedInAt.Value) == todayPacific;
+
+            if (!currentUserCheckedInToday)
+            {
+                return BadRequest(new
+                {
+                    message = "You must complete your check-in before sending a reminder."
+                });
+            }
+
+            if (partnerCheckedInToday)
+            {
+                return BadRequest(new
+                {
+                    message = "Your partner already checked in today."
+                });
+            }
+
+            var receiverId = isUserOne
+                ? streak.UserTwoId
+                : streak.UserOneId;
+
+            var senderName = isUserOne
+                ? streak.UserOne.UserName
+                : streak.UserTwo.UserName;
+
+            var result = await _pushNotificationService.NotifyStreakReminderAsync(
+                receiverId,
+                senderName ?? "Your partner",
+                streak.HabitName
+            );
+
+            return Ok(new
+            {
+                message = "Reminder sent.",
+                pushResult = result
+            });
+        }
+
         [HttpPost("{id}/complete")]
         public async Task<IActionResult> CompleteStreak(int id, CompleteStreakDto dto)
         {

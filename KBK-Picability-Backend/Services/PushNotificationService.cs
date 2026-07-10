@@ -73,14 +73,27 @@ namespace Picability.Services
         }
 
         public async Task<PushSendResult> NotifyStreakRequestAsync(
-                string receiverId,
-                string senderName,
-                string streakName)
+            string receiverId,
+            string senderName,
+            string streakName)
         {
             return await SendPushAsync(
                 receiverId,
                 "New streak request 🔥",
                 $"{senderName} invited you to start \"{streakName}\".",
+                "/"
+            );
+        }
+
+        public async Task<PushSendResult> NotifyStreakReminderAsync(
+            string receiverId,
+            string senderName,
+            string streakName)
+        {
+            return await SendPushAsync(
+                receiverId,
+                "Streak reminder 🔔",
+                $"{senderName} is reminding you to complete \"{streakName}\" today.",
                 "/"
             );
         }

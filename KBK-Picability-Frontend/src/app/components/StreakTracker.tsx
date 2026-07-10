@@ -1,8 +1,7 @@
-import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed } from 'lucide-react';
+import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed, Bell, BellRing } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Bell } from 'lucide-react';
 import { canUsePushNotifications, enablePushNotifications } from '../utils/pushNotifications';
 
 interface Streak {
@@ -65,6 +64,7 @@ interface StreakTrackerProps {
     ) => void;
     onPublicFeed?: () => void;
     onToggleVisibility?: (streakId: number, isPublic: boolean) => void;
+    onSendReminderPing?: (streakId: number) => Promise<void>;
 }
 
 export function StreakTracker({
@@ -82,6 +82,7 @@ export function StreakTracker({
     onAcceptInvite,
     onPublicFeed,
     onRestartStreak,
+    onSendReminderPing,
     pendingFriendRequestCount = 0,
     onSendCheckInMessage,
     unreadContent = [],
@@ -104,6 +105,8 @@ export function StreakTracker({
     const [cancelPendingRequest, setCancelPendingRequest] = useState<any | null>(null);
     const pushStorageKey = `picabilityPushEnabled:${user?.id}`;
     const [showPushPrompt, setShowPushPrompt] = useState(false);
+    const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
+    const [reminderSentId, setReminderSentId] = useState<number | null>(null);
 
     const [pushEnabled, setPushEnabled] = useState(
         localStorage.getItem(pushStorageKey) === 'true'
@@ -168,6 +171,31 @@ export function StreakTracker({
         );
 
         closeCheckInModal();
+    };
+
+    const handleReminderPing = async (
+        streakId: number,
+        event: React.MouseEvent
+        ) => {
+        event.stopPropagation();
+
+        if (sendingReminderId === streakId) return;
+
+        try {
+            setSendingReminderId(streakId);
+
+            await onSendReminderPing?.(streakId);
+
+            setReminderSentId(streakId);
+
+            window.setTimeout(() => {
+                setReminderSentId(current =>
+                    current === streakId ? null : current
+                );
+            }, 2500);
+        } finally {
+            setSendingReminderId(null);
+        }
     };
 
     const confirmPhotoCheckIn = () => {
@@ -839,13 +867,68 @@ export function StreakTracker({
                                                     </button>
                                                 </div>
                                             )}
-                                            <p className={`text-center mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                            <p className={`text-center mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'
+                                                }`}>
                                                 {isBroken
                                                     ? "This streak was broken. Tap dismiss to remove it."
                                                     : streak.timeMessage}
                                             </p>
 
-                                            <div className="flex justify-end mt-3">
+                                            <div className="flex items-end justify-between mt-3 gap-4">
+                                                <div className="min-w-[44px]">
+                                                    {!isBroken &&
+                                                        userCheckedInToday &&
+                                                        !partnerCheckedInToday && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(event) =>
+                                                                    handleReminderPing(streak.id, event)
+                                                                }
+                                                                disabled={sendingReminderId === streak.id}
+                                                                className={`w-11 h-11 rounded-full border flex items-center justify-center transition-all ${reminderSentId === streak.id
+                                                                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                                                                        : isDark
+                                                                            ? 'bg-slate-700/40 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-teal-400'
+                                                                            : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 hover:text-teal-600'
+                                                                    } ${sendingReminderId === streak.id
+                                                                        ? 'opacity-60 cursor-wait'
+                                                                        : ''
+                                                                    }`}
+                                                                title={
+                                                                    reminderSentId === streak.id
+                                                                        ? 'Reminder sent'
+                                                                        : 'Remind your partner'
+                                                                }
+                                                                aria-label={
+                                                                    reminderSentId === streak.id
+                                                                        ? 'Reminder sent'
+                                                                        : `Remind ${streak.userName} to check in`
+                                                                }
+                                                            >
+                                                                {reminderSentId === streak.id ? (
+                                                                    <Check className="w-5 h-5" />
+                                                                ) : (
+                                                                    <BellRing className={`w-5 h-5 ${sendingReminderId === streak.id
+                                                                            ? 'animate-pulse'
+                                                                            : ''
+                                                                        }`} />
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onToggleVisibility?.(
+                                                            streak.id,
+                                                            !(streak.isPublic ?? true)
+                                                        );
+                                                    }}
+                                                    className="flex items-center gap-2"
+                                                    title={streak.isPublic ?? true ? 'Public' : 'Private'}
+                                                >
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {

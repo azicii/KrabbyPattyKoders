@@ -514,6 +514,39 @@ export default function App() {
         }
     };
 
+    const handleSendReminderPing = async (streakId: number) => {
+        if (!user) return;
+
+        try {
+            const response = await fetch(
+                `${BASE_URL}/api/Streaks/${streakId}/remind`,
+                {
+                    method: 'POST',
+                    headers: getAuthHeaders(user.token)
+                }
+            );
+
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type');
+
+                if (contentType?.includes('application/json')) {
+                    const error = await response.json();
+                    alert(error.message || 'Could not send reminder.');
+                } else {
+                    const errorText = await response.text();
+                    alert(errorText || 'Could not send reminder.');
+                }
+
+                return;
+            }
+
+            alert('Reminder sent!');
+        } catch (err) {
+            console.error('Reminder ping error:', err);
+            alert('Network error while sending the reminder.');
+        }
+    };
+
     const handleRestartStreak = async (streak: Streak) => {
         if (!user || !streak.partnerId) return;
 
@@ -885,6 +918,7 @@ export default function App() {
                                 onSendCheckInPhoto={handleSendCheckInPhoto}
                                 onPublicFeed={() => handleMobileTabChange('feed')}
                                 onToggleVisibility={handleToggleStreakVisibility}
+                                onSendReminderPing={handleSendReminderPing}
                             />
                         </div>
 
