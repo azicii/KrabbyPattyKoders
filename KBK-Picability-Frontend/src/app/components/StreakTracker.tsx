@@ -929,15 +929,6 @@ export function StreakTracker({
                                                     className="flex items-center gap-2"
                                                     title={streak.isPublic ?? true ? 'Public' : 'Private'}
                                                 >
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        onToggleVisibility?.(streak.id, !(streak.isPublic ?? true));
-                                                    }}
-                                                    className="flex items-center gap-2"
-                                                    title={streak.isPublic ?? true ? 'Public' : 'Private'}
-                                                >
                                                     <span className={`text-xs font-bold ${streak.isPublic ?? true
                                                             ? 'text-orange-400'
                                                             : isDark ? 'text-slate-400' : 'text-slate-600'

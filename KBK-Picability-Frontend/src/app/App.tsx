@@ -539,8 +539,6 @@ export default function App() {
 
                 return;
             }
-
-            alert('Reminder sent!');
         } catch (err) {
             console.error('Reminder ping error:', err);
             alert('Network error while sending the reminder.');
