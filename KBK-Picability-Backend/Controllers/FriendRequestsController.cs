@@ -5,6 +5,7 @@ using Picability.Data;
 using Picability.Models;
 using Picability.DTOs;
 using System.Security.Claims;
+using Picability.Services;
 
 namespace Picability.Controllers
 {
@@ -14,10 +15,14 @@ namespace Picability.Controllers
     public class FriendRequestsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly PushNotificationService _pushNotificationService;
 
-        public FriendRequestsController(ApplicationDbContext context)
+        public FriendRequestsController(
+            ApplicationDbContext context,
+            PushNotificationService pushNotificationService)
         {
             _context = context;
+            _pushNotificationService = pushNotificationService;
         }
 
         private string? GetCurrentUserId()
@@ -60,6 +65,16 @@ namespace Picability.Controllers
 
             _context.FriendRequests.Add(request);
             await _context.SaveChangesAsync();
+
+            var senderName = await _context.Users
+                .Where(u => u.Id == currentUserId)
+                .Select(u => u.UserName)
+                .FirstOrDefaultAsync();
+
+            await _pushNotificationService.NotifyFriendRequestAsync(
+                dto.ReceiverId,
+                senderName ?? "Someone"
+            );
 
             return Ok(request);
         }

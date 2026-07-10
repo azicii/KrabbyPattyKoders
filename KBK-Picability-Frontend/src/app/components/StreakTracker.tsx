@@ -433,6 +433,36 @@ export function StreakTracker({
                                 )}
                             </div>
                         )}
+
+                        {pendingFriendRequestCount > 0 && (
+                            <button
+                                type="button"
+                                onClick={onFriends}
+                                className={`relative flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark
+                                        ? 'bg-slate-800 hover:bg-slate-750'
+                                        : 'bg-white'
+                                    }`}
+                                title="View friend requests"
+                                aria-label={`${pendingFriendRequestCount} pending friend ${pendingFriendRequestCount === 1
+                                        ? 'request'
+                                        : 'requests'
+                                    }`}
+                            >
+                                <Users
+                                    className={`w-5 h-5 ${isDark
+                                            ? 'text-slate-300'
+                                            : 'text-slate-700'
+                                        }`}
+                                />
+
+                                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-500 border-2 border-slate-900 flex items-center justify-center text-[10px] leading-none text-white font-bold">
+                                    {pendingFriendRequestCount > 99
+                                        ? '99+'
+                                        : pendingFriendRequestCount}
+                                </span>
+                            </button>
+                        )}
+
                         {!pushEnabled && canUsePushNotifications() && (
                             <button
                                 onClick={async () => {
@@ -452,6 +482,7 @@ export function StreakTracker({
                                 <Bell className="w-5 h-5 text-teal-500" />
                             </button>
                         )}
+
                         <button onClick={onToggleDark} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
                             {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
                         </button>
