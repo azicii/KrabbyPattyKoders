@@ -411,6 +411,7 @@ namespace Picability.Controllers
                     var feedItems = new List<object>();
 
                     var completedToday =
+                        s.IsActive &&
                         s.LastFullyCompletedAt.HasValue &&
                         ToPacificDate(s.LastFullyCompletedAt.Value) == todayPacific;
 
