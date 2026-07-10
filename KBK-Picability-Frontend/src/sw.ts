@@ -1,6 +1,7 @@
 ﻿/// <reference lib="webworker" />
 
 import { precacheAndRoute } from 'workbox-precaching';
+import { markPushRefreshRequired } from './pushRefreshStore';
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -27,21 +28,34 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
-    const url = event.notification.data?.url || "/";
-    const refreshUrl = `${url}?refresh=push`;
+    const targetUrl = new URL(
+        event.notification.data?.url || '/',
+        self.location.origin
+    ).href;
 
     event.waitUntil(
-        self.clients.matchAll({ type: "window", includeUncontrolled: true })
-            .then((clients) => {
-                const existingClient = clients[0];
+        (async () => {
+            await markPushRefreshRequired();
 
-                if (existingClient) {
-                    return existingClient
-                        .navigate(refreshUrl)
-                        .then((client) => client?.focus());
-                }
+            const windowClients = await self.clients.matchAll({
+                type: 'window',
+                includeUncontrolled: true
+            });
 
-                return self.clients.openWindow(refreshUrl);
-            })
+            const existingClient = windowClients.find(client =>
+                client.url.startsWith(self.location.origin)
+            );
+
+            if (existingClient) {
+                existingClient.postMessage({
+                    type: 'PICABILITY_PUSH_OPENED'
+                });
+
+                await existingClient.focus();
+                return;
+            }
+
+            await self.clients.openWindow(targetUrl);
+        })()
     );
 });

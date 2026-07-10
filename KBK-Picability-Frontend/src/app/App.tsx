@@ -9,6 +9,7 @@ import { RequestConfirmation } from './components/RequestConfirmation.tsx';
 import { PublicFeed, PublicFeedItem } from './components/PublicFeed.tsx';
 import { OnboardingSlides } from './components/OnboardingSlides.tsx';
 import { MobileBottomNav, MobileTab } from './components/MobileBottomNav.tsx';
+import { consumePushRefreshRequired } from '../pushRefreshStore';
 
 type Screen =
     | 'auth'
@@ -436,36 +437,53 @@ export default function App() {
     }, [user]);
 
     useEffect(() => {
-        if (!user) return;
+        if (!user || !('serviceWorker' in navigator)) return;
 
         const handleServiceWorkerMessage = (event: MessageEvent) => {
-            if (event.data?.type === "PICABILITY_PUSH_OPENED") {
-                refreshAppData();
-                setCurrentScreen('tracker');
-                setMobileTab('tracker');
+            if (event.data?.type === 'PICABILITY_PUSH_OPENED') {
+                void refreshAfterPushOpen();
             }
         };
 
-        navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                void refreshAfterPushOpen();
+            }
+        };
+
+        const handlePageShow = () => {
+            void refreshAfterPushOpen();
+        };
+
+        navigator.serviceWorker.addEventListener(
+            'message',
+            handleServiceWorkerMessage
+        );
+
+        document.addEventListener(
+            'visibilitychange',
+            handleVisibilityChange
+        );
+
+        window.addEventListener('pageshow', handlePageShow);
+        window.addEventListener('focus', handlePageShow);
+
+        void refreshAfterPushOpen();
 
         return () => {
-            navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+            navigator.serviceWorker.removeEventListener(
+                'message',
+                handleServiceWorkerMessage
+            );
+
+            document.removeEventListener(
+                'visibilitychange',
+                handleVisibilityChange
+            );
+
+            window.removeEventListener('pageshow', handlePageShow);
+            window.removeEventListener('focus', handlePageShow);
         };
-    }, [user]);
-
-    useEffect(() => {
-        if (!user) return;
-
-        const params = new URLSearchParams(window.location.search);
-
-        if (params.get('refresh') === 'push') {
-            setCurrentScreen('tracker');
-            setMobileTab('tracker');
-
-            refreshAppData().finally(() => {
-                window.history.replaceState({}, '', '/');
-            });
-        }
     }, [user]);
 
     useEffect(() => {
@@ -614,6 +632,18 @@ export default function App() {
             fetchUnreadContent(),
             fetchPublicFeed()
         ]);
+    };
+
+    const refreshAfterPushOpen = async () => {
+        if (!user) return;
+
+        const shouldRefresh = await consumePushRefreshRequired();
+
+        if (!shouldRefresh) return;
+
+        setCurrentScreen('tracker');
+        setMobileTab('tracker');
+        await refreshAppData();
     };
 
     const handleSelectFriend = (friend: User) => {
