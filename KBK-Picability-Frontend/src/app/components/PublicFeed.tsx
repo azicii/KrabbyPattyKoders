@@ -237,8 +237,8 @@ export function PublicFeed({ isDark, items, onBack }: PublicFeedProps) {
                                         }`}
                                 >
                                     {item.failedToday
-                                        ? item.currentUserReacted ? '💔 Heartbroken' : '💔 Heartbreak'
-                                        : item.currentUserReacted ? '👊' : '👊'}
+                                        ? item.currentUserReacted ? '💔' : '💔 Brokey'
+                                        : item.currentUserReacted ? '👊' : '👊 Bumped'}
                                 </button>
 
                                 {(item.reactionCount || 0) > 0 && (
