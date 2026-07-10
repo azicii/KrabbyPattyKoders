@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { HabitSelector } from './components/HabitSelector.tsx';
 import { StreakTracker, Streak } from './components/StreakTracker.tsx';
 import { HabitConfig, HabitConfiguration } from './components/HabitConfig.tsx';
@@ -98,6 +98,7 @@ export default function App() {
     const [pullDistance, setPullDistance] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isSelectingFriendForStreak, setIsSelectingFriendForStreak] = useState(false);
+    const lastResumeRefreshAt = useRef(0);
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -728,6 +729,39 @@ export default function App() {
         photoDataUrl: string,
         viewDurationSeconds: number
     ) => {
+
+        useEffect(() => {
+            if (!user) return;
+
+            const refreshOnResume = () => {
+                const now = Date.now();
+
+                if (now - lastResumeRefreshAt.current < 3000) {
+                    return;
+                }
+
+                lastResumeRefreshAt.current = now;
+
+                setCurrentScreen('tracker');
+                setMobileTab('tracker');
+                refreshAppData();
+            };
+
+            const handleVisibilityChange = () => {
+                if (document.visibilityState === 'visible') {
+                    refreshOnResume();
+                }
+            };
+
+            window.addEventListener('focus', refreshOnResume);
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                window.removeEventListener('focus', refreshOnResume);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
+        }, [user]);
+
         if (!user) return;
 
         const response = await fetch(
