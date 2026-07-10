@@ -699,6 +699,10 @@ namespace Picability.Controllers
             var partnerName = isUserOne ? streak.UserOne.UserName : streak.UserTwo.UserName;
             var notificationStreakDay = streak.CurrentCount + 1;
 
+            var receiverAlreadyCheckedInToday = isUserOne
+                ? userTwoCheckedInToday
+                : userOneCheckedInToday;
+
             if (bothCheckedInToday && !alreadyFullyCompletedToday)
             {
                 streak.CurrentCount++;
@@ -728,7 +732,8 @@ namespace Picability.Controllers
                     streak.HabitName,
                     notificationStreakDay,
                     sentMessage,
-                    sentPhoto
+                    sentPhoto,
+                    receiverAlreadyCheckedInToday
                 );
             }
 

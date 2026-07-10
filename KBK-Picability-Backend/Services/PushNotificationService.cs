@@ -32,7 +32,8 @@ namespace Picability.Services
             string streakName,
             int streakDay,
             bool sentMessage,
-            bool sentPhoto)
+            bool sentPhoto,
+            bool receiverAlreadyCheckedInToday)
         {
             var subscriptions = await _context.PushSubscriptions
                 .Where(p => p.UserId == receiverId)
@@ -67,9 +68,13 @@ namespace Picability.Services
                         ? "\n📷 Sent you a photo"
                         : "";
 
+            var notificationTitle = receiverAlreadyCheckedInToday
+                ? "🔥 Your partner checked in!"
+                : "🔥 Don't leave them hanging!";
+
             var payload = JsonSerializer.Serialize(new
             {
-                title = "🔥 Don't leave them hanging!",
+                title = notificationTitle,
                 body = $"{partnerName} completed day {streakDay} of {streakName}.{contentLine}",
                 url = "/",
                 icon = "/pwa-192x192.png",

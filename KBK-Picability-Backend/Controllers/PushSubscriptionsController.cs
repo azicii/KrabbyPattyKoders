@@ -108,6 +108,7 @@ namespace Picability.Controllers
                 "Test Streak",
                 1,
                 false,
+                false,
                 false
             );
 
