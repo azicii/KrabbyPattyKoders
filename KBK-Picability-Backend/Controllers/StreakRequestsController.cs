@@ -276,6 +276,7 @@ namespace Picability.Controllers
                 IsActive = true,
                 StreakRequestId = request.Id,
                 StartedAt = nowUtc,
+                CycleTrackingStartedAt = nowUtc,
                 LastCompletedAt = defaultDate,
                 FailedAt = defaultDate,
                 IntervalHours = 24

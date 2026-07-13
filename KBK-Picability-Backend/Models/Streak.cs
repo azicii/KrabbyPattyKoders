@@ -27,6 +27,11 @@
         // Supported values: "Day", "Week", or "Month".
         public string CycleUnit { get; set; } = "Day";
 
+        // Flexible cycle evaluation begins from this point.
+        // This prevents existing streaks from being retroactively evaluated
+        // against cycles that occurred before check-in history was introduced.
+        public DateTime CycleTrackingStartedAt { get; set; } = DateTime.UtcNow;
+
         public int StreakRequestId { get; set; }
         public StreakRequest StreakRequest { get; set; } = null!;
 

@@ -152,6 +152,29 @@
             };
         }
 
+        public static StreakCycleWindow GetPreviousCycle(
+            DateTime streakStartedAtUtc,
+            DateTime currentCycleStartUtc,
+            int cycleLength,
+            string cycleUnit,
+            TimeZoneInfo timeZone)
+        {
+            /*
+             * Moving one tick before the current cycle boundary places
+             * the timestamp inside the immediately preceding cycle.
+             */
+            var previousCycleMomentUtc =
+                currentCycleStartUtc.AddTicks(-1);
+
+            return GetCurrentCycle(
+                streakStartedAtUtc,
+                previousCycleMomentUtc,
+                cycleLength,
+                cycleUnit,
+                timeZone
+            );
+        }
+
         private static DateTime StartOfWeek(DateTime date)
         {
             var daysSinceMonday =

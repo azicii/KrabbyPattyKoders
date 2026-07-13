@@ -91,36 +91,142 @@ namespace Picability.Controllers
             var nowUtc = DateTime.UtcNow;
             var todayPacific = GetPacificToday(nowUtc);
             var hoursUntilMidnight = GetHoursUntilPacificMidnight(nowUtc);
-            var defaultDate = new DateTime(1900, 1, 1);
+            var defaultDate = new DateTime(
+                1900,
+                1,
+                1,
+                0,
+                0,
+                0,
+                DateTimeKind.Utc
+            );
+
+            var pacificTimeZone = GetPacificTimeZone();
             bool changesMade = false;
 
-            foreach (var streak in streaks)
+            foreach (var streak in streaks.Where(s => s.IsActive))
             {
-                var lastFullyCompleted = streak.LastFullyCompletedAt ?? streak.LastCompletedAt;
+                var requiredCheckIns = Math.Max(
+                    1,
+                    streak.RequiredCheckIns
+                );
 
-                DateTime anchorDateUtc;
+                var cycleLength = Math.Max(
+                    1,
+                    streak.CycleLength
+                );
 
-                if (lastFullyCompleted is DateTime completedAt && completedAt != defaultDate)
+                var cycleUnit =
+                    streak.CycleUnit?.Trim().ToLowerInvariant() switch
+                    {
+                        "week" => "Week",
+                        "month" => "Month",
+                        _ => "Day"
+                    };
+
+                var currentCycle =
+                    StreakCycleCalculator.GetCurrentCycle(
+                        streak.StartedAt,
+                        nowUtc,
+                        cycleLength,
+                        cycleUnit,
+                        pacificTimeZone
+                    );
+
+                /*
+                 * If the flexible-cycle tracking timestamp falls inside the
+                 * current cycle, no tracked cycle has ended yet.
+                 */
+                if (
+                    streak.CycleTrackingStartedAt >=
+                    currentCycle.StartUtc
+                )
                 {
-                    anchorDateUtc = completedAt;
+                    continue;
                 }
-                else
+
+                var previousCycle =
+                    StreakCycleCalculator.GetPreviousCycle(
+                        streak.StartedAt,
+                        currentCycle.StartUtc,
+                        cycleLength,
+                        cycleUnit,
+                        pacificTimeZone
+                    );
+
+                /*
+                 * Do not evaluate a cycle that ended entirely before flexible
+                 * check-in tracking was introduced for this streak.
+                 */
+                if (
+                    previousCycle.EndUtc <=
+                    streak.CycleTrackingStartedAt
+                )
                 {
-                    anchorDateUtc = streak.StartedAt;
+                    continue;
                 }
 
-                var anchorPacificDate = ToPacificDate(anchorDateUtc);
+                var userOneCheckInCount = checkIns.Count(c =>
+                    c.StreakId == streak.Id &&
+                    c.UserId == streak.UserOneId &&
+                    c.CheckedInAt >= previousCycle.StartUtc &&
+                    c.CheckedInAt < previousCycle.EndUtc
+                );
 
-                var missedYesterdayOrEarlier = anchorPacificDate < todayPacific.AddDays(-1);
+                var userTwoCheckInCount = checkIns.Count(c =>
+                    c.StreakId == streak.Id &&
+                    c.UserId == streak.UserTwoId &&
+                    c.CheckedInAt >= previousCycle.StartUtc &&
+                    c.CheckedInAt < previousCycle.EndUtc
+                );
 
-                var startedBeforeTodayAndNeverCompleted =
-                    (lastFullyCompleted == null || lastFullyCompleted == defaultDate) &&
-                    anchorPacificDate < todayPacific.AddDays(-1);
+                /*
+                 * Preserve one legacy check-in for streaks transitioning from
+                 * the old timestamp-only implementation.
+                 */
+                if (
+                    userOneCheckInCount == 0 &&
+                    streak.UserOneLastCheckedInAt.HasValue &&
+                    streak.UserOneLastCheckedInAt.Value >=
+                        previousCycle.StartUtc &&
+                    streak.UserOneLastCheckedInAt.Value <
+                        previousCycle.EndUtc
+                )
+                {
+                    userOneCheckInCount = 1;
+                }
 
-                if (missedYesterdayOrEarlier || startedBeforeTodayAndNeverCompleted)
+                if (
+                    userTwoCheckInCount == 0 &&
+                    streak.UserTwoLastCheckedInAt.HasValue &&
+                    streak.UserTwoLastCheckedInAt.Value >=
+                        previousCycle.StartUtc &&
+                    streak.UserTwoLastCheckedInAt.Value <
+                        previousCycle.EndUtc
+                )
+                {
+                    userTwoCheckInCount = 1;
+                }
+
+                var userOneCompletedCycle =
+                    userOneCheckInCount >= requiredCheckIns;
+
+                var userTwoCompletedCycle =
+                    userTwoCheckInCount >= requiredCheckIns;
+
+                if (
+                    !userOneCompletedCycle ||
+                    !userTwoCompletedCycle
+                )
                 {
                     streak.IsActive = false;
-                    streak.FailedAt = nowUtc;
+
+                    /*
+                     * Store the boundary at which the streak officially broke,
+                     * rather than the later moment at which the API noticed it.
+                     */
+                    streak.FailedAt = previousCycle.EndUtc;
+
                     changesMade = true;
                 }
             }
@@ -217,40 +323,96 @@ namespace Picability.Controllers
 
                 string? brokenMessage = null;
 
-                if (!s.IsActive && s.FailedAt.HasValue)
+                if (
+                    !s.IsActive &&
+                    s.FailedAt.HasValue &&
+                    s.FailedAt.Value != defaultDate
+)
                 {
-                    var failedPacificDate = ToPacificDate(s.FailedAt.Value);
-                    var missedPacificDate = failedPacificDate.AddDays(-1);
+                    var failedCycle =
+                        StreakCycleCalculator.GetCurrentCycle(
+                            s.StartedAt,
+                            s.FailedAt.Value.AddTicks(-1),
+                            cycleLength,
+                            cycleUnit,
+                            pacificTimeZone
+                        );
 
-                    var userOneCheckedMissedDay =
+                    var userOneFailedCycleCount = checkIns.Count(c =>
+                        c.StreakId == s.Id &&
+                        c.UserId == s.UserOneId &&
+                        c.CheckedInAt >= failedCycle.StartUtc &&
+                        c.CheckedInAt < failedCycle.EndUtc
+                    );
+
+                    var userTwoFailedCycleCount = checkIns.Count(c =>
+                        c.StreakId == s.Id &&
+                        c.UserId == s.UserTwoId &&
+                        c.CheckedInAt >= failedCycle.StartUtc &&
+                        c.CheckedInAt < failedCycle.EndUtc
+                    );
+
+                    if (
+                        userOneFailedCycleCount == 0 &&
                         s.UserOneLastCheckedInAt.HasValue &&
-                        ToPacificDate(s.UserOneLastCheckedInAt.Value) == missedPacificDate;
+                        s.UserOneLastCheckedInAt.Value >=
+                            failedCycle.StartUtc &&
+                        s.UserOneLastCheckedInAt.Value <
+                            failedCycle.EndUtc
+                    )
+                    {
+                        userOneFailedCycleCount = 1;
+                    }
 
-                    var userTwoCheckedMissedDay =
+                    if (
+                        userTwoFailedCycleCount == 0 &&
                         s.UserTwoLastCheckedInAt.HasValue &&
-                        ToPacificDate(s.UserTwoLastCheckedInAt.Value) == missedPacificDate;
+                        s.UserTwoLastCheckedInAt.Value >=
+                            failedCycle.StartUtc &&
+                        s.UserTwoLastCheckedInAt.Value <
+                            failedCycle.EndUtc
+                    )
+                    {
+                        userTwoFailedCycleCount = 1;
+                    }
 
-                    var currentUserCheckedMissedDay = isUserOne
-                        ? userOneCheckedMissedDay
-                        : userTwoCheckedMissedDay;
+                    var userOneCompletedFailedCycle =
+                        userOneFailedCycleCount >= requiredCheckIns;
 
-                    var partnerCheckedMissedDay = isUserOne
-                        ? userTwoCheckedMissedDay
-                        : userOneCheckedMissedDay;
+                    var userTwoCompletedFailedCycle =
+                        userTwoFailedCycleCount >= requiredCheckIns;
 
-                    var partnerName = isUserOne ? s.UserTwo.UserName : s.UserOne.UserName;
+                    var currentUserCompletedFailedCycle = isUserOne
+                        ? userOneCompletedFailedCycle
+                        : userTwoCompletedFailedCycle;
 
-                    if (!currentUserCheckedMissedDay && partnerCheckedMissedDay)
+                    var partnerCompletedFailedCycle = isUserOne
+                        ? userTwoCompletedFailedCycle
+                        : userOneCompletedFailedCycle;
+
+                    var partnerName = isUserOne
+                        ? s.UserTwo.UserName
+                        : s.UserOne.UserName;
+
+                    if (
+                        !currentUserCompletedFailedCycle &&
+                        partnerCompletedFailedCycle
+                    )
                     {
                         brokenMessage = "You killed him! :'C";
                     }
-                    else if (currentUserCheckedMissedDay && !partnerCheckedMissedDay)
+                    else if (
+                        currentUserCompletedFailedCycle &&
+                        !partnerCompletedFailedCycle
+                    )
                     {
-                        brokenMessage = $"{partnerName} killed him! :'C";
+                        brokenMessage =
+                            $"{partnerName} killed him! :'C";
                     }
                     else
                     {
-                        brokenMessage = "You both killed him! :'C";
+                        brokenMessage =
+                            "You both killed him! :'C";
                     }
                 }
 

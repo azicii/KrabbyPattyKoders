@@ -173,6 +173,10 @@ namespace Picability.Data
             builder.Entity<StreakRequest>()
                 .Property(sr => sr.CycleUnit)
                 .HasDefaultValue("Day");
+
+            builder.Entity<Streak>()
+                .Property(s => s.CycleTrackingStartedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
         }
     }
 }
