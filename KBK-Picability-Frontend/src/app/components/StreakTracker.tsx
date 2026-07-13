@@ -254,6 +254,42 @@ export function StreakTracker({
         return 'rgb(20 184 166)';
     };
 
+    const getScheduleLabel = (
+        requiredCheckIns?: number,
+        cycleLength?: number,
+        cycleUnit?: string
+    ) => {
+        const normalizedRequired = Math.max(1, requiredCheckIns ?? 1);
+        const normalizedLength = Math.max(1, cycleLength ?? 1);
+
+        const normalizedUnit =
+            cycleUnit === 'Week'
+                ? 'week'
+                : cycleUnit === 'Month'
+                    ? 'month'
+                    : 'day';
+
+        if (
+            normalizedRequired === 1 &&
+            normalizedLength === 1 &&
+            normalizedUnit === 'day'
+        ) {
+            return 'Once daily';
+        }
+
+        const checkInLabel =
+            normalizedRequired === 1
+                ? 'check-in'
+                : 'check-ins';
+
+        const cycleLabel =
+            normalizedLength === 1
+                ? normalizedUnit
+                : `${normalizedUnit}s`;
+
+        return `${normalizedRequired} ${checkInLabel} every ${normalizedLength} ${cycleLabel}`;
+    };
+
     const getStreakVisualState = (streak: Streak) => {
         const userDone = streak.userCheckedInToday === true;
         const partnerDone = streak.partnerCheckedInToday === true;
@@ -568,10 +604,27 @@ export function StreakTracker({
                                                     <h3 className={`text-lg font-semibold leading-tight whitespace-normal break-words ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                                                         {invite.habitName}
                                                     </h3>
-                                                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                                    <p
+                                                        className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'
+                                                            }`}
+                                                    >
                                                         {invite.senderName} invited you to start this streak
                                                     </p>
-                                                    <p className="text-xs text-amber-500 font-semibold mt-1">
+
+                                                    <div
+                                                        className={`inline-flex items-center mt-2 px-2.5 py-1 rounded-full text-xs font-semibold ${isDark
+                                                                ? 'bg-slate-700/70 text-slate-300'
+                                                                : 'bg-slate-100 text-slate-600'
+                                                            }`}
+                                                    >
+                                                        {getScheduleLabel(
+                                                            invite.requiredCheckIns,
+                                                            invite.cycleLength,
+                                                            invite.cycleUnit
+                                                        )}
+                                                    </div>
+
+                                                    <p className="text-xs text-amber-500 font-semibold mt-2">
                                                         Waiting for your response
                                                     </p>
                                                 </div>
@@ -627,10 +680,27 @@ export function StreakTracker({
                                                     <h3 className={`text-lg font-semibold leading-tight whitespace-normal break-words ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                                                         {request.habitName}
                                                     </h3>
-                                                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                                    <p
+                                                        className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'
+                                                            }`}
+                                                    >
                                                         Requested with {request.receiverName}
                                                     </p>
-                                                    <p className="text-xs text-amber-500 font-semibold mt-1">
+
+                                                    <div
+                                                        className={`inline-flex items-center mt-2 px-2.5 py-1 rounded-full text-xs font-semibold ${isDark
+                                                                ? 'bg-slate-700/70 text-slate-300'
+                                                                : 'bg-slate-100 text-slate-600'
+                                                            }`}
+                                                    >
+                                                        {getScheduleLabel(
+                                                            request.requiredCheckIns,
+                                                            request.cycleLength,
+                                                            request.cycleUnit
+                                                        )}
+                                                    </div>
+
+                                                    <p className="text-xs text-amber-500 font-semibold mt-2">
                                                         Pending response ⏳
                                                     </p>
                                                 </div>
