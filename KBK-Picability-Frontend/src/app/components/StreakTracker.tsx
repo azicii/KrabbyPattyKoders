@@ -254,37 +254,20 @@ export function StreakTracker({
         return 'rgb(20 184 166)';
     };
 
-        const getScheduleLabel = (
-            requiredCheckIns?: number,
-            cycleLength?: number,
-            cycleUnit?: string
-        ) => {
+    const getScheduleLabel = (
+        requiredCheckIns?: number,
+        cycleLength?: number,
+        cycleUnit?: string
+    ) => {
+        const normalizedRequired = Math.max(
+            1,
+            requiredCheckIns ?? 1
+        );
 
-        const isDefaultDailySchedule = (streak: Streak) => {
-            return (
-                (streak.requiredCheckIns ?? 1) === 1 &&
-                (streak.cycleLength ?? 1) === 1 &&
-                (streak.cycleUnit ?? 'Day') === 'Day'
-            );
-        };
-
-        const getCycleEndLabel = (cycleEndsAt?: string) => {
-            if (!cycleEndsAt) {
-                return 'the end of this cycle';
-            }
-
-            const endDate = new Date(cycleEndsAt);
-
-            return endDate.toLocaleString(undefined, {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit'
-            });
-        };
-        const normalizedRequired = Math.max(1, requiredCheckIns ?? 1);
-        const normalizedLength = Math.max(1, cycleLength ?? 1);
+        const normalizedLength = Math.max(
+            1,
+            cycleLength ?? 1
+        );
 
         const normalizedUnit =
             cycleUnit === 'Week'
@@ -312,6 +295,30 @@ export function StreakTracker({
                 : `${normalizedUnit}s`;
 
         return `${normalizedRequired} ${checkInLabel} every ${normalizedLength} ${cycleLabel}`;
+    };
+
+    const isDefaultDailySchedule = (streak: Streak) => {
+        return (
+            (streak.requiredCheckIns ?? 1) === 1 &&
+            (streak.cycleLength ?? 1) === 1 &&
+            (streak.cycleUnit ?? 'Day') === 'Day'
+        );
+    };
+
+    const getCycleEndLabel = (cycleEndsAt?: string) => {
+        if (!cycleEndsAt) {
+            return 'the end of this cycle';
+        }
+
+        const endDate = new Date(cycleEndsAt);
+
+        return endDate.toLocaleString(undefined, {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
     };
 
     const getStreakVisualState = (streak: Streak) => {
