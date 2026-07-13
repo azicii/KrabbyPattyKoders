@@ -1536,13 +1536,32 @@ export function StreakTracker({
                                         : 'bg-white border-slate-200 text-slate-800'
                                     }`}
                             >
-                                <div className="flex items-center justify-between mb-3">
-                                    <p className="text-sm font-bold uppercase tracking-widest text-teal-500">
-                                        {viewingContent.contentType === "Photo" ? "Check-in Photo" : "Check-in Message"}
-                                    </p>
+                                <div className="flex items-start justify-between gap-4 mb-3">
+                                    <div>
+                                        <p className="text-sm font-bold uppercase tracking-widest text-teal-500">
+                                            {viewingContent.contentType === "Photo"
+                                                ? "Check-in Photo"
+                                                : "Check-in Message"}
+                                        </p>
+
+                                        <div
+                                            className={`inline-flex items-center mt-2 px-2.5 py-1 rounded-full border text-xs font-bold ${isDark
+                                                    ? 'bg-slate-800 border-slate-700 text-slate-300'
+                                                    : 'bg-slate-100 border-slate-200 text-slate-600'
+                                                }`}
+                                        >
+                                            Check-in {Math.max(
+                                                1,
+                                                viewingContent.checkInNumber ?? 1
+                                            )} of {Math.max(
+                                                1,
+                                                viewingContent.requiredCheckIns ?? 1
+                                            )}
+                                        </div>
+                                    </div>
 
                                     <div
-                                        className="w-8 h-8 rounded-full"
+                                        className="w-8 h-8 rounded-full shrink-0"
                                         style={{
                                             background: `conic-gradient(
                                                 ${getContentAccentColor(viewingContent)}

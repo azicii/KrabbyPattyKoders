@@ -5,6 +5,7 @@ using Picability.Data;
 using Picability.DTOs;
 using Picability.Models;
 using System.Security.Claims;
+using Picability.Services;
 
 namespace Picability.Controllers
 {
@@ -26,6 +27,90 @@ namespace Picability.Controllers
         private string? GetCurrentUserId()
         {
             return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        private static TimeZoneInfo GetPacificTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(
+                    "Pacific Standard Time"
+                );
+            }
+            catch
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(
+                    "America/Los_Angeles"
+                );
+            }
+        }
+
+        private async Task<(int CheckInNumber, int RequiredCheckIns)>
+    GetNextCheckInPositionAsync(
+        Streak streak,
+        string currentUserId,
+        DateTime nowUtc)
+        {
+            var requiredCheckIns = Math.Max(
+                1,
+                streak.RequiredCheckIns
+            );
+
+            var cycleLength = Math.Max(
+                1,
+                streak.CycleLength
+            );
+
+            var cycleUnit =
+                streak.CycleUnit?.Trim().ToLowerInvariant() switch
+                {
+                    "week" => "Week",
+                    "month" => "Month",
+                    _ => "Day"
+                };
+
+            var cycle = StreakCycleCalculator.GetCurrentCycle(
+                streak.StartedAt,
+                nowUtc,
+                cycleLength,
+                cycleUnit,
+                GetPacificTimeZone()
+            );
+
+            var existingCheckInCount =
+                await _context.StreakCheckIns.CountAsync(c =>
+                    c.StreakId == streak.Id &&
+                    c.UserId == currentUserId &&
+                    c.CheckedInAt >= cycle.StartUtc &&
+                    c.CheckedInAt < cycle.EndUtc
+                );
+
+            var isUserOne =
+                streak.UserOneId == currentUserId;
+
+            var legacyCheckIn = isUserOne
+                ? streak.UserOneLastCheckedInAt
+                : streak.UserTwoLastCheckedInAt;
+
+            if (
+                existingCheckInCount == 0 &&
+                legacyCheckIn.HasValue &&
+                legacyCheckIn.Value >= cycle.StartUtc &&
+                legacyCheckIn.Value < cycle.EndUtc
+            )
+            {
+                existingCheckInCount = 1;
+            }
+
+            var nextCheckInNumber = Math.Min(
+                requiredCheckIns,
+                existingCheckInCount + 1
+            );
+
+            return (
+                nextCheckInNumber,
+                requiredCheckIns
+            );
         }
 
         private async Task DeleteStaleCheckInContentAsync()
@@ -80,15 +165,32 @@ namespace Picability.Controllers
                 ? streak.UserTwoId
                 : streak.UserOneId;
 
+            var nowUtc = DateTime.UtcNow;
+
+            var checkInPosition =
+                await GetNextCheckInPositionAsync(
+                    streak,
+                    currentUserId,
+                    nowUtc
+                );
+
             var content = new CheckInContent
             {
                 StreakId = streak.Id,
                 SenderId = currentUserId,
                 ReceiverId = receiverId,
+
                 ContentType = "Message",
+
+                CheckInNumber =
+                    checkInPosition.CheckInNumber,
+
+                RequiredCheckIns =
+                    checkInPosition.RequiredCheckIns,
+
                 MessageText = model.MessageText.Trim(),
                 ViewDurationSeconds = model.ViewDurationSeconds,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = nowUtc,
                 IsViewed = false
             };
 
@@ -105,7 +207,9 @@ namespace Picability.Controllers
                 content.ContentType,
                 content.MessageText,
                 content.ViewDurationSeconds,
-                content.CreatedAt
+                content.CreatedAt,
+                content.CheckInNumber,
+                content.RequiredCheckIns
             });
         }
 
@@ -137,6 +241,8 @@ namespace Picability.Controllers
                     SenderName = c.Sender.UserName,
                     c.ReceiverId,
                     c.ContentType,
+                    c.CheckInNumber,
+                    c.RequiredCheckIns,
                     c.MessageText,
                     c.PhotoUrl,
                     c.ViewDurationSeconds,
@@ -229,15 +335,32 @@ namespace Picability.Controllers
                 ? streak.UserTwoId
                 : streak.UserOneId;
 
+            var nowUtc = DateTime.UtcNow;
+
+            var checkInPosition =
+                await GetNextCheckInPositionAsync(
+                    streak,
+                    currentUserId,
+                    nowUtc
+                );
+
             var content = new CheckInContent
             {
                 StreakId = streak.Id,
                 SenderId = currentUserId,
                 ReceiverId = receiverId,
+
                 ContentType = "Photo",
+
+                CheckInNumber =
+        checkInPosition.CheckInNumber,
+
+                RequiredCheckIns =
+        checkInPosition.RequiredCheckIns,
+
                 PhotoUrl = model.PhotoDataUrl,
                 ViewDurationSeconds = model.ViewDurationSeconds,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = nowUtc,
                 IsViewed = false
             };
 
@@ -254,7 +377,9 @@ namespace Picability.Controllers
                 content.ContentType,
                 content.PhotoUrl,
                 content.ViewDurationSeconds,
-                content.CreatedAt
+                content.CreatedAt,
+                content.CheckInNumber,
+                content.RequiredCheckIns
             });
         }
     }

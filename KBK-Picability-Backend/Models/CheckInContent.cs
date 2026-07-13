@@ -15,6 +15,13 @@
 
         public string ContentType { get; set; } = string.Empty; // "Message" or "Photo"
 
+        // Position of this content's associated check-in within its cycle.
+        // Example: 2 means this content was sent with check-in 2.
+        public int CheckInNumber { get; set; } = 1;
+
+        // Snapshot of the required check-ins when the content was created.
+        public int RequiredCheckIns { get; set; } = 1;
+
         public string? MessageText { get; set; }
 
         public string? PhotoUrl { get; set; }
