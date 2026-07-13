@@ -962,6 +962,7 @@ export default function App() {
     currentScreen === 'config' && (
         <HabitConfig
             isDark={isDark}
+            user={user}
             onToggleDark={() => setIsDark(!isDark)}
             onBack={() => setCurrentScreen('selector')}
             onFriends={() => {

@@ -14,6 +14,9 @@ interface HabitConfigProps {
     existingHabitNames?: string[];
     draftConfig?: Partial<HabitConfiguration> | null;
     onDraftChange?: (config: Partial<HabitConfiguration>) => void;
+    user: {
+        userName: string;
+    };
 }
 
 export interface HabitConfiguration {
@@ -66,6 +69,7 @@ const checkInOptions = [1, 2, 3, 5, 7, 14, 30];
 
 export function HabitConfig({
     isDark,
+    user,
     onToggleDark,
     onBack,
     onFriends,
@@ -99,6 +103,49 @@ export function HabitConfig({
         (name) => name.toLowerCase() === habitName.trim().toLowerCase()
     );
     const canSubmit = habitName.trim().length > 0 && preSelectedFriend !== null && !isDuplicate;
+    const handleExternalInvite = async () => {
+        const trimmedHabitName = habitName.trim();
+
+        if (!trimmedHabitName) {
+            alert('Enter a habit name before sending an invitation.');
+            return;
+        }
+
+        const senderName = user?.userName || 'Your friend';
+        const appUrl = 'https://picability.vercel.app';
+
+        const shareText =
+            `${senderName} wants to start “${trimmedHabitName}” habit streak with you on Picability.\n\n` +
+            `Join Picability so you can keep each other accountable:`;
+
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: 'Picability habit streak invitation',
+                    text: shareText,
+                    url: appUrl
+                });
+
+                return;
+            }
+
+            await navigator.clipboard.writeText(
+                `${shareText}\n${appUrl}`
+            );
+
+            alert('Invitation copied. Paste it into a text message.');
+        } catch (error) {
+            if (
+                error instanceof DOMException &&
+                error.name === 'AbortError'
+            ) {
+                return;
+            }
+
+            console.error('Could not share Picability invitation:', error);
+            alert('Could not open the share menu.');
+        }
+    };
     const handleConfirm = () => {
         if (!canSubmit) return;
         if (!preSelectedFriend) return;
@@ -240,6 +287,18 @@ export function HabitConfig({
                             <span className="font-medium">Select a Friend to Start</span>
                         </button>
                     )}
+                    <div className="mt-4 flex justify-center">
+                        <button
+                            type="button"
+                            onClick={handleExternalInvite}
+                            className={`text-sm font-medium transition-colors ${isDark
+                                    ? 'text-slate-400 hover:text-teal-400'
+                                    : 'text-slate-500 hover:text-teal-600'
+                                }`}
+                        >
+                            Invite someone who isn’t on Picability
+                        </button>
+                    </div>
                 </div>
 
                 {/* Action Button */}
