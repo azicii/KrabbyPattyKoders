@@ -82,7 +82,12 @@ namespace Picability.Controllers
                 .Include(s => s.UserTwo)
                 .Where(s => s.UserOneId == userId || s.UserTwoId == userId)
                 .ToListAsync();
-
+            var streakIds = streaks
+                .Select(s => s.Id)
+                .ToList();
+            var checkIns = await _context.StreakCheckIns
+                .Where(c => streakIds.Contains(c.StreakId))
+                .ToListAsync();
             var nowUtc = DateTime.UtcNow;
             var todayPacific = GetPacificToday(nowUtc);
             var hoursUntilMidnight = GetHoursUntilPacificMidnight(nowUtc);
@@ -128,6 +133,82 @@ namespace Picability.Controllers
             var result = streaks.Select(s =>
             {
                 var isUserOne = s.UserOneId == userId;
+                var cycle = StreakCycleCalculator.GetCurrentCycle(
+                    s.StartedAt,
+                    nowUtc,
+                    s.CycleLength,
+                    s.CycleUnit,
+                    GetPacificTimeZone()
+                );
+
+                var requiredCheckIns = Math.Max(
+                    1,
+                    s.RequiredCheckIns
+                );
+
+                var userOneCycleCheckInCount = checkIns.Count(c =>
+                    c.StreakId == s.Id &&
+                    c.UserId == s.UserOneId &&
+                    c.CheckedInAt >= cycle.StartUtc &&
+                    c.CheckedInAt < cycle.EndUtc
+                );
+
+                var userTwoCycleCheckInCount = checkIns.Count(c =>
+                    c.StreakId == s.Id &&
+                    c.UserId == s.UserTwoId &&
+                    c.CheckedInAt >= cycle.StartUtc &&
+                    c.CheckedInAt < cycle.EndUtc
+                );
+
+                /*
+                 * Existing streaks may have a legacy check-in timestamp but no
+                 * StreakCheckIn row yet. Count that timestamp as one check-in only
+                 * when the new history table has no record for that user this cycle.
+                 */
+                if (
+                    userOneCycleCheckInCount == 0 &&
+                    s.UserOneLastCheckedInAt.HasValue &&
+                    s.UserOneLastCheckedInAt.Value >= cycle.StartUtc &&
+                    s.UserOneLastCheckedInAt.Value < cycle.EndUtc
+                )
+                {
+                    userOneCycleCheckInCount = 1;
+                }
+
+                if (
+                    userTwoCycleCheckInCount == 0 &&
+                    s.UserTwoLastCheckedInAt.HasValue &&
+                    s.UserTwoLastCheckedInAt.Value >= cycle.StartUtc &&
+                    s.UserTwoLastCheckedInAt.Value < cycle.EndUtc
+                )
+                {
+                    userTwoCycleCheckInCount = 1;
+                }
+
+                var currentUserCycleCheckInCount = isUserOne
+                    ? userOneCycleCheckInCount
+                    : userTwoCycleCheckInCount;
+
+                var partnerCycleCheckInCount = isUserOne
+                    ? userTwoCycleCheckInCount
+                    : userOneCycleCheckInCount;
+
+                var currentUserCompletedCycle =
+                    currentUserCycleCheckInCount >= requiredCheckIns;
+
+                var partnerCompletedCycle =
+                    partnerCycleCheckInCount >= requiredCheckIns;
+
+                var bothCompletedCycle =
+                    currentUserCompletedCycle &&
+                    partnerCompletedCycle;
+
+                var hoursUntilCycleEnds = Math.Max(
+                    0,
+                    (int)Math.Ceiling(
+                        (cycle.EndUtc - nowUtc).TotalHours
+                    )
+                );
 
                 string? brokenMessage = null;
 
@@ -176,6 +257,26 @@ namespace Picability.Controllers
                     ? s.UserTwoLastCheckedInAt.HasValue && ToPacificDate(s.UserTwoLastCheckedInAt.Value) == todayPacific
                     : s.UserOneLastCheckedInAt.HasValue && ToPacificDate(s.UserOneLastCheckedInAt.Value) == todayPacific;
 
+                var cycleUnitDisplay = s.CycleUnit switch
+                {
+                    "Week" => s.CycleLength == 1
+                        ? "week"
+                        : $"{s.CycleLength} weeks",
+
+                    "Month" => s.CycleLength == 1
+                        ? "month"
+                        : $"{s.CycleLength} months",
+
+                    _ => s.CycleLength == 1
+                        ? "day"
+                        : $"{s.CycleLength} days"
+                };
+
+                var cycleProgressMessage =
+                    $"{currentUserCycleCheckInCount} of " +
+                    $"{requiredCheckIns} check-ins this " +
+                    $"{cycleUnitDisplay}";
+
                 return new
                 {
                     s.Id,
@@ -184,10 +285,31 @@ namespace Picability.Controllers
                     s.Color,
                     s.CurrentCount,
                     s.IsActive,
+                    s.RequiredCheckIns,
+                    s.CycleLength,
+                    s.CycleUnit,
+                    CycleStartedAt = cycle.StartUtc,
+                    CycleEndsAt = cycle.EndUtc,
+                    UserCycleCheckInCount =
+                        currentUserCycleCheckInCount,
+                    PartnerCycleCheckInCount =
+                        partnerCycleCheckInCount,
+                    UserCompletedCycle =
+                        currentUserCompletedCycle,
+                    PartnerCompletedCycle =
+                        partnerCompletedCycle,
+                    BothCompletedCycle =
+                        bothCompletedCycle,
+                    CanCheckInCurrentCycle =
+                        s.IsActive &&
+                        !currentUserCompletedCycle,
+                    HoursUntilCycleEnds =
+                        hoursUntilCycleEnds,
                     IsPublic = isUserOne
                         ? s.UserOneVisibilityPublic
                         : s.UserTwoVisibilityPublic,
                     PartnerName = isUserOne ? s.UserTwo.UserName : s.UserOne.UserName,
+                    CycleProgressMessage = cycleProgressMessage,
                     s.LastCompletedAt,
                     s.LastFullyCompletedAt,
                     s.UserOneLastCheckedInAt,
@@ -763,7 +885,7 @@ namespace Picability.Controllers
 
             var userOneCheckedInToday =
                 streak.UserOneLastCheckedInAt.HasValue &&
-                ToPacificDate(streak.UserOneLastCheckedInAt.Value) == todayPacific; 
+                ToPacificDate(streak.UserOneLastCheckedInAt.Value) == todayPacific;
             var userTwoCheckedInToday =
                 streak.UserTwoLastCheckedInAt.HasValue &&
                 ToPacificDate(streak.UserTwoLastCheckedInAt.Value) == todayPacific;
