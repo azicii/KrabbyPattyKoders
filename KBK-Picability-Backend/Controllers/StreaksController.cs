@@ -133,17 +133,22 @@ namespace Picability.Controllers
             var result = streaks.Select(s =>
             {
                 var isUserOne = s.UserOneId == userId;
+                var requiredCheckIns = Math.Max(1, s.RequiredCheckIns);
+                var cycleLength = Math.Max(1, s.CycleLength);
+
+                var cycleUnit = s.CycleUnit?.Trim().ToLowerInvariant() switch
+                {
+                    "week" => "Week",
+                    "month" => "Month",
+                    _ => "Day"
+                };
+
                 var cycle = StreakCycleCalculator.GetCurrentCycle(
                     s.StartedAt,
                     nowUtc,
-                    s.CycleLength,
-                    s.CycleUnit,
+                    cycleLength,
+                    cycleUnit,
                     GetPacificTimeZone()
-                );
-
-                var requiredCheckIns = Math.Max(
-                    1,
-                    s.RequiredCheckIns
                 );
 
                 var userOneCycleCheckInCount = checkIns.Count(c =>
@@ -257,19 +262,19 @@ namespace Picability.Controllers
                     ? s.UserTwoLastCheckedInAt.HasValue && ToPacificDate(s.UserTwoLastCheckedInAt.Value) == todayPacific
                     : s.UserOneLastCheckedInAt.HasValue && ToPacificDate(s.UserOneLastCheckedInAt.Value) == todayPacific;
 
-                var cycleUnitDisplay = s.CycleUnit switch
+                var cycleUnitDisplay = cycleUnit switch
                 {
-                    "Week" => s.CycleLength == 1
+                    "Week" => cycleLength == 1
                         ? "week"
-                        : $"{s.CycleLength} weeks",
+                        : $"{cycleLength}-week cycle",
 
-                    "Month" => s.CycleLength == 1
+                    "Month" => cycleLength == 1
                         ? "month"
-                        : $"{s.CycleLength} months",
+                        : $"{cycleLength}-month cycle",
 
-                    _ => s.CycleLength == 1
+                    _ => cycleLength == 1
                         ? "day"
-                        : $"{s.CycleLength} days"
+                        : $"{cycleLength}-day cycle"
                 };
 
                 var cycleProgressMessage =
@@ -285,9 +290,9 @@ namespace Picability.Controllers
                     s.Color,
                     s.CurrentCount,
                     s.IsActive,
-                    s.RequiredCheckIns,
-                    s.CycleLength,
-                    s.CycleUnit,
+                    RequiredCheckIns = requiredCheckIns,
+                    CycleLength = cycleLength,
+                    CycleUnit = cycleUnit,
                     CycleStartedAt = cycle.StartUtc,
                     CycleEndsAt = cycle.EndUtc,
                     UserCycleCheckInCount =

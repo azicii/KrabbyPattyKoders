@@ -149,6 +149,30 @@ namespace Picability.Data
                     c.UserId,
                     c.CheckedInAt
                 });
+
+            builder.Entity<Streak>()
+                .Property(s => s.RequiredCheckIns)
+                .HasDefaultValue(1);
+
+            builder.Entity<Streak>()
+                .Property(s => s.CycleLength)
+                .HasDefaultValue(1);
+
+            builder.Entity<Streak>()
+                .Property(s => s.CycleUnit)
+                .HasDefaultValue("Day");
+
+            builder.Entity<StreakRequest>()
+                .Property(sr => sr.RequiredCheckIns)
+                .HasDefaultValue(1);
+
+            builder.Entity<StreakRequest>()
+                .Property(sr => sr.CycleLength)
+                .HasDefaultValue(1);
+
+            builder.Entity<StreakRequest>()
+                .Property(sr => sr.CycleUnit)
+                .HasDefaultValue("Day");
         }
     }
 }
