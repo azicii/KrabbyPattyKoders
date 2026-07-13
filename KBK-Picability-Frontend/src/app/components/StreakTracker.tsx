@@ -321,6 +321,29 @@ export function StreakTracker({
         });
     };
 
+    const getStreakCountUnitLabel = (streak: Streak) => {
+        const count = streak.streakCount;
+        const cycleLength = Math.max(1, streak.cycleLength ?? 1);
+        const cycleUnit = streak.cycleUnit ?? 'Day';
+
+        const singularUnit =
+            cycleUnit === 'Week'
+                ? 'week'
+                : cycleUnit === 'Month'
+                    ? 'month'
+                    : 'day';
+
+        if (cycleLength === 1) {
+            return count === 1
+                ? singularUnit
+                : `${singularUnit}s`;
+        }
+
+        return count === 1
+            ? `${cycleLength}-${singularUnit} cycle`
+            : `${cycleLength}-${singularUnit} cycles`;
+    };
+
     const getStreakVisualState = (streak: Streak) => {
         const userDone =
             streak.userCompletedCycle ??
@@ -956,7 +979,12 @@ export function StreakTracker({
                                         <div className="flex items-start justify-end gap-2 shrink-0 pt-0 w-[72px]">
                                             <div className="flex flex-col items-center">
                                                 <div className={`text-2xl sm:text-3xl font-bold ${isBroken ? 'text-slate-500' : 'bg-gradient-to-br ' + streak.color + ' bg-clip-text text-transparent'}`}>{streak.streakCount}</div>
-                                                <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{streak.streakCount === 1 ? 'day' : 'days'}</span>
+                                                <span
+                                                    className={`text-xs font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'
+                                                        }`}
+                                                >
+                                                    {getStreakCountUnitLabel(streak)}
+                                                </span>
                                             </div>
                                             <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isDark ? 'text-slate-400' : 'text-slate-600'} ${isExpanded ? 'rotate-180' : ''}`} />
                                         </div>
