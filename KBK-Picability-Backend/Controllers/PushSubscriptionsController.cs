@@ -106,10 +106,12 @@ namespace Picability.Controllers
                 userId,
                 "Picability",
                 "Test Streak",
-                1,
-                false,
-                false,
-                false
+                1,       // Current check-in number
+                3,       // Required check-ins
+                1,       // Cycle length
+                "Week",  // Cycle unit
+                false,   // Sent message
+                false    // Sent photo
             );
 
             return Ok(result);
