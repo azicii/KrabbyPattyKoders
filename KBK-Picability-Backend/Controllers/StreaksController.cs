@@ -1093,11 +1093,6 @@ namespace Picability.Controllers
                 c.ContentType == "Photo"
             );
 
-            /*
-             * For the current notification wording, treat the
-             * receiver as already finished only when they have
-             * completed their full cycle requirement.
-             */
             await _pushNotificationService
                 .NotifyPartnerCheckedInAsync(
                     receiverId,

@@ -133,7 +133,7 @@ namespace Picability.Services
             return await SendPushAsync(
                 receiverId,
                 "Streak reminder 🔔",
-                $"{senderName} is reminding you to complete \"{streakName}\" today.",
+                $"{senderName} is reminding you to check in for \"{streakName}\".",
                 "/"
             );
         }
