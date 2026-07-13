@@ -13,9 +13,19 @@
 
         public string HabitName { get; set; } = string.Empty;
         public string HabitIcon { get; set; } = "Target"; 
-        public string Color { get; set; } = "from-teal-500 to-cyan-500"; 
+        public string Color { get; set; } = "from-teal-500 to-cyan-500";
         public int CurrentCount { get; set; } = 0;
         public bool IsActive { get; set; } = true;
+
+        // Number of check-ins each participant must complete in one cycle.
+        public int RequiredCheckIns { get; set; } = 1;
+
+        // Number of units in one cycle.
+        // Example: 2 + "Week" means one cycle lasts two weeks.
+        public int CycleLength { get; set; } = 1;
+
+        // Supported values: "Day", "Week", or "Month".
+        public string CycleUnit { get; set; } = "Day";
 
         public int StreakRequestId { get; set; }
         public StreakRequest StreakRequest { get; set; } = null!;

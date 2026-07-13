@@ -75,6 +75,11 @@ namespace Picability.Controllers
                 HabitName = dto.HabitName,
                 HabitIcon = dto.HabitIcon,
                 Color = dto.Color,
+
+                RequiredCheckIns = dto.RequiredCheckIns,
+                CycleLength = dto.CycleLength,
+                CycleUnit = dto.CycleUnit,
+
                 Status = "Pending",
                 CreatedAt = DateTime.UtcNow
             };
@@ -258,16 +263,22 @@ namespace Picability.Controllers
             {
                 UserOneId = request.SenderId,
                 UserTwoId = request.ReceiverId,
+
                 HabitName = request.HabitName,
                 HabitIcon = request.HabitIcon,
                 Color = request.Color,
+
+                RequiredCheckIns = request.RequiredCheckIns,
+                CycleLength = request.CycleLength,
+                CycleUnit = request.CycleUnit,
+
                 CurrentCount = 0,
                 IsActive = true,
                 StreakRequestId = request.Id,
                 StartedAt = nowUtc,
-                LastCompletedAt = defaultDate, // Set default to avoid NULL
-                FailedAt = defaultDate,        // Set default to satisfy NOT NULL constraint
-                IntervalHours = 24             // Default value
+                LastCompletedAt = defaultDate,
+                FailedAt = defaultDate,
+                IntervalHours = 24
             };
 
             _context.Streaks.Add(streak);

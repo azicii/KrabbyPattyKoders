@@ -16,6 +16,12 @@
 
         public string HabitIcon { get; set; } = "Target"; 
         public string Color { get; set; } = "from-teal-500 to-teal-600";
+        public int RequiredCheckIns { get; set; } = 1;
+
+        public int CycleLength { get; set; } = 1;
+
+        // Supported values will be "Day", "Week", or "Month".
+        public string CycleUnit { get; set; } = "Day";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

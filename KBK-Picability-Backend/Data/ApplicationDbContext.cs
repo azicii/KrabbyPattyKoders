@@ -18,6 +18,7 @@ namespace Picability.Data
         public DbSet<CheckInContent> CheckInContents { get; set; }
         public DbSet<StreakReaction> StreakReactions { get; set; }
         public DbSet<PushSubscription> PushSubscriptions { get; set; }
+        public DbSet<StreakCheckIn> StreakCheckIns { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -128,6 +129,26 @@ namespace Picability.Data
             builder.Entity<PushSubscription>()
                 .HasIndex(p => p.Endpoint)
                 .IsUnique();
+
+            builder.Entity<StreakCheckIn>()
+                .HasOne(c => c.Streak)
+                .WithMany()
+                .HasForeignKey(c => c.StreakId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<StreakCheckIn>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<StreakCheckIn>()
+                .HasIndex(c => new
+                {
+                    c.StreakId,
+                    c.UserId,
+                    c.CheckedInAt
+                });
         }
     }
 }
