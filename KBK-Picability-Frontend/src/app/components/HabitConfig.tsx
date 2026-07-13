@@ -115,7 +115,7 @@ export function HabitConfig({
         const appUrl = 'https://picability.vercel.app';
 
         const shareText =
-            `${senderName} wants to start '${trimmedHabitName}'' habit streak with you on Picability.\n\n` +
+            `${senderName} wants to start '${trimmedHabitName}' habit streak with you on Picability.\n\n` +
             `Join Picability so you can keep each other accountable:`;
 
         try {
