@@ -23,7 +23,11 @@ export interface HabitConfiguration {
     HabitName: string;
     HabitIcon: string;
     Color: string;
-    checkInDays: number;
+
+    RequiredCheckIns: number;
+    CycleLength: number;
+    CycleUnit: 'Day' | 'Week' | 'Month';
+
     friendId?: string;
     friendName?: string;
     friendAvatar?: string;
@@ -65,7 +69,17 @@ const colorOptions = [
     { name: 'Amber', gradient: 'from-amber-500 to-orange-600' },
 ];
 
-const checkInOptions = [1, 2, 3, 5, 7, 14, 30];
+const requiredCheckInOptions = Array.from(
+    { length: 100 },
+    (_, index) => index + 1
+);
+
+const cycleLengthOptions = Array.from(
+    { length: 365 },
+    (_, index) => index + 1
+);
+
+type CycleUnit = 'Day' | 'Week' | 'Month';
 
 export function HabitConfig({
     isDark,
@@ -98,7 +112,25 @@ export function HabitConfig({
         return 0;
     });
     const [showColorPicker, setShowColorPicker] = useState<number | null>(null);
-    const [checkInDays, setCheckInDays] = useState(1);
+    const [showCustomFrequency, setShowCustomFrequency] = useState(() => {
+        return (
+            (draftConfig?.RequiredCheckIns ?? 1) !== 1 ||
+            (draftConfig?.CycleLength ?? 1) !== 1 ||
+            (draftConfig?.CycleUnit ?? 'Day') !== 'Day'
+        );
+    });
+
+    const [requiredCheckIns, setRequiredCheckIns] = useState(
+        draftConfig?.RequiredCheckIns ?? 1
+    );
+
+    const [cycleLength, setCycleLength] = useState(
+        draftConfig?.CycleLength ?? 1
+    );
+
+    const [cycleUnit, setCycleUnit] = useState<CycleUnit>(
+        draftConfig?.CycleUnit ?? 'Day'
+    );
     const isDuplicate = existingHabitNames.some(
         (name) => name.toLowerCase() === habitName.trim().toLowerCase()
     );
@@ -155,7 +187,11 @@ export function HabitConfig({
             HabitIcon: iconOptions[selectedIconIndex].componentName,
 
             Color: colorOptions[selectedColorIndex].gradient,
-            checkInDays,
+
+            RequiredCheckIns: requiredCheckIns,
+            CycleLength: cycleLength,
+            CycleUnit: cycleUnit,
+
             friendId: preSelectedFriend.id,
             friendName: preSelectedFriend.name,
             friendAvatar: preSelectedFriend.avatar,
@@ -181,9 +217,19 @@ export function HabitConfig({
             HabitName: habitName,
             HabitIcon: iconOptions[selectedIconIndex].componentName,
             Color: colorOptions[selectedColorIndex].gradient,
-            checkInDays
+
+            RequiredCheckIns: requiredCheckIns,
+            CycleLength: cycleLength,
+            CycleUnit: cycleUnit
         });
-    }, [habitName, selectedIconIndex, selectedColorIndex, checkInDays]);
+    }, [
+        habitName,
+        selectedIconIndex,
+        selectedColorIndex,
+        requiredCheckIns,
+        cycleLength,
+        cycleUnit
+    ]);
 
     return (
         <div className={`min-h-screen p-6 transition-colors duration-300 ${isDark
@@ -257,6 +303,177 @@ export function HabitConfig({
                             />
                         ))}
                     </div>
+                </div>
+
+                {/* Check-In Frequency */}
+                <div
+                    className={`rounded-3xl p-6 ${isDark ? 'bg-slate-800/50' : 'bg-white'
+                        }`}
+                >
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                            <label
+                                className={`block text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'
+                                    }`}
+                            >
+                                Check-In Frequency
+                            </label>
+
+                            <p
+                                className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'
+                                    }`}
+                            >
+                                {requiredCheckIns === 1 &&
+                                    cycleLength === 1 &&
+                                    cycleUnit === 'Day'
+                                    ? 'Once daily'
+                                    : `${requiredCheckIns} ${requiredCheckIns === 1
+                                        ? 'check-in'
+                                        : 'check-ins'
+                                    } every ${cycleLength} ${cycleUnit.toLowerCase()}${cycleLength === 1 ? '' : 's'
+                                    }`}
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setShowCustomFrequency(current => !current)
+                            }
+                            className={`shrink-0 text-sm font-semibold transition-colors ${isDark
+                                    ? 'text-teal-400 hover:text-teal-300'
+                                    : 'text-teal-600 hover:text-teal-700'
+                                }`}
+                        >
+                            {showCustomFrequency ? 'Done' : 'Customize'}
+                        </button>
+                    </div>
+
+                    {showCustomFrequency && (
+                        <div
+                            className={`mt-5 pt-5 border-t ${isDark
+                                    ? 'border-slate-700'
+                                    : 'border-slate-200'
+                                }`}
+                        >
+                            <div className="flex items-center justify-center gap-2 sm:gap-3">
+                                <span
+                                    className={`text-sm shrink-0 ${isDark
+                                            ? 'text-slate-400'
+                                            : 'text-slate-600'
+                                        }`}
+                                >
+                                    Check in
+                                </span>
+
+                                <select
+                                    value={requiredCheckIns}
+                                    onChange={(event) =>
+                                        setRequiredCheckIns(
+                                            Number(event.target.value)
+                                        )
+                                    }
+                                    aria-label="Required check-ins"
+                                    className={`h-11 min-w-[64px] rounded-xl px-3 text-center font-semibold outline-none transition-all ${isDark
+                                            ? 'bg-slate-700 text-white focus:ring-2 focus:ring-teal-500'
+                                            : 'bg-slate-100 text-slate-800 focus:ring-2 focus:ring-teal-500'
+                                        }`}
+                                >
+                                    {requiredCheckInOptions.map(value => (
+                                        <option key={value} value={value}>
+                                            {value}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <span
+                                    className={`text-sm shrink-0 ${isDark
+                                            ? 'text-slate-400'
+                                            : 'text-slate-600'
+                                        }`}
+                                >
+                                    times every
+                                </span>
+
+                                <select
+                                    value={cycleLength}
+                                    onChange={(event) =>
+                                        setCycleLength(
+                                            Number(event.target.value)
+                                        )
+                                    }
+                                    aria-label="Cycle length"
+                                    className={`h-11 min-w-[64px] rounded-xl px-3 text-center font-semibold outline-none transition-all ${isDark
+                                            ? 'bg-slate-700 text-white focus:ring-2 focus:ring-teal-500'
+                                            : 'bg-slate-100 text-slate-800 focus:ring-2 focus:ring-teal-500'
+                                        }`}
+                                >
+                                    {cycleLengthOptions.map(value => (
+                                        <option key={value} value={value}>
+                                            {value}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <select
+                                    value={cycleUnit}
+                                    onChange={(event) =>
+                                        setCycleUnit(
+                                            event.target.value as CycleUnit
+                                        )
+                                    }
+                                    aria-label="Cycle unit"
+                                    className={`h-11 min-w-[92px] rounded-xl px-3 font-semibold outline-none transition-all ${isDark
+                                            ? 'bg-slate-700 text-white focus:ring-2 focus:ring-teal-500'
+                                            : 'bg-slate-100 text-slate-800 focus:ring-2 focus:ring-teal-500'
+                                        }`}
+                                >
+                                    <option value="Day">
+                                        {cycleLength === 1 ? 'Day' : 'Days'}
+                                    </option>
+
+                                    <option value="Week">
+                                        {cycleLength === 1 ? 'Week' : 'Weeks'}
+                                    </option>
+
+                                    <option value="Month">
+                                        {cycleLength === 1 ? 'Month' : 'Months'}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <p
+                                className={`text-xs text-center mt-4 ${isDark
+                                        ? 'text-slate-500'
+                                        : 'text-slate-400'
+                                    }`}
+                            >
+                                The streak advances once both partners finish
+                                this cycle.
+                            </p>
+
+                            {!(
+                                requiredCheckIns === 1 &&
+                                cycleLength === 1 &&
+                                cycleUnit === 'Day'
+                            ) && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setRequiredCheckIns(1);
+                                            setCycleLength(1);
+                                            setCycleUnit('Day');
+                                        }}
+                                        className={`block mx-auto mt-3 text-xs font-medium transition-colors ${isDark
+                                                ? 'text-slate-400 hover:text-teal-400'
+                                                : 'text-slate-500 hover:text-teal-600'
+                                            }`}
+                                    >
+                                        Reset to daily
+                                    </button>
+                                )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Accountability Partner */}

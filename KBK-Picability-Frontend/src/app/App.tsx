@@ -119,6 +119,23 @@ export default function App() {
                     userName: s.partnerName,
                     userAvatar: s.partnerName.substring(0, 2).toUpperCase(),
                     streakCount: s.currentCount,
+                    requiredCheckIns: s.requiredCheckIns,
+                    cycleLength: s.cycleLength,
+                    cycleUnit: s.cycleUnit,
+
+                    cycleStartedAt: s.cycleStartedAt,
+                    cycleEndsAt: s.cycleEndsAt,
+
+                    userCycleCheckInCount: s.userCycleCheckInCount,
+                    partnerCycleCheckInCount: s.partnerCycleCheckInCount,
+
+                    userCompletedCycle: s.userCompletedCycle,
+                    partnerCompletedCycle: s.partnerCompletedCycle,
+                    bothCompletedCycle: s.bothCompletedCycle,
+
+                    canCheckInCurrentCycle: s.canCheckInCurrentCycle,
+                    hoursUntilCycleEnds: s.hoursUntilCycleEnds,
+                    cycleProgressMessage: s.cycleProgressMessage,
                     lastCompletedAt: s.lastCompletedAt,
                     lastFullyCompletedAt: s.lastFullyCompletedAt,
                     userOneLastCheckedInAt: s.userOneLastCheckedInAt,
@@ -557,7 +574,11 @@ export default function App() {
                     receiverId: streak.partnerId,
                     habitName: streak.habitName,
                     habitIcon: streak.habitIcon,
-                    color: streak.color
+                    color: streak.color,
+
+                    requiredCheckIns: streak.requiredCheckIns ?? 1,
+                    cycleLength: streak.cycleLength ?? 1,
+                    cycleUnit: streak.cycleUnit ?? 'Day'
                 })
             });
 
@@ -750,9 +771,14 @@ export default function App() {
                 body: JSON.stringify({
                     senderId: user.id,
                     receiverId: config.friendId,
+
                     habitName: config.HabitName,
                     habitIcon: config.HabitIcon,
-                    color: config.Color
+                    color: config.Color,
+
+                    requiredCheckIns: config.RequiredCheckIns,
+                    cycleLength: config.CycleLength,
+                    cycleUnit: config.CycleUnit
                 })
             });
 

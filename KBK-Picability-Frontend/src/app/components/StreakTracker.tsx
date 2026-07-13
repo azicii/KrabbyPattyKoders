@@ -22,6 +22,23 @@ interface Streak {
     isActive?: boolean;
     canCheckInToday?: boolean;
     hoursUntilMidnight?: number;
+    requiredCheckIns?: number;
+    cycleLength?: number;
+    cycleUnit?: 'Day' | 'Week' | 'Month';
+
+    cycleStartedAt?: string;
+    cycleEndsAt?: string;
+
+    userCycleCheckInCount?: number;
+    partnerCycleCheckInCount?: number;
+
+    userCompletedCycle?: boolean;
+    partnerCompletedCycle?: boolean;
+    bothCompletedCycle?: boolean;
+
+    canCheckInCurrentCycle?: boolean;
+    hoursUntilCycleEnds?: number;
+    cycleProgressMessage?: string;
     brokenMessage?: string;
     timeMessage?: string;
     hasUnreadMessage?: boolean;
