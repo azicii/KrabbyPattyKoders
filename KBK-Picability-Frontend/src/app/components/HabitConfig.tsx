@@ -356,90 +356,93 @@ export function HabitConfig({
                                     : 'border-slate-200'
                                 }`}
                         >
-                            <div className="flex items-center justify-center gap-2 sm:gap-3">
-                                <span
-                                    className={`text-sm shrink-0 ${isDark
-                                            ? 'text-slate-400'
-                                            : 'text-slate-600'
-                                        }`}
-                                >
-                                    Check in
-                                </span>
+                            <div className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(0,1.3fr)] gap-3">
+                                <label className="min-w-0">
+                                    <span
+                                        className={`block mb-2 text-xs font-medium text-center ${isDark ? 'text-slate-400' : 'text-slate-500'
+                                            }`}
+                                    >
+                                        Check-ins
+                                    </span>
 
-                                <select
-                                    value={requiredCheckIns}
-                                    onChange={(event) =>
-                                        setRequiredCheckIns(
-                                            Number(event.target.value)
-                                        )
-                                    }
-                                    aria-label="Required check-ins"
-                                    className={`h-11 min-w-[64px] rounded-xl px-3 text-center font-semibold outline-none transition-all ${isDark
-                                            ? 'bg-slate-700 text-white focus:ring-2 focus:ring-teal-500'
-                                            : 'bg-slate-100 text-slate-800 focus:ring-2 focus:ring-teal-500'
-                                        }`}
-                                >
-                                    {requiredCheckInOptions.map(value => (
-                                        <option key={value} value={value}>
-                                            {value}
+                                    <select
+                                        value={requiredCheckIns}
+                                        onChange={(event) =>
+                                            setRequiredCheckIns(Number(event.target.value))
+                                        }
+                                        aria-label="Required check-ins"
+                                        className={`w-full h-12 rounded-xl px-2 text-center font-semibold outline-none transition-all ${isDark
+                                                ? 'bg-slate-700 text-white focus:ring-2 focus:ring-teal-500'
+                                                : 'bg-slate-100 text-slate-800 focus:ring-2 focus:ring-teal-500'
+                                            }`}
+                                    >
+                                        {requiredCheckInOptions.map(value => (
+                                            <option key={value} value={value}>
+                                                {value}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="min-w-0">
+                                    <span
+                                        className={`block mb-2 text-xs font-medium text-center ${isDark ? 'text-slate-400' : 'text-slate-500'
+                                            }`}
+                                    >
+                                        Every
+                                    </span>
+
+                                    <select
+                                        value={cycleLength}
+                                        onChange={(event) =>
+                                            setCycleLength(Number(event.target.value))
+                                        }
+                                        aria-label="Cycle length"
+                                        className={`w-full h-12 rounded-xl px-2 text-center font-semibold outline-none transition-all ${isDark
+                                                ? 'bg-slate-700 text-white focus:ring-2 focus:ring-teal-500'
+                                                : 'bg-slate-100 text-slate-800 focus:ring-2 focus:ring-teal-500'
+                                            }`}
+                                    >
+                                        {cycleLengthOptions.map(value => (
+                                            <option key={value} value={value}>
+                                                {value}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="min-w-0">
+                                    <span
+                                        className={`block mb-2 text-xs font-medium text-center ${isDark ? 'text-slate-400' : 'text-slate-500'
+                                            }`}
+                                    >
+                                        Period
+                                    </span>
+
+                                    <select
+                                        value={cycleUnit}
+                                        onChange={(event) =>
+                                            setCycleUnit(event.target.value as CycleUnit)
+                                        }
+                                        aria-label="Cycle unit"
+                                        className={`w-full h-12 rounded-xl px-2 text-center font-semibold outline-none transition-all ${isDark
+                                                ? 'bg-slate-700 text-white focus:ring-2 focus:ring-teal-500'
+                                                : 'bg-slate-100 text-slate-800 focus:ring-2 focus:ring-teal-500'
+                                            }`}
+                                    >
+                                        <option value="Day">
+                                            {cycleLength === 1 ? 'Day' : 'Days'}
                                         </option>
-                                    ))}
-                                </select>
 
-                                <span
-                                    className={`text-sm shrink-0 ${isDark
-                                            ? 'text-slate-400'
-                                            : 'text-slate-600'
-                                        }`}
-                                >
-                                    times every
-                                </span>
-
-                                <select
-                                    value={cycleLength}
-                                    onChange={(event) =>
-                                        setCycleLength(
-                                            Number(event.target.value)
-                                        )
-                                    }
-                                    aria-label="Cycle length"
-                                    className={`h-11 min-w-[64px] rounded-xl px-3 text-center font-semibold outline-none transition-all ${isDark
-                                            ? 'bg-slate-700 text-white focus:ring-2 focus:ring-teal-500'
-                                            : 'bg-slate-100 text-slate-800 focus:ring-2 focus:ring-teal-500'
-                                        }`}
-                                >
-                                    {cycleLengthOptions.map(value => (
-                                        <option key={value} value={value}>
-                                            {value}
+                                        <option value="Week">
+                                            {cycleLength === 1 ? 'Week' : 'Weeks'}
                                         </option>
-                                    ))}
-                                </select>
 
-                                <select
-                                    value={cycleUnit}
-                                    onChange={(event) =>
-                                        setCycleUnit(
-                                            event.target.value as CycleUnit
-                                        )
-                                    }
-                                    aria-label="Cycle unit"
-                                    className={`h-11 min-w-[92px] rounded-xl px-3 font-semibold outline-none transition-all ${isDark
-                                            ? 'bg-slate-700 text-white focus:ring-2 focus:ring-teal-500'
-                                            : 'bg-slate-100 text-slate-800 focus:ring-2 focus:ring-teal-500'
-                                        }`}
-                                >
-                                    <option value="Day">
-                                        {cycleLength === 1 ? 'Day' : 'Days'}
-                                    </option>
-
-                                    <option value="Week">
-                                        {cycleLength === 1 ? 'Week' : 'Weeks'}
-                                    </option>
-
-                                    <option value="Month">
-                                        {cycleLength === 1 ? 'Month' : 'Months'}
-                                    </option>
-                                </select>
+                                        <option value="Month">
+                                            {cycleLength === 1 ? 'Month' : 'Months'}
+                                        </option>
+                                    </select>
+                                </label>
                             </div>
 
                             <p
@@ -448,8 +451,7 @@ export function HabitConfig({
                                         : 'text-slate-400'
                                     }`}
                             >
-                                The streak advances once both partners finish
-                                this cycle.
+                                The streak advances when both partners complete the selected check-ins.
                             </p>
 
                             {!(
