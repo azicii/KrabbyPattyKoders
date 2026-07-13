@@ -40,6 +40,58 @@ namespace Picability.Controllers
 
             if (currentUserId == dto.ReceiverId)
                 return BadRequest("You cannot send a streak request to yourself.");
+            var normalizedCycleUnit =
+            dto.CycleUnit?.Trim().ToLowerInvariant() switch
+            {
+                "day" => "Day",
+                "week" => "Week",
+                "month" => "Month",
+                _ => null
+            };
+
+            if (dto.RequiredCheckIns < 1)
+            {
+                return BadRequest(new
+                {
+                    message = "Required check-ins must be at least 1."
+                });
+            }
+
+            if (dto.CycleLength < 1)
+            {
+                return BadRequest(new
+                {
+                    message = "Cycle length must be at least 1."
+                });
+            }
+
+            if (normalizedCycleUnit == null)
+            {
+                return BadRequest(new
+                {
+                    message = "Cycle unit must be Day, Week, or Month."
+                });
+            }
+
+            /*
+             * Keep the first version within reasonable limits.
+             * These limits can be expanded later without a database change.
+             */
+            if (dto.RequiredCheckIns > 100)
+            {
+                return BadRequest(new
+                {
+                    message = "Required check-ins cannot exceed 100 per cycle."
+                });
+            }
+
+            if (dto.CycleLength > 365)
+            {
+                return BadRequest(new
+                {
+                    message = "Cycle length cannot exceed 365 units."
+                });
+            }
 
             // Verify friendship exists in the database
             bool areFriends = await _context.Friends.AnyAsync(f =>
@@ -78,7 +130,7 @@ namespace Picability.Controllers
 
                 RequiredCheckIns = dto.RequiredCheckIns,
                 CycleLength = dto.CycleLength,
-                CycleUnit = dto.CycleUnit,
+                CycleUnit = normalizedCycleUnit,
 
                 Status = "Pending",
                 CreatedAt = DateTime.UtcNow
@@ -116,17 +168,23 @@ namespace Picability.Controllers
             var requests = await _context.StreakRequests
                 .Include(sr => sr.Sender)
                 .Where(r => r.ReceiverId == currentUserId && r.Status == "Pending")
-                .Select(sr => new
-                {
-                    sr.Id,
-                    sr.HabitName,
-                    sr.HabitIcon,
-                    sr.Color,
-                    sr.Status,
-                    sr.CreatedAt,
-                    SenderName = sr.Sender.UserName,
-                    SenderId = sr.SenderId
-                })
+               .Select(sr => new
+               {
+                   sr.Id,
+                   sr.HabitName,
+                   sr.HabitIcon,
+                   sr.Color,
+
+                   sr.RequiredCheckIns,
+                   sr.CycleLength,
+                   sr.CycleUnit,
+
+                   sr.Status,
+                   sr.CreatedAt,
+
+                   SenderName = sr.Sender.UserName,
+                   SenderId = sr.SenderId
+               })
                 .ToListAsync();
 
             return Ok(requests);
@@ -149,8 +207,14 @@ namespace Picability.Controllers
                     sr.HabitName,
                     sr.HabitIcon,
                     sr.Color,
+
+                    sr.RequiredCheckIns,
+                    sr.CycleLength,
+                    sr.CycleUnit,
+
                     sr.Status,
                     sr.CreatedAt,
+
                     ReceiverName = sr.Receiver.UserName,
                     ReceiverId = sr.ReceiverId
                 })
@@ -204,9 +268,15 @@ namespace Picability.Controllers
                     sr.Id,
                     sr.SenderId,
                     sr.ReceiverId,
+
                     sr.HabitName,
                     sr.HabitIcon,
                     sr.Color,
+
+                    sr.RequiredCheckIns,
+                    sr.CycleLength,
+                    sr.CycleUnit,
+
                     sr.Status,
                     sr.CreatedAt
                 })
