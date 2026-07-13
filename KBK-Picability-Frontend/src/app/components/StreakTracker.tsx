@@ -254,11 +254,35 @@ export function StreakTracker({
         return 'rgb(20 184 166)';
     };
 
-    const getScheduleLabel = (
-        requiredCheckIns?: number,
-        cycleLength?: number,
-        cycleUnit?: string
-    ) => {
+        const getScheduleLabel = (
+            requiredCheckIns?: number,
+            cycleLength?: number,
+            cycleUnit?: string
+        ) => {
+
+        const isDefaultDailySchedule = (streak: Streak) => {
+            return (
+                (streak.requiredCheckIns ?? 1) === 1 &&
+                (streak.cycleLength ?? 1) === 1 &&
+                (streak.cycleUnit ?? 'Day') === 'Day'
+            );
+        };
+
+        const getCycleEndLabel = (cycleEndsAt?: string) => {
+            if (!cycleEndsAt) {
+                return 'the end of this cycle';
+            }
+
+            const endDate = new Date(cycleEndsAt);
+
+            return endDate.toLocaleString(undefined, {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+        };
         const normalizedRequired = Math.max(1, requiredCheckIns ?? 1);
         const normalizedLength = Math.max(1, cycleLength ?? 1);
 
@@ -291,19 +315,31 @@ export function StreakTracker({
     };
 
     const getStreakVisualState = (streak: Streak) => {
-        const userDone = streak.userCheckedInToday === true;
-        const partnerDone = streak.partnerCheckedInToday === true;
+        const userDone =
+            streak.userCompletedCycle ??
+            streak.userCheckedInToday ??
+            false;
 
-        const canCheckInNow = streak.canCheckInToday === true;
+        const partnerDone =
+            streak.partnerCompletedCycle ??
+            streak.partnerCheckedInToday ??
+            false;
 
-        if (!canCheckInNow || (userDone && partnerDone)) {
+        const canCheckInNow =
+            streak.canCheckInCurrentCycle ??
+            streak.canCheckInToday ??
+            false;
+
+        if (!canCheckInNow && userDone && partnerDone) {
             return {
                 priority: 4,
-                label: 'Completed today',
-                detail: 'Both of you are good until the next check-in.',
+                label: 'Cycle complete',
+                detail: 'You both completed this cycle.',
                 emoji: '🟢',
-                cardClass: 'shadow-[0_0_18px_rgba(16,185,129,0.16)]',
-                chipClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
+                cardClass:
+                    'shadow-[0_0_18px_rgba(16,185,129,0.16)]',
+                chipClass:
+                    'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
                 pulseStyle: undefined
             };
         }
@@ -312,34 +348,49 @@ export function StreakTracker({
             return {
                 priority: 3,
                 label: 'Waiting on partner',
-                detail: 'You did your part.',
+                detail: 'You completed your part.',
                 emoji: '🔵',
-                cardClass: 'shadow-[0_0_18px_rgba(59,130,246,0.20)]',
-                chipClass: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
-                pulseStyle: { animation: 'picabilityBluePulse 4s ease-in-out infinite' }
+                cardClass:
+                    'shadow-[0_0_18px_rgba(59,130,246,0.20)]',
+                chipClass:
+                    'bg-blue-500/15 text-blue-400 border-blue-500/25',
+                pulseStyle: {
+                    animation:
+                        'picabilityBluePulse 4s ease-in-out infinite'
+                }
             };
         }
 
         if (!userDone && !partnerDone) {
             return {
                 priority: 2,
-                label: 'Ready to check in',
-                detail: 'Both of you still need to check in.',
+                label: 'In progress',
+                detail: 'Keep building this cycle.',
                 emoji: '🟡',
-                cardClass: 'shadow-[0_0_24px_rgba(245,158,11,0.30)]',
-                chipClass: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
-                pulseStyle: { animation: 'picabilityAmberPulse 3s ease-in-out infinite' }
+                cardClass:
+                    'shadow-[0_0_24px_rgba(245,158,11,0.30)]',
+                chipClass:
+                    'bg-amber-500/15 text-amber-400 border-amber-500/25',
+                pulseStyle: {
+                    animation:
+                        'picabilityAmberPulse 3s ease-in-out infinite'
+                }
             };
         }
 
         return {
             priority: 1,
             label: "Don't leave them hanging!",
-            detail: 'Your partner already checked in.',
+            detail: 'Your partner completed their part.',
             emoji: '🔥',
-            cardClass: 'shadow-[0_0_30px_rgba(249,115,22,0.38)] scale-[1.005]',
-            chipClass: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-            pulseStyle: { animation: 'picabilityFirePulse 2.4s ease-in-out infinite' }
+            cardClass:
+                'shadow-[0_0_30px_rgba(249,115,22,0.38)] scale-[1.005]',
+            chipClass:
+                'bg-orange-500/20 text-orange-400 border-orange-500/30',
+            pulseStyle: {
+                animation:
+                    'picabilityFirePulse 2.4s ease-in-out infinite'
+            }
         };
     };
 
@@ -670,7 +721,7 @@ export function StreakTracker({
                                             : 'bg-white border-slate-200'
                                             }`}
                                     >
-                                        <div className="relative min-h-[132px] sm:min-h-[72px]">
+                                        <div className="relative min-h-[158px] sm:min-h-[92px]">
                                             <div className="flex items-start gap-4 pr-0 sm:pr-40 min-w-0">
                                                 <div className={`flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br ${request.color || 'from-slate-500 to-slate-600'} shadow-lg opacity-80`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
@@ -781,11 +832,54 @@ export function StreakTracker({
                         const IconComponent = (LucideIcons as any)[streak.habitIcon] || LucideIcons.Target;
                         const visualState = getStreakVisualState(streak);
 
-                        const userCheckedInToday = streak.userCheckedInToday === true;
-                        const partnerCheckedInToday = streak.partnerCheckedInToday === true;
-                        const bothCheckedInToday = streak.bothCheckedInToday === true;
+                        const requiredCheckIns =
+                            Math.max(1, streak.requiredCheckIns ?? 1);
 
-                        const canCheckIn = streak.canCheckInToday === true;
+                        const userCycleCheckIns =
+                            Math.min(
+                                requiredCheckIns,
+                                streak.userCycleCheckInCount ??
+                                (streak.userCheckedInToday ? 1 : 0)
+                            );
+
+                        const partnerCycleCheckIns =
+                            Math.min(
+                                requiredCheckIns,
+                                streak.partnerCycleCheckInCount ??
+                                (streak.partnerCheckedInToday ? 1 : 0)
+                            );
+
+                        const userCompletedCycle =
+                            streak.userCompletedCycle ??
+                            userCycleCheckIns >= requiredCheckIns;
+
+                        const partnerCompletedCycle =
+                            streak.partnerCompletedCycle ??
+                            partnerCycleCheckIns >= requiredCheckIns;
+
+                        const bothCompletedCycle =
+                            streak.bothCompletedCycle ??
+                            (userCompletedCycle && partnerCompletedCycle);
+
+                        const canCheckIn =
+                            streak.canCheckInCurrentCycle ??
+                            streak.canCheckInToday ??
+                            false;
+
+                        const customFrequency =
+                            !isDefaultDailySchedule(streak);
+
+                        const userProgressPercent =
+                            Math.min(
+                                100,
+                                (userCycleCheckIns / requiredCheckIns) * 100
+                            );
+
+                        const partnerProgressPercent =
+                            Math.min(
+                                100,
+                                (partnerCycleCheckIns / requiredCheckIns) * 100
+                            );
 
 
                         const bubbleAccentClass = streak.color.includes('orange') ? 'border-orange-500 text-orange-400'
@@ -887,22 +981,181 @@ export function StreakTracker({
                                     <div className={`rounded-b-3xl overflow-hidden shadow-lg border-t ${isDark ? 'bg-slate-800/80 backdrop-blur-md border-slate-700/50' : 'bg-white border-slate-100'}`}>
                                         <div className="p-6">
                                             {!isBroken && (
-                                                <div className="mb-4 grid grid-cols-2 gap-3 text-sm">
-                                                    <div className={`p-3 rounded-2xl text-center ${userCheckedInToday
-                                                        ? 'bg-emerald-500/15 text-emerald-500'
-                                                        : isDark ? 'bg-slate-700/50 text-slate-300' : 'bg-slate-100 text-slate-600'
-                                                        }`}>
-                                                        <div className="font-bold">You</div>
-                                                        <div>{userCheckedInToday ? 'Checked in ✅' : 'Waiting ⏳'}</div>
+                                                <div className="mb-4">
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div
+                                                            className={`p-3 rounded-2xl ${userCompletedCycle
+                                                                    ? 'bg-emerald-500/15'
+                                                                    : isDark
+                                                                        ? 'bg-slate-700/50'
+                                                                        : 'bg-slate-100'
+                                                                }`}
+                                                        >
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <span
+                                                                    className={`text-sm font-bold ${userCompletedCycle
+                                                                            ? 'text-emerald-500'
+                                                                            : isDark
+                                                                                ? 'text-slate-200'
+                                                                                : 'text-slate-700'
+                                                                        }`}
+                                                                >
+                                                                    You
+                                                                </span>
+
+                                                                <span
+                                                                    className={`text-xs font-bold ${userCompletedCycle
+                                                                            ? 'text-emerald-500'
+                                                                            : isDark
+                                                                                ? 'text-slate-400'
+                                                                                : 'text-slate-500'
+                                                                        }`}
+                                                                >
+                                                                    {customFrequency
+                                                                        ? `${userCycleCheckIns}/${requiredCheckIns}`
+                                                                        : userCompletedCycle
+                                                                            ? 'Done'
+                                                                            : 'Waiting'}
+                                                                </span>
+                                                            </div>
+
+                                                            {customFrequency ? (
+                                                                <div
+                                                                    className={`mt-3 h-2 rounded-full overflow-hidden ${isDark
+                                                                            ? 'bg-slate-800'
+                                                                            : 'bg-slate-200'
+                                                                        }`}
+                                                                >
+                                                                    <div
+                                                                        className={`h-full rounded-full transition-all duration-500 ${userCompletedCycle
+                                                                                ? 'bg-emerald-500'
+                                                                                : 'bg-teal-500'
+                                                                            }`}
+                                                                        style={{
+                                                                            width: `${userProgressPercent}%`
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <div
+                                                                    className={`mt-1 text-xs ${userCompletedCycle
+                                                                            ? 'text-emerald-500'
+                                                                            : isDark
+                                                                                ? 'text-slate-400'
+                                                                                : 'text-slate-500'
+                                                                        }`}
+                                                                >
+                                                                    {userCompletedCycle
+                                                                        ? 'Checked in ✅'
+                                                                        : 'Waiting ⏳'}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div
+                                                            className={`p-3 rounded-2xl ${partnerCompletedCycle
+                                                                    ? 'bg-emerald-500/15'
+                                                                    : isDark
+                                                                        ? 'bg-slate-700/50'
+                                                                        : 'bg-slate-100'
+                                                                }`}
+                                                        >
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <span
+                                                                    className={`text-sm font-bold ${partnerCompletedCycle
+                                                                            ? 'text-emerald-500'
+                                                                            : isDark
+                                                                                ? 'text-slate-200'
+                                                                                : 'text-slate-700'
+                                                                        }`}
+                                                                >
+                                                                    {streak.userName}
+                                                                </span>
+
+                                                                <span
+                                                                    className={`text-xs font-bold ${partnerCompletedCycle
+                                                                            ? 'text-emerald-500'
+                                                                            : isDark
+                                                                                ? 'text-slate-400'
+                                                                                : 'text-slate-500'
+                                                                        }`}
+                                                                >
+                                                                    {customFrequency
+                                                                        ? `${partnerCycleCheckIns}/${requiredCheckIns}`
+                                                                        : partnerCompletedCycle
+                                                                            ? 'Done'
+                                                                            : 'Waiting'}
+                                                                </span>
+                                                            </div>
+
+                                                            {customFrequency ? (
+                                                                <div
+                                                                    className={`mt-3 h-2 rounded-full overflow-hidden ${isDark
+                                                                            ? 'bg-slate-800'
+                                                                            : 'bg-slate-200'
+                                                                        }`}
+                                                                >
+                                                                    <div
+                                                                        className={`h-full rounded-full transition-all duration-500 ${partnerCompletedCycle
+                                                                                ? 'bg-emerald-500'
+                                                                                : 'bg-violet-500'
+                                                                            }`}
+                                                                        style={{
+                                                                            width: `${partnerProgressPercent}%`
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <div
+                                                                    className={`mt-1 text-xs ${partnerCompletedCycle
+                                                                            ? 'text-emerald-500'
+                                                                            : isDark
+                                                                                ? 'text-slate-400'
+                                                                                : 'text-slate-500'
+                                                                        }`}
+                                                                >
+                                                                    {partnerCompletedCycle
+                                                                        ? 'Checked in ✅'
+                                                                        : 'Waiting ⏳'}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
 
-                                                    <div className={`p-3 rounded-2xl text-center ${partnerCheckedInToday
-                                                        ? 'bg-emerald-500/15 text-emerald-500'
-                                                        : isDark ? 'bg-slate-700/50 text-slate-300' : 'bg-slate-100 text-slate-600'
-                                                        }`}>
-                                                        <div className="font-bold">Partner</div>
-                                                        <div>{partnerCheckedInToday ? 'Checked in ✅' : 'Waiting ⏳'}</div>
-                                                    </div>
+                                                    {customFrequency && (
+                                                        <div className="mt-3 text-center">
+                                                            <p
+                                                                className={`text-sm font-semibold ${bothCompletedCycle
+                                                                        ? 'text-emerald-500'
+                                                                        : userCompletedCycle
+                                                                            ? 'text-blue-400'
+                                                                            : isDark
+                                                                                ? 'text-slate-300'
+                                                                                : 'text-slate-600'
+                                                                    }`}
+                                                            >
+                                                                {bothCompletedCycle
+                                                                    ? 'Cycle complete — streak advanced!'
+                                                                    : userCompletedCycle
+                                                                        ? `Your part is complete. Waiting on ${streak.userName}.`
+                                                                        : `${requiredCheckIns - userCycleCheckIns} ${requiredCheckIns -
+                                                                            userCycleCheckIns ===
+                                                                            1
+                                                                            ? 'check-in'
+                                                                            : 'check-ins'
+                                                                        } left for you`}
+                                                            </p>
+
+                                                            <p
+                                                                className={`text-xs mt-1 ${isDark
+                                                                        ? 'text-slate-500'
+                                                                        : 'text-slate-400'
+                                                                    }`}
+                                                            >
+                                                                Cycle ends {getCycleEndLabel(streak.cycleEndsAt)}
+                                                            </p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                             {isBroken ? (
@@ -926,13 +1179,21 @@ export function StreakTracker({
                                                         {canCheckIn ? (
                                                             <>
                                                                 <CheckCircle2 className="w-6 h-6 text-white animate-bounce" />
-                                                                <span className="font-bold text-white text-lg">Complete Today</span>
+                                                                    <span className="font-bold text-white text-lg">
+                                                                        {customFrequency
+                                                                            ? `Check In · ${userCycleCheckIns}/${requiredCheckIns}`
+                                                                            : 'Complete Today'}
+                                                                    </span>
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <Clock className="w-6 h-6 text-slate-400" />
                                                                         <span className="font-bold text-slate-400 text-lg">
-                                                                            {streak.timeMessage}
+                                                                            {customFrequency
+                                                                                ? userCompletedCycle
+                                                                                    ? 'Your cycle is complete'
+                                                                                    : streak.timeMessage
+                                                                                : streak.timeMessage}
                                                                         </span>
 
                                                             </>
@@ -954,18 +1215,26 @@ export function StreakTracker({
                                                     </button>
                                                 </div>
                                             )}
-                                            <p className={`text-center mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'
-                                                }`}>
+                                            <p
+                                                className={`text-center mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'
+                                                    }`}
+                                            >
                                                 {isBroken
                                                     ? "This streak was broken. Tap dismiss to remove it."
-                                                    : streak.timeMessage}
+                                                    : customFrequency
+                                                        ? userCompletedCycle
+                                                            ? `Next cycle begins after ${getCycleEndLabel(
+                                                                streak.cycleEndsAt
+                                                            )}`
+                                                            : `${userCycleCheckIns} of ${requiredCheckIns} check-ins complete this cycle`
+                                                        : streak.timeMessage}
                                             </p>
 
                                             <div className="flex items-end justify-between mt-3 gap-4">
                                                 <div className="min-w-[44px]">
                                                     {!isBroken &&
-                                                        userCheckedInToday &&
-                                                        !partnerCheckedInToday && (
+                                                        userCompletedCycle &&
+                                                        !partnerCompletedCycle && (
                                                             <button
                                                                 type="button"
                                                                 onClick={(event) =>
