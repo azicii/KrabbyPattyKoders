@@ -1023,9 +1023,6 @@ namespace Picability.Controllers
                 partnerCheckInCount = 1;
             }
 
-            var partnerCompletedBeforeCheckIn =
-                partnerCheckInCount >= requiredCheckIns;
-
             var alreadyFullyCompletedThisCycle =
                 streak.LastFullyCompletedAt.HasValue &&
                 streak.LastFullyCompletedAt.Value >= cycle.StartUtc &&
@@ -1106,11 +1103,12 @@ namespace Picability.Controllers
                     receiverId,
                     senderName ?? "Your partner",
                     streak.HabitName,
-                    streak.CurrentCount +
-                        (bothCompletedCycle ? 0 : 1),
+                    currentUserCheckInCount,
+                    requiredCheckIns,
+                    cycleLength,
+                    cycleUnit,
                     sentMessage,
-                    sentPhoto,
-                    partnerCompletedBeforeCheckIn
+                    sentPhoto
                 );
 
             var hoursUntilCycleEnds = Math.Max(

@@ -29,33 +29,73 @@ namespace Picability.Services
         }
 
         public async Task<PushSendResult> NotifyPartnerCheckedInAsync(
-            string receiverId,
-            string partnerName,
-            string streakName,
-            int streakDay,
-            bool sentMessage,
-            bool sentPhoto,
-            bool receiverAlreadyCheckedInToday)
+    string receiverId,
+    string partnerName,
+    string streakName,
+    int partnerCheckInNumber,
+    int requiredCheckIns,
+    int cycleLength,
+    string cycleUnit,
+    bool sentMessage,
+    bool sentPhoto)
         {
-            var contentLine = sentMessage && sentPhoto
-                ? "\n💬📷 Sent you a message and photo"
-                : sentMessage
-                    ? "\n💬 Sent you a message"
-                    : sentPhoto
-                        ? "\n📷 Sent you a photo"
-                        : "";
+            var normalizedRequiredCheckIns = Math.Max(
+                1,
+                requiredCheckIns
+            );
 
-            var notificationTitle = receiverAlreadyCheckedInToday
-                ? "🔥 Your partner checked in!"
-                : "🔥 Don't leave them hanging!";
+            var normalizedCheckInNumber = Math.Clamp(
+                partnerCheckInNumber,
+                1,
+                normalizedRequiredCheckIns
+            );
 
-            var notificationBody =
-                $"{partnerName} completed day {streakDay} of {streakName}.{contentLine}";
+            var normalizedCycleLength = Math.Max(
+                1,
+                cycleLength
+            );
+
+            var normalizedCycleUnit =
+                cycleUnit?.Trim().ToLowerInvariant() switch
+                {
+                    "week" => "week",
+                    "month" => "month",
+                    _ => "day"
+                };
+
+            var cycleDescription =
+                normalizedCycleLength == 1
+                    ? normalizedCycleUnit switch
+                    {
+                        "week" => "this week",
+                        "month" => "this month",
+                        _ => "today"
+                    }
+                    : $"this {normalizedCycleLength}-{normalizedCycleUnit} cycle";
+
+            var progressLine =
+                $"{normalizedCheckInNumber} of " +
+                $"{normalizedRequiredCheckIns} check-ins complete " +
+                $"{cycleDescription}.";
+
+            var contentLine =
+                sentMessage && sentPhoto
+                    ? "\n💬📷 Sent you a message and photo."
+                    : sentMessage
+                        ? "\n💬 Sent you a message."
+                        : sentPhoto
+                            ? "\n📷 Sent you a photo."
+                            : string.Empty;
+
+            var body =
+                $"{partnerName} checked in for \"{streakName}\".\n" +
+                $"{progressLine}" +
+                $"{contentLine}";
 
             return await SendPushAsync(
                 receiverId,
-                notificationTitle,
-                notificationBody,
+                "🔥 Your partner checked in!",
+                body,
                 "/"
             );
         }
