@@ -726,8 +726,10 @@ namespace Picability.Controllers
             });
         }
 
-        [HttpPost("{id}/remind")]
-        public async Task<IActionResult> SendStreakReminder(int id)
+        [HttpPost("{id}/complete")]
+        public async Task<IActionResult> CompleteStreak(
+    int id,
+    CompleteStreakDto dto)
         {
             var currentUserId = GetCurrentUserId();
 
@@ -741,47 +743,91 @@ namespace Picability.Controllers
                 .Include(s => s.UserTwo)
                 .FirstOrDefaultAsync(s =>
                     s.Id == id &&
-                    s.IsActive &&
-                    (s.UserOneId == currentUserId ||
-                     s.UserTwoId == currentUserId));
+                    (
+                        s.UserOneId == currentUserId ||
+                        s.UserTwoId == currentUserId
+                    ));
 
             if (streak == null)
             {
-                return NotFound(new
-                {
-                    message = "Active streak not found."
-                });
+                return NotFound("Streak not found.");
+            }
+
+            if (!streak.IsActive)
+            {
+                return BadRequest(
+                    "This streak is no longer active."
+                );
             }
 
             var nowUtc = DateTime.UtcNow;
-            var todayPacific = GetPacificToday(nowUtc);
-            var isUserOne = streak.UserOneId == currentUserId;
+            var timeZone = GetPacificTimeZone();
 
-            var currentUserCheckedInToday = isUserOne
-                ? streak.UserOneLastCheckedInAt.HasValue &&
-                  ToPacificDate(streak.UserOneLastCheckedInAt.Value) == todayPacific
-                : streak.UserTwoLastCheckedInAt.HasValue &&
-                  ToPacificDate(streak.UserTwoLastCheckedInAt.Value) == todayPacific;
+            var requiredCheckIns = Math.Max(
+                1,
+                streak.RequiredCheckIns
+            );
 
-            var partnerCheckedInToday = isUserOne
-                ? streak.UserTwoLastCheckedInAt.HasValue &&
-                  ToPacificDate(streak.UserTwoLastCheckedInAt.Value) == todayPacific
-                : streak.UserOneLastCheckedInAt.HasValue &&
-                  ToPacificDate(streak.UserOneLastCheckedInAt.Value) == todayPacific;
+            var cycleLength = Math.Max(
+                1,
+                streak.CycleLength
+            );
 
-            if (!currentUserCheckedInToday)
-            {
-                return BadRequest(new
+            var cycleUnit =
+                streak.CycleUnit?.Trim().ToLowerInvariant() switch
                 {
-                    message = "You must complete your check-in before sending a reminder."
-                });
+                    "week" => "Week",
+                    "month" => "Month",
+                    _ => "Day"
+                };
+
+            var cycle = StreakCycleCalculator.GetCurrentCycle(
+                streak.StartedAt,
+                nowUtc,
+                cycleLength,
+                cycleUnit,
+                timeZone
+            );
+
+            var isUserOne =
+                streak.UserOneId == currentUserId;
+
+            var currentUserCheckInCount =
+                await _context.StreakCheckIns.CountAsync(c =>
+                    c.StreakId == streak.Id &&
+                    c.UserId == currentUserId &&
+                    c.CheckedInAt >= cycle.StartUtc &&
+                    c.CheckedInAt < cycle.EndUtc
+                );
+
+            /*
+             * Existing streaks may contain a legacy last-check-in
+             * timestamp without a corresponding StreakCheckIn row.
+             * Count that timestamp once during the transition.
+             */
+            var currentUserLegacyCheckIn = isUserOne
+                ? streak.UserOneLastCheckedInAt
+                : streak.UserTwoLastCheckedInAt;
+
+            if (
+                currentUserCheckInCount == 0 &&
+                currentUserLegacyCheckIn.HasValue &&
+                currentUserLegacyCheckIn.Value >= cycle.StartUtc &&
+                currentUserLegacyCheckIn.Value < cycle.EndUtc
+            )
+            {
+                currentUserCheckInCount = 1;
             }
 
-            if (partnerCheckedInToday)
+            if (currentUserCheckInCount >= requiredCheckIns)
             {
                 return BadRequest(new
                 {
-                    message = "Your partner already checked in today."
+                    message =
+                        "You already completed all required check-ins for this cycle.",
+                    currentCheckIns = currentUserCheckInCount,
+                    requiredCheckIns,
+                    cycleEndsAt = cycle.EndUtc
                 });
             }
 
@@ -793,92 +839,52 @@ namespace Picability.Controllers
                 ? streak.UserOne.UserName
                 : streak.UserTwo.UserName;
 
-            var result = await _pushNotificationService.NotifyStreakReminderAsync(
-                receiverId,
-                senderName ?? "Your partner",
-                streak.HabitName
+            var partnerCheckInCount =
+                await _context.StreakCheckIns.CountAsync(c =>
+                    c.StreakId == streak.Id &&
+                    c.UserId == receiverId &&
+                    c.CheckedInAt >= cycle.StartUtc &&
+                    c.CheckedInAt < cycle.EndUtc
+                );
+
+            var partnerLegacyCheckIn = isUserOne
+                ? streak.UserTwoLastCheckedInAt
+                : streak.UserOneLastCheckedInAt;
+
+            if (
+                partnerCheckInCount == 0 &&
+                partnerLegacyCheckIn.HasValue &&
+                partnerLegacyCheckIn.Value >= cycle.StartUtc &&
+                partnerLegacyCheckIn.Value < cycle.EndUtc
+            )
+            {
+                partnerCheckInCount = 1;
+            }
+
+            var partnerCompletedBeforeCheckIn =
+                partnerCheckInCount >= requiredCheckIns;
+
+            var alreadyFullyCompletedThisCycle =
+                streak.LastFullyCompletedAt.HasValue &&
+                streak.LastFullyCompletedAt.Value >= cycle.StartUtc &&
+                streak.LastFullyCompletedAt.Value < cycle.EndUtc;
+
+            _context.StreakCheckIns.Add(
+                new StreakCheckIn
+                {
+                    StreakId = streak.Id,
+                    UserId = currentUserId,
+                    CheckedInAt = nowUtc
+                }
             );
 
-            return Ok(new
-            {
-                message = "Reminder sent.",
-                pushResult = result
-            });
-        }
+            currentUserCheckInCount++;
 
-        [HttpPost("{id}/complete")]
-        public async Task<IActionResult> CompleteStreak(int id, CompleteStreakDto dto)
-        {
-            var currentUserId = GetCurrentUserId();
-
-            if (string.IsNullOrEmpty(currentUserId))
-            {
-                return Unauthorized();
-            }
-
-            var streak = await _context.Streaks
-                .Include(s => s.UserOne)
-                .Include(s => s.UserTwo)
-                .FirstOrDefaultAsync(s =>
-                    s.Id == id &&
-                    (s.UserOneId == currentUserId || s.UserTwoId == currentUserId));
-
-            if (streak == null)
-            {
-                return NotFound("Streak not found.");
-            }
-
-            if (!streak.IsActive)
-            {
-                return BadRequest("This streak is no longer active.");
-            }
-
-            var nowUtc = DateTime.UtcNow;
-            var todayPacific = GetPacificToday(nowUtc);
-            var hoursUntilMidnight = GetHoursUntilPacificMidnight(nowUtc);
-            var defaultDate = new DateTime(1900, 1, 1);
-
-            var lastFullyCompleted = streak.LastFullyCompletedAt ?? streak.LastCompletedAt;
-
-            DateTime anchorDateUtc;
-
-            if (lastFullyCompleted is DateTime completedAt && completedAt != defaultDate)
-            {
-                anchorDateUtc = completedAt;
-            }
-            else
-            {
-                anchorDateUtc = streak.StartedAt;
-            }
-
-            var anchorPacificDate = ToPacificDate(anchorDateUtc);
-
-            var missedYesterdayOrEarlier = anchorPacificDate < todayPacific.AddDays(-1);
-
-            var startedBeforeTodayAndNeverCompleted =
-                (lastFullyCompleted == null || lastFullyCompleted == defaultDate) &&
-                anchorPacificDate < todayPacific.AddDays(-1);
-
-            if (missedYesterdayOrEarlier || startedBeforeTodayAndNeverCompleted)
-            {
-                streak.IsActive = false;
-                streak.FailedAt = nowUtc;
-                await _context.SaveChangesAsync();
-                return Conflict(new { message = "Streak broken!" });
-            }
-
-            var isUserOne = streak.UserOneId == currentUserId;
-
-            var userLastCheckIn = isUserOne
-                ? streak.UserOneLastCheckedInAt
-                : streak.UserTwoLastCheckedInAt;
-
-            if (userLastCheckIn is DateTime existingCheckIn &&
-                ToPacificDate(existingCheckIn) == todayPacific)
-            {
-                return BadRequest("You already checked in today!");
-            }
-
+            /*
+             * Continue updating the legacy timestamp fields.
+             * The current frontend and several existing features
+             * still rely on these values.
+             */
             if (isUserOne)
             {
                 streak.UserOneLastCheckedInAt = nowUtc;
@@ -888,30 +894,20 @@ namespace Picability.Controllers
                 streak.UserTwoLastCheckedInAt = nowUtc;
             }
 
-            var userOneCheckedInToday =
-                streak.UserOneLastCheckedInAt.HasValue &&
-                ToPacificDate(streak.UserOneLastCheckedInAt.Value) == todayPacific;
-            var userTwoCheckedInToday =
-                streak.UserTwoLastCheckedInAt.HasValue &&
-                ToPacificDate(streak.UserTwoLastCheckedInAt.Value) == todayPacific;
+            var currentUserCompletedCycle =
+                currentUserCheckInCount >= requiredCheckIns;
 
-            var alreadyFullyCompletedToday =
-                lastFullyCompleted.HasValue &&
-                ToPacificDate(lastFullyCompleted.Value) == todayPacific;
+            var partnerCompletedCycle =
+                partnerCheckInCount >= requiredCheckIns;
 
-            var bothCheckedInToday = userOneCheckedInToday && userTwoCheckedInToday;
+            var bothCompletedCycle =
+                currentUserCompletedCycle &&
+                partnerCompletedCycle;
 
-            var shouldNotifyPartner = true;
-
-            var receiverId = isUserOne ? streak.UserTwoId : streak.UserOneId;
-            var partnerName = isUserOne ? streak.UserOne.UserName : streak.UserTwo.UserName;
-            var notificationStreakDay = streak.CurrentCount + 1;
-
-            var receiverAlreadyCheckedInToday = isUserOne
-                ? userTwoCheckedInToday
-                : userOneCheckedInToday;
-
-            if (bothCheckedInToday && !alreadyFullyCompletedToday)
+            if (
+                bothCompletedCycle &&
+                !alreadyFullyCompletedThisCycle
+            )
             {
                 streak.CurrentCount++;
                 streak.LastFullyCompletedAt = nowUtc;
@@ -920,47 +916,104 @@ namespace Picability.Controllers
 
             await _context.SaveChangesAsync();
 
-            if (shouldNotifyPartner)
-            {
-                var recentContent = await _context.CheckInContents
-                    .Where(c =>
-                        c.StreakId == streak.Id &&
-                        c.SenderId == currentUserId &&
-                        c.ReceiverId == receiverId &&
-                        !c.IsViewed &&
-                        c.CreatedAt >= nowUtc.AddMinutes(-5))
-                    .ToListAsync();
+            var recentContent = await _context.CheckInContents
+                .Where(c =>
+                    c.StreakId == streak.Id &&
+                    c.SenderId == currentUserId &&
+                    c.ReceiverId == receiverId &&
+                    !c.IsViewed &&
+                    c.CreatedAt >= nowUtc.AddMinutes(-5)
+                )
+                .ToListAsync();
 
-                var sentMessage = recentContent.Any(c => c.ContentType == "Message");
-                var sentPhoto = recentContent.Any(c => c.ContentType == "Photo");
+            var sentMessage = recentContent.Any(c =>
+                c.ContentType == "Message"
+            );
 
-                await _pushNotificationService.NotifyPartnerCheckedInAsync(
+            var sentPhoto = recentContent.Any(c =>
+                c.ContentType == "Photo"
+            );
+
+            /*
+             * For the current notification wording, treat the
+             * receiver as already finished only when they have
+             * completed their full cycle requirement.
+             */
+            await _pushNotificationService
+                .NotifyPartnerCheckedInAsync(
                     receiverId,
-                    partnerName ?? "Your partner",
+                    senderName ?? "Your partner",
                     streak.HabitName,
-                    notificationStreakDay,
+                    streak.CurrentCount +
+                        (bothCompletedCycle ? 0 : 1),
                     sentMessage,
                     sentPhoto,
-                    receiverAlreadyCheckedInToday
+                    partnerCompletedBeforeCheckIn
                 );
-            }
+
+            var hoursUntilCycleEnds = Math.Max(
+                0,
+                (int)Math.Ceiling(
+                    (cycle.EndUtc - nowUtc).TotalHours
+                )
+            );
 
             return Ok(new
             {
                 streak.Id,
                 streak.CurrentCount,
+
+                RequiredCheckIns = requiredCheckIns,
+                CycleLength = cycleLength,
+                CycleUnit = cycleUnit,
+
+                CycleStartedAt = cycle.StartUtc,
+                CycleEndsAt = cycle.EndUtc,
+
+                UserCycleCheckInCount =
+                    currentUserCheckInCount,
+
+                PartnerCycleCheckInCount =
+                    partnerCheckInCount,
+
+                UserCompletedCycle =
+                    currentUserCompletedCycle,
+
+                PartnerCompletedCycle =
+                    partnerCompletedCycle,
+
+                BothCompletedCycle =
+                    bothCompletedCycle,
+
+                CanCheckInCurrentCycle =
+                    currentUserCheckInCount <
+                    requiredCheckIns,
+
+                HoursUntilCycleEnds =
+                    hoursUntilCycleEnds,
+
                 streak.LastCompletedAt,
                 streak.LastFullyCompletedAt,
                 streak.UserOneLastCheckedInAt,
                 streak.UserTwoLastCheckedInAt,
+
+                /*
+                 * Legacy response fields remain present until
+                 * the frontend has transitioned to cycle fields.
+                 */
                 UserCheckedInToday = true,
-                PartnerCheckedInToday = isUserOne ? userTwoCheckedInToday : userOneCheckedInToday,
-                BothCheckedInToday = bothCheckedInToday,
-                CanCheckInToday = false,
-                HoursUntilMidnight = hoursUntilMidnight,
-                TimeMessage = bothCheckedInToday
-                    ? $"Send another streak in {hoursUntilMidnight} hours"
-                    : $"Send a streak within {hoursUntilMidnight} hours or the streak dies!"
+                PartnerCheckedInToday =
+                    partnerCheckInCount > 0,
+                BothCheckedInToday =
+                    currentUserCheckInCount > 0 &&
+                    partnerCheckInCount > 0,
+                CanCheckInToday =
+                    currentUserCheckInCount <
+                    requiredCheckIns,
+
+                TimeMessage = currentUserCompletedCycle
+                    ? $"Cycle complete. Next cycle begins in approximately {hoursUntilCycleEnds} hours."
+                    : $"{currentUserCheckInCount} of {requiredCheckIns} check-ins complete this cycle."
             });
         }
     }
