@@ -261,44 +261,65 @@ export function HabitConfig({
 
                 {/* Accountability Partner */}
                 <div className={`rounded-3xl p-6 ${isDark ? 'bg-slate-800/50' : 'bg-white'}`}>
-                    <label className="block text-sm font-medium mb-4 text-slate-400">Accountability Partner</label>
+                    <label className="block text-sm font-medium mb-4 text-slate-400">
+                        Accountability Partner
+                    </label>
+
                     {preSelectedFriend ? (
                         <div className="flex items-center justify-between p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold">
                                     {preSelectedFriend.avatar}
                                 </div>
+
                                 <div>
-                                    <p className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{preSelectedFriend.name}</p>
-                                    <p className="text-xs text-teal-500">Selected Partner</p>
+                                    <p className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                        {preSelectedFriend.name}
+                                    </p>
+
+                                    <p className="text-xs text-teal-500">
+                                        Selected Partner
+                                    </p>
                                 </div>
                             </div>
-                            <button onClick={onFriends} className={`text-xs font-medium px-3 py-1 rounded-lg ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-600'}`}>
+
+                            <button
+                                type="button"
+                                onClick={onFriends}
+                                className={`text-xs font-medium px-3 py-1 rounded-lg ${isDark
+                                        ? 'bg-slate-700 text-slate-300'
+                                        : 'bg-slate-200 text-slate-600'
+                                    }`}
+                            >
                                 Change
                             </button>
                         </div>
                     ) : (
                         <button
+                            type="button"
                             onClick={onFriends}
-                            className={`w-full p-6 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center gap-2 ${isDark ? 'border-slate-700 text-slate-500 hover:border-slate-500' : 'border-slate-200 text-slate-400 hover:border-teal-300 hover:text-teal-500'
+                            className={`w-full p-6 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center gap-2 ${isDark
+                                    ? 'border-slate-700 text-slate-500 hover:border-slate-500'
+                                    : 'border-slate-200 text-slate-400 hover:border-teal-300 hover:text-teal-500'
                                 }`}
                         >
                             <Users className="w-8 h-8" />
-                            <span className="font-medium">Select a Friend to Start</span>
+                            <span className="font-medium">
+                                Select a Friend to Start
+                            </span>
                         </button>
                     )}
-                    <div className="mt-4 flex justify-center">
-                        <button
-                            type="button"
-                            onClick={handleExternalInvite}
-                            className={`text-sm font-medium transition-colors ${isDark
-                                    ? 'text-slate-400 hover:text-teal-400'
-                                    : 'text-slate-500 hover:text-teal-600'
-                                }`}
-                        >
-                            Invite someone who isn’t on Picability
-                        </button>
-                    </div>
+
+                    <button
+                        type="button"
+                        onClick={handleExternalInvite}
+                        className={`w-full mt-4 py-2 text-sm font-medium transition-colors ${isDark
+                                ? 'text-slate-400 hover:text-teal-400'
+                                : 'text-slate-500 hover:text-teal-600'
+                            }`}
+                    >
+                        Invite someone who isn’t on Picability
+                    </button>
                 </div>
 
                 {/* Action Button */}
