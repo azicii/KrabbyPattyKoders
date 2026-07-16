@@ -375,27 +375,59 @@ export default function App() {
         streakId: number,
         messageText: string,
         viewDurationSeconds: number
-    ) => {
-        if (!user) return;
+    ): Promise<boolean> => {
+        if (!user) return false;
 
-        const response = await fetch(`${BASE_URL}/api/CheckInContent/message`, {
-            method: 'POST',
-            headers: getAuthHeaders(user.token),
-            body: JSON.stringify({
-                streakId,
-                senderId: user.id,
-                messageText,
-                viewDurationSeconds
-            })
-        });
+        try {
+            const response = await fetch(
+                `${BASE_URL}/api/CheckInContent/message`,
+                {
+                    method: 'POST',
+                    headers: getAuthHeaders(user.token),
+                    body: JSON.stringify({
+                        streakId,
+                        senderId: user.id,
+                        messageText,
+                        viewDurationSeconds
+                    })
+                }
+            );
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            alert(errorText || "Failed to send message.");
-            return;
+            if (!response.ok) {
+                const errorText = await response.text();
+
+                alert(
+                    errorText ||
+                    'Failed to send the check-in message.'
+                );
+
+                return false;
+            }
+
+            const checkInSucceeded =
+                await handleCheckIn(streakId);
+
+            if (!checkInSucceeded) {
+                console.error(
+                    'Message content was created, but check-in completion failed.'
+                );
+
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            console.error(
+                'Check-in message error:',
+                error
+            );
+
+            alert(
+                'Network error while sending the check-in message.'
+            );
+
+            return false;
         }
-
-        await handleCheckIn(streakId);
     };
 
     const handleViewCheckInContent = async (contentId: number) => {
@@ -517,17 +549,63 @@ export default function App() {
         document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
     }, [isDark]);
 
-    const handleCheckIn = async (streakId: number) => {
-        if (!user) return;
+    const handleCheckIn = async (
+        streakId: number
+    ): Promise<boolean> => {
+        if (!user) return false;
+
         try {
-            const response = await fetch(`${BASE_URL}/api/Streaks/${streakId}/complete`, {
-                method: 'POST',
-                headers: getAuthHeaders(user.token),
-                body: JSON.stringify({})
-            });
-            if (response.ok) fetchStreaks();
+            const response = await fetch(
+                `${BASE_URL}/api/Streaks/${streakId}/complete`,
+                {
+                    method: 'POST',
+                    headers: getAuthHeaders(user.token),
+                    body: JSON.stringify({})
+                }
+            );
+
+            if (!response.ok) {
+                const contentType =
+                    response.headers.get('content-type');
+
+                let message =
+                    'The check-in could not be completed.';
+
+                if (contentType?.includes('application/json')) {
+                    const error = await response.json();
+
+                    message =
+                        error.message ??
+                        error.title ??
+                        message;
+                } else {
+                    const errorText = await response.text();
+
+                    if (errorText) {
+                        message = errorText;
+                    }
+                }
+
+                console.error(
+                    'Check-in failed:',
+                    response.status,
+                    message
+                );
+
+                alert(message);
+                await fetchStreaks();
+
+                return false;
+            }
+
+            await fetchStreaks();
+            await fetchPublicFeed();
+
+            return true;
         } catch (err) {
-            console.error("Check-in error:", err);
+            console.error('Check-in network error:', err);
+            alert('Network error while completing the check-in.');
+            return false;
         }
     };
 
@@ -817,30 +895,74 @@ export default function App() {
         streakId: number,
         photoDataUrl: string,
         viewDurationSeconds: number
-    ) => {
-        if (!user) return;
+    ): Promise<boolean> => {
+        if (!user) return false;
 
-        const response = await fetch(
-            `${BASE_URL}/api/CheckInContent/photo`,
-            {
-                method: 'POST',
-                headers: getAuthHeaders(user.token),
-                body: JSON.stringify({
-                    streakId,
-                    senderId: user.id,
-                    photoDataUrl,
-                    viewDurationSeconds
-                })
+        try {
+            const response = await fetch(
+                `${BASE_URL}/api/CheckInContent/photo`,
+                {
+                    method: 'POST',
+                    headers: getAuthHeaders(user.token),
+                    body: JSON.stringify({
+                        streakId,
+                        senderId: user.id,
+                        photoDataUrl,
+                        viewDurationSeconds
+                    })
+                }
+            );
+
+            if (!response.ok) {
+                const contentType =
+                    response.headers.get('content-type');
+
+                let message =
+                    'Failed to send the check-in photo.';
+
+                if (contentType?.includes('application/json')) {
+                    const error = await response.json();
+
+                    message =
+                        error.message ??
+                        error.title ??
+                        message;
+                } else {
+                    const errorText = await response.text();
+
+                    if (errorText) {
+                        message = errorText;
+                    }
+                }
+
+                alert(message);
+                return false;
             }
-        );
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            alert(errorText || "Failed to send photo.");
-            return;
+            const checkInSucceeded =
+                await handleCheckIn(streakId);
+
+            if (!checkInSucceeded) {
+                console.error(
+                    'Photo content was created, but check-in completion failed.'
+                );
+
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            console.error(
+                'Check-in photo error:',
+                error
+            );
+
+            alert(
+                'Network error while sending the check-in photo.'
+            );
+
+            return false;
         }
-
-        await handleCheckIn(streakId);
     };
 
     if (!user) {

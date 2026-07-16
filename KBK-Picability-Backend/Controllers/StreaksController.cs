@@ -154,13 +154,14 @@ namespace Picability.Controllers
                         pacificTimeZone
                     );
 
-                /*
-                 * Do not evaluate a cycle that ended entirely before flexible
-                 * check-in tracking was introduced for this streak.
+                                /*
+                 * Do not judge a partial first cycle.
+                 * Flexible tracking must have begun no later than the start
+                 * of the cycle for that cycle to count toward failure.
                  */
                 if (
-                    previousCycle.EndUtc <=
-                    streak.CycleTrackingStartedAt
+                    streak.CycleTrackingStartedAt >
+                    previousCycle.StartUtc
                 )
                 {
                     continue;
@@ -219,6 +220,19 @@ namespace Picability.Controllers
                     !userTwoCompletedCycle
                 )
                 {
+                    Console.WriteLine(
+                        "[STREAK FAILURE] " +
+                        $"StreakId={streak.Id}, " +
+                        $"Habit={streak.HabitName}, " +
+                        $"Required={requiredCheckIns}, " +
+                        $"Cycle={cycleLength} {cycleUnit}, " +
+                        $"TrackingStartedAt={streak.CycleTrackingStartedAt:o}, " +
+                        $"PreviousStart={previousCycle.StartUtc:o}, " +
+                        $"PreviousEnd={previousCycle.EndUtc:o}, " +
+                        $"UserOneCount={userOneCheckInCount}, " +
+                        $"UserTwoCount={userTwoCheckInCount}"
+                    );
+
                     streak.IsActive = false;
 
                     /*

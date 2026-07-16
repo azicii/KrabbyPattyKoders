@@ -101,30 +101,77 @@ namespace Picability.Controllers
             if (!areFriends)
                 return BadRequest("Users must be friends before starting a streak.");
 
-            bool duplicatePending = await _context.StreakRequests.AnyAsync(sr =>
-                sr.SenderId == currentUserId &&
-                sr.ReceiverId == dto.ReceiverId &&
-                sr.HabitName == dto.HabitName &&
-                sr.Status == "Pending");
+            var normalizedHabitName = dto.HabitName.Trim();
+
+            if (string.IsNullOrWhiteSpace(normalizedHabitName))
+            {
+                return BadRequest(new
+                {
+                    message = "Habit name is required."
+                });
+            }
+
+            var normalizedHabitNameLower =
+                normalizedHabitName.ToLower();
+
+            bool duplicatePending =
+                await _context.StreakRequests.AnyAsync(sr =>
+                    sr.Status == "Pending" &&
+                    (
+                        (
+                            sr.SenderId == currentUserId &&
+                            sr.ReceiverId == dto.ReceiverId
+                        ) ||
+                        (
+                            sr.SenderId == dto.ReceiverId &&
+                            sr.ReceiverId == currentUserId
+                        )
+                    ) &&
+                    sr.HabitName.Trim().ToLower() ==
+                        normalizedHabitNameLower
+                );
 
             if (duplicatePending)
-                return BadRequest("A pending streak request already exists.");
+            {
+                return Conflict(new
+                {
+                    message =
+                        "A pending request already exists for this habit between these users."
+                });
+            }
 
             // Added check to prevent multiple active streaks for the same habit between the same users
-            bool duplicateActive = await _context.Streaks.AnyAsync(s =>
-                ((s.UserOneId == currentUserId && s.UserTwoId == dto.ReceiverId) ||
-                (s.UserOneId == dto.ReceiverId && s.UserTwoId == currentUserId)) &&
-                s.HabitName == dto.HabitName &&
-                s.IsActive);
+            bool duplicateActive =
+                await _context.Streaks.AnyAsync(s =>
+            s.IsActive &&
+            (
+                (
+                    s.UserOneId == currentUserId &&
+                    s.UserTwoId == dto.ReceiverId
+                ) ||
+                (
+                    s.UserOneId == dto.ReceiverId &&
+                    s.UserTwoId == currentUserId
+                )
+            ) &&
+            s.HabitName.Trim().ToLower() ==
+                normalizedHabitNameLower
+                 );
 
             if (duplicateActive)
-                return BadRequest("You already have an active streak for this habit with this friend.");
+            {
+                return Conflict(new
+                {
+                    message =
+                        "You already have an active streak for this habit with this friend."
+                });
+            }
 
             var request = new StreakRequest
             {
                 SenderId = currentUserId,
                 ReceiverId = dto.ReceiverId,
-                HabitName = dto.HabitName,
+                HabitName = normalizedHabitName,
                 HabitIcon = dto.HabitIcon,
                 Color = dto.Color,
 
@@ -147,7 +194,7 @@ namespace Picability.Controllers
             await _pushNotificationService.NotifyStreakRequestAsync(
                 dto.ReceiverId,
                 senderName ?? "Your friend",
-                dto.HabitName
+                normalizedHabitName
             );
 
             return Ok(request);
@@ -311,6 +358,39 @@ namespace Picability.Controllers
             if (request.Status != "Pending")
                 return BadRequest("Request already handled.");
 
+            var normalizedHabitName =
+                request.HabitName.Trim().ToLower();
+
+            var activeDuplicate =
+                await _context.Streaks.FirstOrDefaultAsync(s =>
+                    s.IsActive &&
+                    (
+                        (
+                            s.UserOneId == request.SenderId &&
+                            s.UserTwoId == request.ReceiverId
+                        ) ||
+                        (
+                            s.UserOneId == request.ReceiverId &&
+                            s.UserTwoId == request.SenderId
+                        )
+                    ) &&
+                    s.HabitName.Trim().ToLower() ==
+                        normalizedHabitName
+                );
+
+            if (activeDuplicate != null)
+            {
+                request.Status = "Rejected";
+                await _context.SaveChangesAsync();
+
+                return Conflict(new
+                {
+                    message =
+                        "An active version of this streak already exists.",
+                    existingStreakId = activeDuplicate.Id
+                });
+            }
+
             var nowUtc = DateTime.UtcNow;
             var defaultDate = new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
@@ -328,6 +408,14 @@ namespace Picability.Controllers
             {
                 _context.Streaks.RemoveRange(oldDeadStreaks);
             }
+
+            Console.WriteLine(
+                "[STREAK ACCEPT] " +
+                $"RequestId={request.Id}, " +
+                $"Sender={request.SenderId}, " +
+                $"Receiver={request.ReceiverId}, " +
+                $"Habit={request.HabitName}"
+            );
 
             var streak = new Streak
             {

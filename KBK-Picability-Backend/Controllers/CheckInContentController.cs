@@ -218,8 +218,6 @@ namespace Picability.Controllers
         {
             await DeleteStaleCheckInContentAsync();
 
-            await DeleteStaleCheckInContentAsync();
-
             var currentUserId = GetCurrentUserId();
 
             if (currentUserId == null)
