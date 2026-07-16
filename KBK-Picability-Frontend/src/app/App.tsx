@@ -982,8 +982,10 @@ export default function App() {
             )}
 
             {isPrimaryScreen && (
-                <div
-                    className={`relative w-full min-h-screen overflow-x-hidden pb-20 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}
+                <>
+                    <div
+                        className={`relative w-full min-h-screen overflow-x-hidden pb-28 ${isDark ? 'bg-slate-900' : 'bg-slate-50'
+                            }`}
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
@@ -1077,12 +1079,14 @@ export default function App() {
                         </div>
                     </div>
 
+                    </div>
+
                     <MobileBottomNav
                         activeTab={mobileTab}
                         onChangeTab={handleMobileTabChange}
                         isDark={isDark}
                     />
-                </div>
+                </>
             )}
 
 {
