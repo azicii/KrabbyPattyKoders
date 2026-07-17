@@ -16,7 +16,11 @@ namespace Picability.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        private const int MaxPhotoDataUrlLength = 4_000_000;
+         /*
+         * Base64 is roughly 33% larger than the original image.
+         * 12 million characters allows approximately 9 MB of image data.
+         */
+        private const int MaxPhotoDataUrlLength = 12_000_000;
         private const int StaleContentRetentionDays = 365;
 
         public CheckInContentController(ApplicationDbContext context)
