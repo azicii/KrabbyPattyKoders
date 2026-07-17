@@ -1,4 +1,4 @@
-import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed, Bell, BellRing } from 'lucide-react';
+import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed, Bell, BellRing, FlipHorizontal2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -136,6 +136,63 @@ export function StreakTracker({
     const openUnreadContent = (content: any) => {
         setViewingContent(content);
         onViewCheckInContent?.(content.id);
+    };
+
+    const flipSelectedPhotoHorizontally = async () => {
+        if (!selectedPhoto) return;
+
+        try {
+            const image = new Image();
+
+            image.onload = () => {
+                const canvas = document.createElement('canvas');
+
+                canvas.width = image.naturalWidth;
+                canvas.height = image.naturalHeight;
+
+                const context = canvas.getContext('2d');
+
+                if (!context) {
+                    console.error(
+                        'Could not create canvas context for selfie flip.'
+                    );
+                    return;
+                }
+
+                context.translate(canvas.width, 0);
+                context.scale(-1, 1);
+
+                context.drawImage(
+                    image,
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                );
+
+                const originalType =
+                    selectedPhoto.startsWith('data:image/png')
+                        ? 'image/png'
+                        : 'image/jpeg';
+
+                const flippedPhoto = canvas.toDataURL(
+                    originalType,
+                    0.92
+                );
+
+                setSelectedPhoto(flippedPhoto);
+            };
+
+            image.onerror = () => {
+                console.error(
+                    'The selected photo could not be loaded for flipping.'
+                );
+            };
+
+            image.src = selectedPhoto;
+        } catch (error) {
+            console.error('Selfie flip failed:', error);
+        }
     };
 
     const handleStreakClick = (streakId: number) => {
@@ -1478,6 +1535,10 @@ export function StreakTracker({
                                                     reader.onload = () => {
                                                         setSelectedPhoto(reader.result as string);
                                                         setSelectedPhotoName(file.name);
+
+                                                        // Allows selecting the same photo again after closing
+                                                        // or replacing the current preview.
+                                                        e.target.value = '';
                                                     };
 
                                                     reader.readAsDataURL(file);
@@ -1486,11 +1547,27 @@ export function StreakTracker({
                                         </label>
 
                                         {selectedPhoto && (
-                                            <img
-                                                src={selectedPhoto}
-                                                alt="Preview"
-                                                className="w-full rounded-2xl max-h-64 object-cover"
-                                            />
+                                            <div className="relative overflow-hidden rounded-2xl">
+                                                <img
+                                                    src={selectedPhoto}
+                                                    alt="Selected check-in preview"
+                                                    className="w-full max-h-64 object-cover"
+                                                />
+
+                                                <button
+                                                    type="button"
+                                                    onClick={flipSelectedPhotoHorizontally}
+                                                    className={`absolute right-3 bottom-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold shadow-lg border backdrop-blur-md transition-all active:scale-95 ${isDark
+                                                            ? 'bg-slate-900/80 border-slate-600 text-white hover:bg-slate-800'
+                                                            : 'bg-white/85 border-slate-200 text-slate-800 hover:bg-white'
+                                                        }`}
+                                                    aria-label="Flip selfie horizontally"
+                                                    title="Flip selfie"
+                                                >
+                                                    <FlipHorizontal2 className="w-4 h-4" />
+                                                    <span>Flip selfie</span>
+                                                </button>
+                                            </div>
                                         )}
 
                                         <button
