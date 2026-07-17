@@ -360,11 +360,11 @@ export function StreakTracker({
             streak.canCheckInToday ??
             false;
 
-        if (!canCheckInNow && userDone && partnerDone) {
+        if (userDone && partnerDone) {
             return {
                 priority: 4,
-                label: 'Cycle complete',
-                detail: 'You both completed this cycle.',
+                label: 'Completed',
+                detail: 'Everyone completed the required check-ins.',
                 emoji: '🟢',
                 cardClass:
                     'shadow-[0_0_18px_rgba(16,185,129,0.16)]',
@@ -1170,7 +1170,7 @@ export function StreakTracker({
                                                                     }`}
                                                             >
                                                                 {bothCompletedCycle
-                                                                    ? 'Cycle complete — streak advanced!'
+                                                                    ? 'Completed'
                                                                     : userCompletedCycle
                                                                         ? `Your part is complete. Waiting on ${streak.userName}.`
                                                                         : `${requiredCheckIns - userCycleCheckIns} ${requiredCheckIns -

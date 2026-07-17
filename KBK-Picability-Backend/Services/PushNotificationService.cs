@@ -75,7 +75,7 @@ namespace Picability.Services
 
             var progressLine =
                 $"{normalizedCheckInNumber} of " +
-                $"{normalizedRequiredCheckIns} check-ins complete " +
+                $"{normalizedRequiredCheckIns} check-ins completed " +
                 $"{cycleDescription}.";
 
             var contentLine =
