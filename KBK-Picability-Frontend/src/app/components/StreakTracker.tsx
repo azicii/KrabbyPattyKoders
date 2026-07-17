@@ -130,7 +130,19 @@ export function StreakTracker({
     );
 
     const getUnreadForStreak = (streakId: number) => {
-        return unreadContent?.find(c => c.streakId === streakId);
+        return unreadContent
+            ?.filter(c => c.streakId === streakId)
+            .sort((a, b) => {
+                // Oldest check-in in the current cycle first.
+                if (a.checkInNumber !== b.checkInNumber) {
+                    return a.checkInNumber - b.checkInNumber;
+                }
+
+                return (
+                    new Date(a.createdAt).getTime() -
+                    new Date(b.createdAt).getTime()
+                );
+            })[0];
     };
 
     const openUnreadContent = (content: any) => {
