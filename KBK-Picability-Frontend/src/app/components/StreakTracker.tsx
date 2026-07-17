@@ -1353,10 +1353,16 @@ export function StreakTracker({
                         );
                     })}
 
-                    {checkInModalStreak && createPortal (
-                        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    {checkInModalStreak && createPortal(
+                        <div
+                            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-6"
+                            style={{
+                                paddingTop: 'max(24px, env(safe-area-inset-top))',
+                                paddingBottom: 'max(24px, env(safe-area-inset-bottom))'
+                            }}
+                        >
                             <div
-                                className={`w-full max-w-md rounded-3xl p-6 shadow-2xl border animate-in fade-in slide-in-from-bottom-4 duration-200 ${isDark
+                                className={`w-full max-w-md max-h-[calc(100dvh-48px)] overflow-y-auto overscroll-contain rounded-3xl p-6 shadow-2xl border animate-in fade-in zoom-in-95 duration-200 ${isDark
                                         ? 'bg-slate-900 border-slate-700 text-slate-100'
                                         : 'bg-white border-slate-200 text-slate-800'
                                     }`}
@@ -1371,7 +1377,7 @@ export function StreakTracker({
                                     </h2>
 
                                     <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                        How do you want to check in today?
+                                        How do you want to check in?
                                     </p>
                                 </div>
 
