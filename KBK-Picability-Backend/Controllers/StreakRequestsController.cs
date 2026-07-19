@@ -422,6 +422,9 @@ namespace Picability.Controllers
                 UserOneId = request.SenderId,
                 UserTwoId = request.ReceiverId,
 
+                CreatedByUserId = request.SenderId,
+                IsGroupStreak = false,
+
                 HabitName = request.HabitName,
                 HabitIcon = request.HabitIcon,
                 Color = request.Color,
@@ -442,6 +445,36 @@ namespace Picability.Controllers
 
             _context.Streaks.Add(streak);
             request.Status = "Accepted";
+
+            // First save creates the Streak row and gives streak.Id
+            // its database-generated value.
+            await _context.SaveChangesAsync();
+
+            // Every streak now gets StreakMember records.
+            // Existing two-person controller logic can continue using
+            // UserOneId and UserTwoId while the application is gradually
+            // migrated to the member-based architecture.
+            var streakMembers = new List<StreakMember>
+            {
+                new StreakMember
+                {
+                    StreakId = streak.Id,
+                    UserId = request.SenderId,
+                    IsCreator = true,
+                    VisibilityPublic = streak.UserOneVisibilityPublic,
+                    JoinedAt = nowUtc
+                },
+                new StreakMember
+                {
+                    StreakId = streak.Id,
+                    UserId = request.ReceiverId,
+                    IsCreator = false,
+                    VisibilityPublic = streak.UserTwoVisibilityPublic,
+                    JoinedAt = nowUtc
+                }
+            };
+
+            _context.StreakMembers.AddRange(streakMembers);
 
             await _context.SaveChangesAsync();
 
