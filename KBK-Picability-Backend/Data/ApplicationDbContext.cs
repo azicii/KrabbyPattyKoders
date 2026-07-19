@@ -19,6 +19,8 @@ namespace Picability.Data
         public DbSet<StreakReaction> StreakReactions { get; set; }
         public DbSet<PushSubscription> PushSubscriptions { get; set; }
         public DbSet<StreakCheckIn> StreakCheckIns { get; set; }
+        public DbSet<StreakMember> StreakMembers { get; set; }
+        public DbSet<StreakRequestMember> StreakRequestMembers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -177,6 +179,72 @@ namespace Picability.Data
             builder.Entity<Streak>()
                 .Property(s => s.CycleTrackingStartedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            builder.Entity<StreakMember>()
+                .HasOne(sm => sm.Streak)
+                .WithMany(s => s.Members)
+                .HasForeignKey(sm => sm.StreakId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<StreakMember>()
+                .HasOne(sm => sm.User)
+                .WithMany()
+                .HasForeignKey(sm => sm.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<StreakMember>()
+                .HasIndex(sm => new
+                {
+                    sm.StreakId,
+                    sm.UserId
+                })
+                .IsUnique();
+
+            builder.Entity<StreakMember>()
+                .Property(sm => sm.VisibilityPublic)
+                .HasDefaultValue(true);
+
+            builder.Entity<StreakMember>()
+                .Property(sm => sm.IsCreator)
+                .HasDefaultValue(false);
+
+            builder.Entity<StreakRequestMember>()
+                .HasOne(srm => srm.StreakRequest)
+                .WithMany(sr => sr.Members)
+                .HasForeignKey(srm => srm.StreakRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<StreakRequestMember>()
+                .HasOne(srm => srm.User)
+                .WithMany()
+                .HasForeignKey(srm => srm.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<StreakRequestMember>()
+                .HasIndex(srm => new
+                {
+                    srm.StreakRequestId,
+                    srm.UserId
+                })
+                .IsUnique();
+
+            builder.Entity<StreakRequestMember>()
+                .Property(srm => srm.Status)
+                .HasDefaultValue("Pending");
+
+            builder.Entity<Streak>()
+                .HasOne(s => s.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(s => s.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Streak>()
+                .Property(s => s.IsGroupStreak)
+                .HasDefaultValue(false);
+
+            builder.Entity<StreakRequest>()
+                .Property(sr => sr.IsGroupRequest)
+                .HasDefaultValue(false);
         }
     }
 }

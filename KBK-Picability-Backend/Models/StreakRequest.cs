@@ -23,5 +23,14 @@
         // Supported values will be "Day", "Week", or "Month".
         public string CycleUnit { get; set; } = "Day";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // False for the existing standard two-person request.
+        // True when one request contains multiple invited members.
+        public bool IsGroupRequest { get; set; } = false;
+
+        // Group requests will use this collection to track each
+        // invited user's individual response.
+        public ICollection<StreakRequestMember> Members { get; set; }
+            = new List<StreakRequestMember>();
     }
 }

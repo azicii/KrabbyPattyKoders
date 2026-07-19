@@ -17,6 +17,23 @@
         public int CurrentCount { get; set; } = 0;
         public bool IsActive { get; set; } = true;
 
+        // False for the standard two-person streak.
+        // True when more than two people participate.
+        public bool IsGroupStreak { get; set; } = false;
+
+        // The user who originally created the streak.
+        // Existing two-person streaks will be backfilled using UserOneId,
+        // because UserOne is currently the original streak request sender.
+        public string? CreatedByUserId { get; set; }
+
+        public ApplicationUser? CreatedByUser { get; set; }
+
+        // New participant relationship.
+        // Controllers will gradually migrate to using this instead of
+        // UserOneId and UserTwoId.
+        public ICollection<StreakMember> Members { get; set; }
+            = new List<StreakMember>();
+
         // Number of check-ins each participant must complete in one cycle.
         public int RequiredCheckIns { get; set; } = 1;
 
