@@ -82,6 +82,8 @@ export default function App() {
     const [selectedHabitType, setSelectedHabitType] = useState<number | 'create' | null>(null);
     const [streaks, setStreaks] = useState<Streak[]>([]);
     const [preSelectedFriend, setPreSelectedFriend] = useState<User | null>(null);
+    const [selectedGroupFriends, setSelectedGroupFriends] = useState<User[]>([]);
+    const [isSelectingGroupFriends, setIsSelectingGroupFriends] = useState(false);
     const [lastRequestConfig, setLastRequestConfig] = useState<{ user: User; habitName: string } | null>(null);
     const [streakInvites, setStreakInvites] = useState<any[]>([]);
     const [sentStreakRequests, setSentStreakRequests] = useState<any[]>([]);
@@ -792,34 +794,109 @@ export default function App() {
         setCurrentScreen('selector');
     };
 
+    const handleToggleGroupFriend = (friend: User) => {
+        setSelectedGroupFriends(current => {
+            const alreadySelected =
+                current.some(selected =>
+                    selected.id === friend.id
+                );
+
+            if (alreadySelected) {
+                return current.filter(selected =>
+                    selected.id !== friend.id
+                );
+            }
+
+            return [
+                ...current,
+                friend
+            ];
+        });
+    };
+
+    const handleFinishGroupFriendSelection = () => {
+        setIsSelectingGroupFriends(false);
+        setIsSelectingFriendForStreak(false);
+        setCurrentScreen('config');
+    };
+
     const handleAddHabit = () => {
         setPreSelectedFriend(null);
+        setSelectedGroupFriends([]);
+        setIsSelectingGroupFriends(false);
+
         setSelectedHabitType(null);
         setCurrentScreen('selector');
         setDraftHabitConfig(null);
     };
 
-    const handleAcceptStreakInvite = async (requestId: number) => {
+    const handleAcceptStreakInvite = async (
+        requestId: number,
+        isGroupRequest = false
+    ) => {
         try {
-            const response = await fetch(`${BASE_URL}/api/StreakRequests/accept/${requestId}`, {
+            const endpoint = isGroupRequest
+                ? `${BASE_URL}/api/StreakRequests/group/${requestId}/accept`
+                : `${BASE_URL}/api/StreakRequests/accept/${requestId}`;
+
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: getAuthHeaders(user.token)
             });
+
             if (response.ok) {
                 setTimeout(() => {
                     fetchStreakInvites();
                     fetchSentStreakRequests();
                     fetchStreaks();
                 }, 800);
+            } else {
+                const contentType =
+                    response.headers.get('content-type');
+
+                let message =
+                    'Failed to accept streak request.';
+
+                if (contentType?.includes('application/json')) {
+                    const error = await response.json();
+
+                    message =
+                        error.message ??
+                        error.title ??
+                        message;
+                } else {
+                    const errorText =
+                        await response.text();
+
+                    if (errorText) {
+                        message = errorText;
+                    }
+                }
+
+                alert(message);
             }
         } catch (err) {
-            console.error("Error accepting streak:", err);
+            console.error(
+                "Error accepting streak:",
+                err
+            );
+
+            alert(
+                "Network error while accepting streak request."
+            );
         }
     };
 
-    const handleRejectStreakInvite = async (requestId: number) => {
+    const handleRejectStreakInvite = async (
+        requestId: number,
+        isGroupRequest = false
+    ) => {
         try {
-            const response = await fetch(`${BASE_URL}/api/StreakRequests/reject/${requestId}`, {
+            const endpoint = isGroupRequest
+                ? `${BASE_URL}/api/StreakRequests/group/${requestId}/reject`
+                : `${BASE_URL}/api/StreakRequests/reject/${requestId}`;
+
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: getAuthHeaders(user.token)
             });
@@ -829,16 +906,67 @@ export default function App() {
                 fetchSentStreakRequests();
                 fetchStreaks();
             } else {
-                alert("Failed to reject streak request.");
+                const contentType =
+                    response.headers.get('content-type');
+
+                let message =
+                    'Failed to reject streak request.';
+
+                if (contentType?.includes('application/json')) {
+                    const error = await response.json();
+
+                    message =
+                        error.message ??
+                        error.title ??
+                        message;
+                } else {
+                    const errorText =
+                        await response.text();
+
+                    if (errorText) {
+                        message = errorText;
+                    }
+                }
+
+                alert(message);
             }
         } catch (err) {
-            console.error("Error rejecting streak:", err);
+            console.error(
+                "Error rejecting streak:",
+                err
+            );
+
+            alert(
+                "Network error while rejecting streak request."
+            );
         }
     };
 
     const handleConfirmConfig = async (config: HabitConfiguration) => {
-        if (!user || !config.friendId) {
-            alert("Please select a friend before starting the streak.");
+        if (!user) {
+            return;
+        }
+
+        if (
+            config.IsGroupRequest &&
+            (!config.participantIds ||
+                config.participantIds.length < 2)
+        ) {
+            alert(
+                "Please select at least two friends for the group streak."
+            );
+
+            return;
+        }
+
+        if (
+            !config.IsGroupRequest &&
+            !config.friendId
+        ) {
+            alert(
+                "Please select a friend before starting the streak."
+            );
+
             return;
         }
 
@@ -848,15 +976,37 @@ export default function App() {
                 headers: getAuthHeaders(user.token),
                 body: JSON.stringify({
                     senderId: user.id,
-                    receiverId: config.friendId,
 
-                    habitName: config.HabitName,
-                    habitIcon: config.HabitIcon,
-                    color: config.Color,
+                    receiverId:
+                        config.IsGroupRequest
+                            ? ''
+                            : config.friendId,
 
-                    requiredCheckIns: config.RequiredCheckIns,
-                    cycleLength: config.CycleLength,
-                    cycleUnit: config.CycleUnit
+                    receiverIds:
+                        config.IsGroupRequest
+                            ? config.participantIds
+                            : [],
+
+                    isGroupRequest:
+                        config.IsGroupRequest === true,
+
+                    habitName:
+                        config.HabitName,
+
+                    habitIcon:
+                        config.HabitIcon,
+
+                    color:
+                        config.Color,
+
+                    requiredCheckIns:
+                        config.RequiredCheckIns,
+
+                    cycleLength:
+                        config.CycleLength,
+
+                    cycleUnit:
+                        config.CycleUnit
                 })
             });
 
@@ -1035,7 +1185,22 @@ export default function App() {
                                 onFindFriends={() => setCurrentScreen('user-search')}
                                 currentUserId={user.id}
                                 onRemoveFriend={handleRemoveFriend}
-                                refreshKey={friendsRefreshKey}
+                                    refreshKey={friendsRefreshKey}
+                                    multiSelectMode={isSelectingGroupFriends}
+
+                                    selectedFriendIds={
+                                        selectedGroupFriends.map(
+                                            friend => friend.id
+                                        )
+                                    }
+
+                                    onToggleFriendSelection={
+                                        handleToggleGroupFriend
+                                    }
+
+                                    onFinishMultiSelect={
+                                        handleFinishGroupFriendSelection
+                                    }
                             />
                         </div>
 
@@ -1128,6 +1293,13 @@ export default function App() {
             preSelectedFriend={preSelectedFriend}
             draftConfig={draftHabitConfig}
             onDraftChange={setDraftHabitConfig}
+            selectedGroupFriends={selectedGroupFriends}
+            onSelectGroupFriends={() => {
+                setIsSelectingGroupFriends(true);
+                setIsSelectingFriendForStreak(true);
+                setCurrentScreen('friends-list');
+                setMobileTab('friends');
+            }}
         />
     )
 }

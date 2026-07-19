@@ -26,17 +26,25 @@ interface FriendsListProps {
   onRemoveFriend?: (friendId: string, friendName: string) => Promise<boolean>; // Updated signature
   currentUserId: string; // From App.tsx
   refreshKey: number;
+  multiSelectMode?: boolean;
+  selectedFriendIds?: string[];
+  onToggleFriendSelection?: (friend: User) => void;
+  onFinishMultiSelect?: () => void;
 }
 
 export function FriendsList({
-  isDark,
-  onToggleDark,
-  onBack,
-  onSelectFriend,
-  onFindFriends,
-  onRemoveFriend,
-  currentUserId,
-  refreshKey
+    isDark,
+    onToggleDark,
+    onBack,
+    onSelectFriend,
+    onFindFriends,
+    onRemoveFriend,
+    currentUserId,
+    refreshKey,
+    multiSelectMode = false,
+    selectedFriendIds = [],
+    onToggleFriendSelection,
+    onFinishMultiSelect
 }: FriendsListProps) {
   const [friends, setFriends] = useState<User[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<(User & { requestId: number })[]>([]);
@@ -193,7 +201,47 @@ export function FriendsList({
               </button>
         <h1 className={`text-2xl font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>My Friends</h1>
         <button onClick={onToggleDark} className={`p-3 rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-white shadow-sm'}`}>{isDark ? <Sun className="text-amber-400" /> : <Moon className="text-slate-600" />}</button>
-      </div>
+          </div>
+
+          {multiSelectMode && (
+              <div className="max-w-2xl mx-auto mb-6">
+                  <div
+                      className={`p-5 rounded-3xl border ${isDark
+                              ? 'bg-teal-500/10 border-teal-500/20'
+                              : 'bg-teal-50 border-teal-200'
+                          }`}
+                  >
+                      <div className="flex items-center justify-between gap-4">
+                          <div>
+                              <h2
+                                  className={`font-semibold ${isDark
+                                          ? 'text-slate-100'
+                                          : 'text-slate-800'
+                                      }`}
+                              >
+                                  Select group participants
+                              </h2>
+
+                              <p className="text-sm text-slate-500 mt-1">
+                                  {selectedFriendIds.length} selected
+                              </p>
+                          </div>
+
+                          <button
+                              type="button"
+                              onClick={onFinishMultiSelect}
+                              disabled={selectedFriendIds.length < 2}
+                              className={`px-5 py-3 rounded-2xl font-semibold transition-all ${selectedFriendIds.length >= 2
+                                      ? 'bg-teal-600 text-white hover:bg-teal-500'
+                                      : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                                  }`}
+                          >
+                              Done
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          )}
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Find Friends Button */}
@@ -229,26 +277,90 @@ export function FriendsList({
           {loading ? (
              <div className="flex justify-center py-10"><Loader2 className="animate-spin text-teal-500" /></div>
           ) : friends.length > 0 ? (
-            friends.map(friend => (
-              <div key={friend.id} className="flex gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <button onClick={() => onSelectFriend?.(friend)} className={`flex-1 flex items-center justify-between p-5 rounded-3xl transition-all ${isDark ? 'bg-slate-800/50 hover:bg-slate-800' : 'bg-white hover:bg-slate-50 shadow-sm'}`}>
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold">{friend.avatar}</div>
-                    <div className="text-left">
-                      <h3 className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{friend.name}</h3>
-                      <p className="text-sm text-slate-500">{friend.username}</p>
-                    </div>
-                  </div>
-                  <Zap className="text-teal-500 w-5 h-5" />
-                </button>
-                <button 
-                  onClick={() => handleUnfriend(friend.id, friend.name)}
-                  className={`p-4 rounded-3xl transition-all ${isDark ? 'bg-slate-800/50 hover:bg-rose-500/20 text-rose-500' : 'bg-white hover:bg-rose-50 text-rose-500 shadow-sm'}`}
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-            ))
+                          friends.map(friend => {
+                              const isSelected =
+                                  selectedFriendIds.includes(friend.id);
+
+                              return (
+                                  <div
+                                      key={friend.id}
+                                      className="flex gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                                  >
+                                      <button
+                                          type="button"
+                                          onClick={() => {
+                                              if (multiSelectMode) {
+                                                  onToggleFriendSelection?.(friend);
+                                              } else {
+                                                  onSelectFriend?.(friend);
+                                              }
+                                          }}
+                                          className={`flex-1 flex items-center justify-between p-5 rounded-3xl transition-all ${isSelected && multiSelectMode
+                                                  ? 'ring-2 ring-teal-500 bg-teal-500/10'
+                                                  : isDark
+                                                      ? 'bg-slate-800/50 hover:bg-slate-800'
+                                                      : 'bg-white hover:bg-slate-50 shadow-sm'
+                                              }`}
+                                      >
+                                          <div className="flex items-center gap-4">
+                                              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold">
+                                                  {friend.avatar}
+                                              </div>
+
+                                              <div className="text-left">
+                                                  <h3
+                                                      className={`font-semibold ${isDark
+                                                              ? 'text-slate-100'
+                                                              : 'text-slate-800'
+                                                          }`}
+                                                  >
+                                                      {friend.name}
+                                                  </h3>
+
+                                                  <p className="text-sm text-slate-500">
+                                                      {friend.username}
+                                                  </p>
+                                              </div>
+                                          </div>
+
+                                          {multiSelectMode ? (
+                                              <div
+                                                  className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${isSelected
+                                                          ? 'bg-teal-500 border-teal-500 text-white'
+                                                          : isDark
+                                                              ? 'border-slate-600'
+                                                              : 'border-slate-300'
+                                                      }`}
+                                              >
+                                                  {isSelected && (
+                                                      <Check className="w-4 h-4" />
+                                                  )}
+                                              </div>
+                                          ) : (
+                                              <Zap className="text-teal-500 w-5 h-5" />
+                                          )}
+                                      </button>
+
+                                      {!multiSelectMode && (
+                                          <button
+                                              type="button"
+                                              onClick={() =>
+                                                  handleUnfriend(
+                                                      friend.id,
+                                                      friend.name
+                                                  )
+                                              }
+                                              className={`p-4 rounded-3xl transition-all ${isDark
+                                                      ? 'bg-slate-800/50 hover:bg-rose-500/20 text-rose-500'
+                                                      : 'bg-white hover:bg-rose-50 text-rose-500 shadow-sm'
+                                                  }`}
+                                          >
+                                              <Trash2 className="w-5 h-5" />
+                                          </button>
+                                      )}
+                                  </div>
+                              );
+                          })
           ) : (
             <div className="text-center py-10 text-slate-500">No friends yet. Start searching!</div>
           )}

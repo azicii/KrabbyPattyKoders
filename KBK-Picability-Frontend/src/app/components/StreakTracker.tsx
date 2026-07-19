@@ -62,8 +62,15 @@ interface StreakTrackerProps {
     streaks: Streak[];
     streakInvites?: any[];
     sentStreakRequests?: any[];
-    onAcceptInvite?: (id: number) => void;
-    onRejectInvite?: (id: number) => void;
+    onAcceptInvite?: (
+        id: number,
+        isGroupRequest?: boolean
+    ) => void;
+
+    onRejectInvite?: (
+        id: number,
+        isGroupRequest?: boolean
+    ) => void;
     onCancelPendingStreakRequest?: (id: number) => void;
     onRestartStreak?: (streak: Streak) => void;
     pendingFriendRequestCount?: number;
@@ -636,7 +643,10 @@ export function StreakTracker({
                                                         disabled={isAccepted}
                                                         onClick={() => {
                                                             setAcceptedIds(prev => [...prev, invite.id]);
-                                                            onAcceptInvite?.(invite.id);
+                                                            onAcceptInvite?.(
+                                                                invite.id,
+                                                                invite.isGroupRequest === true
+                                                            );
                                                         }}
                                                         className={`p-2 rounded-lg transition-all duration-300 ${isAccepted
                                                             ? 'bg-emerald-500 text-white scale-110'
@@ -650,7 +660,10 @@ export function StreakTracker({
                                                     <button
                                                         disabled={isAccepted}
                                                         onClick={() => {
-                                                            onRejectInvite?.(invite.id);
+                                                            onRejectInvite?.(
+                                                                invite.id,
+                                                                invite.isGroupRequest === true
+                                                            );
                                                         }}
                                                         className="p-2 rounded-lg bg-rose-600 text-white hover:bg-rose-500 transition-all duration-300"
                                                         title="Reject streak request"
@@ -782,14 +795,24 @@ export function StreakTracker({
 
                                             <div className="flex items-center gap-2 w-full sm:w-auto">
                                                 <button
-                                                    onClick={() => onAcceptInvite?.(invite.id)}
+                                                    onClick={() =>
+                                                        onAcceptInvite?.(
+                                                            invite.id,
+                                                            invite.isGroupRequest === true
+                                                        )
+                                                    }
                                                     className="flex-1 sm:flex-none px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all"
                                                 >
                                                     Accept
                                                 </button>
 
                                                 <button
-                                                    onClick={() => onRejectInvite?.(invite.id)}
+                                                    onClick={() =>
+                                                        onRejectInvite?.(
+                                                            invite.id,
+                                                            invite.isGroupRequest === true
+                                                        )
+                                                    }
                                                     className="flex-1 sm:flex-none px-4 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all"
                                                 >
                                                     Reject

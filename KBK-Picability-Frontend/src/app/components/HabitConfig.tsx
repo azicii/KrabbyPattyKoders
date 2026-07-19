@@ -11,6 +11,8 @@ interface HabitConfigProps {
     habitType?: number | 'create';
     presetHabitName?: string;
     preSelectedFriend?: User | null;
+    selectedGroupFriends?: User[];
+    onSelectGroupFriends?: () => void;
     existingHabitNames?: string[];
     draftConfig?: Partial<HabitConfiguration> | null;
     onDraftChange?: (config: Partial<HabitConfiguration>) => void;
@@ -28,9 +30,14 @@ export interface HabitConfiguration {
     CycleLength: number;
     CycleUnit: 'Day' | 'Week' | 'Month';
 
+    // Standard 2-person streak.
     friendId?: string;
     friendName?: string;
     friendAvatar?: string;
+
+    // Group streak.
+    IsGroupRequest?: boolean;
+    participantIds?: string[];
 }
 
 const iconOptions = [
@@ -91,6 +98,8 @@ export function HabitConfig({
     habitType,
     presetHabitName = '',
     preSelectedFriend = null,
+    selectedGroupFriends = [],
+    onSelectGroupFriends,
     existingHabitNames = [],
     draftConfig = null,
     onDraftChange
@@ -104,6 +113,9 @@ export function HabitConfig({
         }
         return 0;
     });
+    const [isGroupRequest, setIsGroupRequest] = useState(
+        draftConfig?.IsGroupRequest ?? false
+    );
     const [selectedColorIndex, setSelectedColorIndex] = useState(() => {
         if (draftConfig?.Color) {
             const index = colorOptions.findIndex(color => color.gradient === draftConfig.Color);
@@ -134,7 +146,15 @@ export function HabitConfig({
     const isDuplicate = existingHabitNames.some(
         (name) => name.toLowerCase() === habitName.trim().toLowerCase()
     );
-    const canSubmit = habitName.trim().length > 0 && preSelectedFriend !== null && !isDuplicate;
+    const hasValidParticipants =
+        isGroupRequest
+            ? selectedGroupFriends.length >= 2
+            : preSelectedFriend !== null;
+
+    const canSubmit =
+        habitName.trim().length > 0 &&
+        hasValidParticipants &&
+        !isDuplicate;
     const handleExternalInvite = async () => {
         const trimmedHabitName = habitName.trim();
 
@@ -180,22 +200,58 @@ export function HabitConfig({
     };
     const handleConfirm = () => {
         if (!canSubmit) return;
-        if (!preSelectedFriend) return;
+
+        if (!isGroupRequest && !preSelectedFriend) {
+            return;
+        }
 
         const config: HabitConfiguration = {
-            HabitName: habitName || presetHabitName,
-            HabitIcon: iconOptions[selectedIconIndex].componentName,
+            HabitName:
+                habitName || presetHabitName,
 
-            Color: colorOptions[selectedColorIndex].gradient,
+            HabitIcon:
+                iconOptions[selectedIconIndex]
+                    .componentName,
 
-            RequiredCheckIns: requiredCheckIns,
-            CycleLength: cycleLength,
-            CycleUnit: cycleUnit,
+            Color:
+                colorOptions[selectedColorIndex]
+                    .gradient,
 
-            friendId: preSelectedFriend.id,
-            friendName: preSelectedFriend.name,
-            friendAvatar: preSelectedFriend.avatar,
+            RequiredCheckIns:
+                requiredCheckIns,
+
+            CycleLength:
+                cycleLength,
+
+            CycleUnit:
+                cycleUnit,
+
+            IsGroupRequest:
+                isGroupRequest,
+
+            participantIds:
+                isGroupRequest
+                    ? selectedGroupFriends.map(
+                        friend => friend.id
+                    )
+                    : undefined,
+
+            friendId:
+                !isGroupRequest
+                    ? preSelectedFriend?.id
+                    : undefined,
+
+            friendName:
+                !isGroupRequest
+                    ? preSelectedFriend?.name
+                    : undefined,
+
+            friendAvatar:
+                !isGroupRequest
+                    ? preSelectedFriend?.avatar
+                    : undefined
         };
+
         onConfirm?.(config);
     };
 
@@ -220,7 +276,9 @@ export function HabitConfig({
 
             RequiredCheckIns: requiredCheckIns,
             CycleLength: cycleLength,
-            CycleUnit: cycleUnit
+            CycleUnit: cycleUnit,
+
+            IsGroupRequest: isGroupRequest
         });
     }, [
         habitName,
@@ -228,6 +286,7 @@ export function HabitConfig({
         selectedColorIndex,
         requiredCheckIns,
         cycleLength,
+        isGroupRequest,
         cycleUnit
     ]);
 
@@ -478,74 +537,238 @@ export function HabitConfig({
                     )}
                 </div>
 
-                {/* Accountability Partner */}
-                <div className={`rounded-3xl p-6 ${isDark ? 'bg-slate-800/50' : 'bg-white'}`}>
+                {/* Accountability Partner / Group Participants */}
+                <div
+                    className={`rounded-3xl p-6 ${isDark
+                            ? 'bg-slate-800/50'
+                            : 'bg-white'
+                        }`}
+                >
                     <label className="block text-sm font-medium mb-4 text-slate-400">
-                        Accountability Partner
+                        {isGroupRequest
+                            ? 'Streak Participants'
+                            : 'Accountability Partner'}
                     </label>
 
-                    {preSelectedFriend ? (
-                        <div className="flex items-center justify-between p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold">
-                                    {preSelectedFriend.avatar}
-                                </div>
+                    {!isGroupRequest && (
+                        <>
+                            {preSelectedFriend ? (
+                                <div className="flex items-center justify-between p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold">
+                                            {preSelectedFriend.avatar}
+                                        </div>
 
-                                <div>
-                                    <p className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                        {preSelectedFriend.name}
-                                    </p>
+                                        <div>
+                                            <p
+                                                className={`font-semibold ${isDark
+                                                        ? 'text-white'
+                                                        : 'text-slate-900'
+                                                    }`}
+                                            >
+                                                {preSelectedFriend.name}
+                                            </p>
 
-                                    <p className="text-xs text-teal-500">
-                                        Selected Partner
-                                    </p>
+                                            <p className="text-xs text-teal-500">
+                                                Selected Partner
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={onFriends}
+                                        className={`text-xs font-medium px-3 py-1 rounded-lg ${isDark
+                                                ? 'bg-slate-700 text-slate-300'
+                                                : 'bg-slate-200 text-slate-600'
+                                            }`}
+                                    >
+                                        Change
+                                    </button>
                                 </div>
-                            </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={onFriends}
+                                    className={`w-full p-6 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center gap-2 ${isDark
+                                            ? 'border-slate-700 text-slate-500 hover:border-slate-500'
+                                            : 'border-slate-200 text-slate-400 hover:border-teal-300 hover:text-teal-500'
+                                        }`}
+                                >
+                                    <Users className="w-8 h-8" />
+
+                                    <span className="font-medium">
+                                        Select a Friend to Start
+                                    </span>
+                                </button>
+                            )}
+                        </>
+                    )}
+
+                    {isGroupRequest && (
+                        <div className="space-y-3">
+                            {selectedGroupFriends.length > 0 && (
+                                <div className="space-y-2">
+                                    {selectedGroupFriends.map(friend => (
+                                        <div
+                                            key={friend.id}
+                                            className="flex items-center gap-3 p-3 rounded-2xl bg-teal-500/10 border border-teal-500/20"
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white text-sm font-bold">
+                                                {friend.avatar}
+                                            </div>
+
+                                            <div className="min-w-0 flex-1">
+                                                <p
+                                                    className={`font-semibold truncate ${isDark
+                                                            ? 'text-white'
+                                                            : 'text-slate-900'
+                                                        }`}
+                                                >
+                                                    {friend.name}
+                                                </p>
+
+                                                <p className="text-xs text-teal-500">
+                                                    Group participant
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
                             <button
                                 type="button"
-                                onClick={onFriends}
-                                className={`text-xs font-medium px-3 py-1 rounded-lg ${isDark
-                                        ? 'bg-slate-700 text-slate-300'
-                                        : 'bg-slate-200 text-slate-600'
+                                onClick={onSelectGroupFriends}
+                                className={`w-full p-4 rounded-2xl border-2 border-dashed transition-all flex items-center justify-center gap-2 ${isDark
+                                        ? 'border-slate-700 text-slate-400 hover:border-teal-500'
+                                        : 'border-slate-200 text-slate-500 hover:border-teal-400'
                                     }`}
                             >
-                                Change
+                                <Users className="w-5 h-5" />
+
+                                <span className="font-medium">
+                                    {selectedGroupFriends.length > 0
+                                        ? 'Edit Group Participants'
+                                        : 'Select Group Participants'}
+                                </span>
                             </button>
+
+                            <p
+                                className={`text-xs text-center ${selectedGroupFriends.length >= 2
+                                        ? 'text-teal-500'
+                                        : isDark
+                                            ? 'text-slate-500'
+                                            : 'text-slate-400'
+                                    }`}
+                            >
+                                {selectedGroupFriends.length >= 2
+                                    ? `${selectedGroupFriends.length + 1} people total, including you`
+                                    : 'Select at least 2 friends for a group streak'}
+                            </p>
                         </div>
-                    ) : (
+                    )}
+                </div>
+
+                {/* Group Streak Toggle */}
+                <div
+                    className={`rounded-3xl p-6 ${isDark
+                            ? 'bg-slate-800/50'
+                            : 'bg-white'
+                        }`}
+                >
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                            <h3
+                                className={`text-base font-semibold ${isDark
+                                        ? 'text-slate-100'
+                                        : 'text-slate-800'
+                                    }`}
+                            >
+                                More than 2 people?
+                            </h3>
+
+                            <p
+                                className={`text-sm mt-1 ${isDark
+                                        ? 'text-slate-400'
+                                        : 'text-slate-600'
+                                    }`}
+                            >
+                                Turn this on to make this a group streak.
+                            </p>
+                        </div>
+
                         <button
                             type="button"
-                            onClick={onFriends}
-                            className={`w-full p-6 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center gap-2 ${isDark
-                                    ? 'border-slate-700 text-slate-500 hover:border-slate-500'
-                                    : 'border-slate-200 text-slate-400 hover:border-teal-300 hover:text-teal-500'
+                            onClick={() =>
+                                setIsGroupRequest(current => !current)
+                            }
+                            className={`relative w-14 h-8 rounded-full transition-colors shrink-0 ${isGroupRequest
+                                    ? 'bg-teal-500'
+                                    : isDark
+                                        ? 'bg-slate-700'
+                                        : 'bg-slate-300'
+                                }`}
+                            aria-pressed={isGroupRequest}
+                            aria-label="Toggle group streak"
+                        >
+                            <span
+                                className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-white shadow transition-transform ${isGroupRequest
+                                        ? 'translate-x-6'
+                                        : 'translate-x-0'
+                                    }`}
+                            />
+                        </button>
+                    </div>
+
+                    {isGroupRequest && (
+                        <div
+                            className={`mt-4 pt-4 border-t ${isDark
+                                    ? 'border-slate-700'
+                                    : 'border-slate-200'
                                 }`}
                         >
-                            <Users className="w-8 h-8" />
-                            <span className="font-medium">
-                                Select a Friend to Start
-                            </span>
-                        </button>
-                    )}
+                            <div className="flex items-center gap-2">
+                                <Users className="w-5 h-5 text-teal-500" />
 
-                    <button
-                        type="button"
-                        onClick={handleExternalInvite}
-                        className={`w-full mt-4 py-2 text-sm font-medium transition-colors ${isDark
-                                ? 'text-slate-400 hover:text-teal-400'
-                                : 'text-slate-500 hover:text-teal-600'
-                            }`}
-                    >
-                        Invite someone who isn't on Picability
-                    </button>
+                                <span
+                                    className={`text-sm font-medium ${isDark
+                                            ? 'text-slate-300'
+                                            : 'text-slate-700'
+                                        }`}
+                                >
+                                    Group streak enabled
+                                </span>
+                            </div>
+
+                            <p
+                                className={`text-xs mt-2 ${isDark
+                                        ? 'text-slate-500'
+                                        : 'text-slate-500'
+                                    }`}
+                            >
+                                Select at least two friends to create a group streak.
+                            </p>
+                        </div>
+                    )}
                 </div>
+
+                <button
+                    type="button"
+                    onClick={handleExternalInvite}
+                    className={`w-full mt-4 py-2 text-sm font-medium transition-colors ${isDark
+                            ? 'text-slate-400 hover:text-teal-400'
+                            : 'text-slate-500 hover:text-teal-600'
+                        }`}
+                >
+                    Invite someone who isn't on Picability
+                </button>
 
                 {/* Action Button */}
                 <button
                     onClick={handleConfirm}
-                    disabled={!habitName || !preSelectedFriend}
-                    className={`w-full py-5 rounded-3xl font-bold text-lg shadow-xl transition-all ${(!habitName || !preSelectedFriend)
+                    disabled={!canSubmit}
+                className={`w-full py-5 rounded-3xl font-bold text-lg shadow-xl transition-all ${!canSubmit
                             ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
                             : 'bg-gradient-to-r from-teal-600 to-cyan-700 text-white hover:shadow-teal-500/20 hover:scale-[1.02] active:scale-95'
                         }`}
