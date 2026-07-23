@@ -909,179 +909,323 @@ namespace Picability.Controllers
         }
 
         [HttpPost("group/{requestId}/accept")]
-        public async Task<IActionResult> AcceptGroupStreakRequest(int requestId)
+        public async Task<IActionResult> AcceptGroupStreakRequest(
+    int requestId)
         {
             var currentUserId = GetCurrentUserId();
 
             if (currentUserId == null)
                 return Unauthorized();
 
-            var request = await _context.StreakRequests
-                .Include(sr => sr.Members)
-                .FirstOrDefaultAsync(sr => sr.Id == requestId);
+            await using var transaction =
+                await _context.Database.BeginTransactionAsync();
 
-            if (request == null)
-                return NotFound("Streak request not found.");
-
-            if (!request.IsGroupRequest)
+            try
             {
-                return BadRequest(new
+                var request = await _context.StreakRequests
+                    .Include(sr => sr.Members)
+                        .ThenInclude(member => member.User)
+                    .FirstOrDefaultAsync(sr =>
+                        sr.Id == requestId
+                    );
+
+                if (request == null)
+                    return NotFound("Streak request not found.");
+
+                if (!request.IsGroupRequest)
                 {
-                    message = "This is not a group streak request."
-                });
-            }
-
-            if (request.Status != "Pending")
-            {
-                return BadRequest(new
-                {
-                    message = "This group streak request is no longer pending."
-                });
-            }
-
-            var member = request.Members
-                .FirstOrDefault(m => m.UserId == currentUserId);
-
-            if (member == null)
-                return Forbid();
-
-            if (member.Status == "Rejected")
-            {
-                return BadRequest(new
-                {
-                    message = "You already rejected this group streak request."
-                });
-            }
-
-            if (member.Status == "Accepted")
-            {
-                return Ok(new
-                {
-                    message = "You already accepted this group streak request.",
-                    requestId = request.Id
-                });
-            }
-
-            member.Status = "Accepted";
-            member.RespondedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            var allAccepted = request.Members.All(
-                m => m.Status == "Accepted"
-            );
-
-            if (!allAccepted)
-            {
-                return Ok(new
-                {
-                    message = "Group streak request accepted. Waiting for the remaining members.",
-                    requestId = request.Id,
-                    allAccepted = false
-                });
-            }
-
-            /*
-             * Everyone accepted.
-             * Only now do we create the active group streak.
-             */
-            var nowUtc = DateTime.UtcNow;
-
-            var defaultDate = new DateTime(
-                1900,
-                1,
-                1,
-                0,
-                0,
-                0,
-                DateTimeKind.Utc
-            );
-
-            var streak = new Streak
-            {
-                /*
-                 * These legacy fields remain populated temporarily
-                 * for compatibility with existing controller code.
-                 *
-                 * Group-aware logic will migrate away from relying
-                 * on these two fields.
-                 */
-                UserOneId = request.SenderId,
-                UserTwoId = request.Members.First().UserId,
-
-                CreatedByUserId = request.SenderId,
-                IsGroupStreak = true,
-
-                HabitName = request.HabitName,
-                HabitIcon = request.HabitIcon,
-                Color = request.Color,
-
-                RequiredCheckIns = request.RequiredCheckIns,
-                CycleLength = request.CycleLength,
-                CycleUnit = request.CycleUnit,
-
-                CurrentCount = 0,
-                IsActive = true,
-
-                StreakRequestId = request.Id,
-
-                StartedAt = nowUtc,
-                CycleTrackingStartedAt = nowUtc,
-
-                LastCompletedAt = defaultDate,
-                FailedAt = defaultDate,
-
-                IntervalHours = 24
-            };
-
-            _context.Streaks.Add(streak);
-
-            request.Status = "Accepted";
-
-            await _context.SaveChangesAsync();
-
-            /*
-             * Add the creator.
-             */
-            var streakMembers = new List<StreakMember>
-    {
-        new StreakMember
-        {
-            StreakId = streak.Id,
-            UserId = request.SenderId,
-            IsCreator = true,
-            VisibilityPublic = true,
-            JoinedAt = nowUtc
-        }
-    };
-
-            /*
-             * Add every invited member.
-             */
-            streakMembers.AddRange(
-                request.Members.Select(memberRequest =>
-                    new StreakMember
+                    return BadRequest(new
                     {
-                        StreakId = streak.Id,
-                        UserId = memberRequest.UserId,
-                        IsCreator = false,
-                        VisibilityPublic = true,
-                        JoinedAt = nowUtc
+                        message =
+                            "This is not a group streak request."
+                    });
+                }
+
+                var requestMember = request.Members
+                    .FirstOrDefault(member =>
+                        member.UserId == currentUserId
+                    );
+
+                if (requestMember == null)
+                    return Forbid();
+
+                /*
+                 * If the group streak was already created, return it.
+                 * This makes the endpoint safe to retry.
+                 */
+                var existingStreak =
+                    await _context.Streaks
+                        .FirstOrDefaultAsync(streak =>
+                            streak.StreakRequestId == request.Id
+                        );
+
+                if (existingStreak != null)
+                {
+                    if (request.Status != "Accepted")
+                    {
+                        request.Status = "Accepted";
+                        await _context.SaveChangesAsync();
                     }
-                )
-            );
 
-            _context.StreakMembers.AddRange(streakMembers);
+                    await transaction.CommitAsync();
 
-            await _context.SaveChangesAsync();
+                    return Ok(new
+                    {
+                        message =
+                            "The group streak has already started.",
 
-            return Ok(new
+                        requestId =
+                            request.Id,
+
+                        streakId =
+                            existingStreak.Id,
+
+                        allAccepted =
+                            true
+                    });
+                }
+
+                if (request.Status == "Rejected")
+                {
+                    return BadRequest(new
+                    {
+                        message =
+                            "This group streak request was rejected."
+                    });
+                }
+
+                /*
+                 * Do not return early when this member already accepted.
+                 * A previous attempt may have saved all member statuses
+                 * but failed before creating the group streak.
+                 */
+                if (requestMember.Status == "Rejected")
+                {
+                    return BadRequest(new
+                    {
+                        message =
+                            "You already rejected this group streak request."
+                    });
+                }
+
+                if (requestMember.Status != "Accepted")
+                {
+                    requestMember.Status = "Accepted";
+                    requestMember.RespondedAt =
+                        DateTime.UtcNow;
+                }
+
+                var allAccepted = request.Members.All(
+                    member =>
+                        member.Status == "Accepted"
+                );
+
+                if (!allAccepted)
+                {
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return Ok(new
+                    {
+                        message =
+                            "Group streak request accepted. Waiting for the remaining members.",
+
+                        requestId =
+                            request.Id,
+
+                        allAccepted =
+                            false,
+
+                        members = request.Members.Select(
+                            member => new
+                            {
+                                member.UserId,
+                                UserName =
+                                    member.User.UserName,
+                                member.Status
+                            }
+                        )
+                    });
+                }
+
+                var nowUtc = DateTime.UtcNow;
+
+                var defaultDate = new DateTime(
+                    1900,
+                    1,
+                    1,
+                    0,
+                    0,
+                    0,
+                    DateTimeKind.Utc
+                );
+
+                var firstInvitedMember =
+                    request.Members
+                        .OrderBy(member => member.Id)
+                        .First();
+
+                var streak = new Streak
+                {
+                    /*
+                     * Legacy compatibility fields only.
+                     * Actual group membership is stored in StreakMembers.
+                     */
+                    UserOneId =
+                        request.SenderId,
+
+                    UserTwoId =
+                        firstInvitedMember.UserId,
+
+                    CreatedByUserId =
+                        request.SenderId,
+
+                    IsGroupStreak =
+                        true,
+
+                    HabitName =
+                        request.HabitName,
+
+                    HabitIcon =
+                        request.HabitIcon,
+
+                    Color =
+                        request.Color,
+
+                    RequiredCheckIns =
+                        request.RequiredCheckIns,
+
+                    CycleLength =
+                        request.CycleLength,
+
+                    CycleUnit =
+                        request.CycleUnit,
+
+                    CurrentCount =
+                        0,
+
+                    IsActive =
+                        true,
+
+                    StreakRequestId =
+                        request.Id,
+
+                    StartedAt =
+                        nowUtc,
+
+                    CycleTrackingStartedAt =
+                        nowUtc,
+
+                    LastCompletedAt =
+                        defaultDate,
+
+                    FailedAt =
+                        defaultDate,
+
+                    IntervalHours =
+                        24
+                };
+
+                _context.Streaks.Add(streak);
+
+                request.Status = "Accepted";
+
+                /*
+                 * Save once to generate streak.Id.
+                 * This save remains inside the transaction.
+                 */
+                await _context.SaveChangesAsync();
+
+                var streakMembers =
+                    new List<StreakMember>
+                    {
+                new StreakMember
+                {
+                    StreakId =
+                        streak.Id,
+
+                    UserId =
+                        request.SenderId,
+
+                    IsCreator =
+                        true,
+
+                    VisibilityPublic =
+                        true,
+
+                    JoinedAt =
+                        nowUtc
+                }
+                    };
+
+                streakMembers.AddRange(
+                    request.Members.Select(member =>
+                        new StreakMember
+                        {
+                            StreakId =
+                                streak.Id,
+
+                            UserId =
+                                member.UserId,
+
+                            IsCreator =
+                                false,
+
+                            VisibilityPublic =
+                                true,
+
+                            JoinedAt =
+                                nowUtc
+                        }
+                    )
+                );
+
+                _context.StreakMembers.AddRange(
+                    streakMembers
+                );
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new
+                {
+                    message =
+                        "Everyone accepted. Group streak created.",
+
+                    requestId =
+                        request.Id,
+
+                    streakId =
+                        streak.Id,
+
+                    allAccepted =
+                        true
+                });
+            }
+            catch (Exception exception)
             {
-                message = "Everyone accepted. Group streak created.",
-                requestId = request.Id,
-                streakId = streak.Id,
-                allAccepted = true
-            });
+                await transaction.RollbackAsync();
+
+                Console.WriteLine(
+                    "[GROUP STREAK ACCEPT ERROR] " +
+                    $"RequestId={requestId}, " +
+                    $"UserId={currentUserId}, " +
+                    $"Error={exception}"
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message =
+                            "All members accepted, but the group streak could not be created.",
+
+                        detail =
+                            exception.InnerException?.Message ??
+                            exception.Message
+                    }
+                );
+            }
         }
 
         [HttpPost("group/{requestId}/reject")]

@@ -85,8 +85,12 @@ namespace Picability.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<Streak>()
-                .HasIndex(s => new { s.UserOneId, s.UserTwoId, s.HabitName })
-                .IsUnique();
+                .HasIndex(s => new
+                {
+                    s.UserOneId,
+                    s.UserTwoId,
+                    s.HabitName
+                });
 
             builder.Entity<CheckInContent>()
                 .HasOne(c => c.Sender)
