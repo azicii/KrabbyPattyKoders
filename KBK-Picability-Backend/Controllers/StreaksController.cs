@@ -62,11 +62,6 @@ namespace Picability.Controllers
             return Math.Max(0, (int)Math.Ceiling((nextMidnightPacific - nowPacific).TotalHours));
         }
 
-        // MODIFIED BY REECE
-        // Before: Fetched streaks, dead streaks remained in the database as active
-        // After: When fetching streaks, we check if any should be marked as failed based 
-        // on the last completed date using a foreach loop. This way, dead streaks are automatically marked as 
-        // inactive without needing a separate cleanup process.
         [HttpGet("mine")]
         public async Task<IActionResult> GetMyStreaks()
         {
@@ -646,35 +641,96 @@ namespace Picability.Controllers
             return Ok(result);
         }
 
-        // ADDED BY REECE
-        // Before: Dead streaks remained in the database and the UI
-        // After: Allows the frontend to dismiss a streak and remove it
-        // from the database, also clearing it from the UI.
         [HttpDelete("{id}/dismiss")]
         public async Task<IActionResult> DismissStreak(int id)
         {
             var currentUserId = GetCurrentUserId();
 
-            var streak = await _context.Streaks.FirstOrDefaultAsync(s =>
-                s.Id == id &&
-                (s.UserOneId == currentUserId || s.UserTwoId == currentUserId));
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized();
+
+            var streak = await _context.Streaks
+                .Include(s => s.Members)
+                .FirstOrDefaultAsync(s =>
+                    s.Id == id &&
+                    (
+                        s.Members.Any(member =>
+                            member.UserId == currentUserId
+                        ) ||
+                        s.UserOneId == currentUserId ||
+                        s.UserTwoId == currentUserId
+                    )
+                );
 
             if (streak == null)
-            {
                 return NotFound("Streak not found.");
+
+            /*
+             * Broken streaks may be dismissed by any member.
+             * This only removes the finished card from the UI.
+             */
+            if (!streak.IsActive)
+            {
+                _context.Streaks.Remove(streak);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message =
+                        "Broken streak dismissed."
+                });
+            }
+
+            /*
+             * Active group streaks may only be cancelled
+             * by the original creator.
+             */
+            if (streak.IsGroupStreak)
+            {
+                var currentMember = streak.Members
+                    .FirstOrDefault(member =>
+                        member.UserId == currentUserId
+                    );
+
+                if (
+                    currentMember == null ||
+                    !currentMember.IsCreator
+                )
+                {
+                    return StatusCode(
+                        StatusCodes.Status403Forbidden,
+                        new
+                        {
+                            message =
+                                "Only the group streak creator can cancel this streak."
+                        }
+                    );
+                }
+            }
+            else
+            {
+                /*
+                 * Preserve the existing two-person behavior.
+                 */
+                var belongsToStandardStreak =
+                    streak.UserOneId == currentUserId ||
+                    streak.UserTwoId == currentUserId;
+
+                if (!belongsToStandardStreak)
+                    return Forbid();
             }
 
             _context.Streaks.Remove(streak);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Streak dismissed and removed from database." });
+            return Ok(new
+            {
+                message = streak.IsGroupStreak
+                    ? "Group streak cancelled by its creator."
+                    : "Streak cancelled."
+            });
         }
 
-        // ADDED BY REECE
-        // Before: Removing a friend did not affect streaks. They would
-        // remain in the database and UI.
-        // After: Removing a friend also removes any streaks between the
-        // users, also cleaning the UI.
         [HttpDelete("remove-connection/{friendId}")]
         public async Task<IActionResult> RemoveFriendStreaks(string friendId)
         {

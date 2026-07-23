@@ -987,121 +987,172 @@ export function StreakTracker({
                                 Pending Streaks
                             </h2>
 
-                            {acceptedGroupInvites.map(invite => (
-                                <div
-                                    key={`accepted-group-${invite.id}`}
-                                    className={`relative w-full rounded-3xl p-6 shadow-sm border ${isDark
-                                            ? 'bg-slate-800/40 border-teal-500/20'
-                                            : 'bg-white border-teal-200'
-                                        }`}
-                                >
-                                    <div className="flex items-start gap-4">
-                                        <div
-                                            className={`flex items-center justify-center w-16 h-16 shrink-0 rounded-2xl bg-gradient-to-br ${invite.color ||
-                                                'from-teal-500 to-cyan-600'
-                                                } shadow-lg opacity-80`}
-                                        >
-                                            {(() => {
-                                                const IconComponent =
-                                                    (LucideIcons as any)[
-                                                    invite.habitIcon
-                                                    ] ||
-                                                    LucideIcons.Target;
+                            {acceptedGroupInvites.map(invite => {
+                                const IconComponent =
+                                    (LucideIcons as any)[
+                                    invite.habitIcon
+                                    ] ||
+                                    LucideIcons.Target;
 
-                                                return (
-                                                    <IconComponent className="w-8 h-8 text-white" />
-                                                );
-                                            })()}
-                                        </div>
+                                const pendingCount =
+                                    (invite.members ?? []).filter(
+                                        (member: any) =>
+                                            member.status === 'Pending'
+                                    ).length;
 
-                                        <div className="min-w-0 flex-1">
-                                            <h3
-                                                className={`text-lg font-semibold ${isDark
-                                                        ? 'text-slate-100'
-                                                        : 'text-slate-800'
-                                                    }`}
-                                            >
-                                                {invite.habitName}
-                                            </h3>
-
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <Users className="w-4 h-4 text-teal-500" />
-
-                                                <span
-                                                    className={`text-sm ${isDark
-                                                            ? 'text-slate-300'
-                                                            : 'text-slate-700'
-                                                        }`}
+                                return (
+                                    <div
+                                        key={`accepted-group-${invite.id}`}
+                                        className={`relative w-full rounded-3xl p-6 shadow-sm border transition-all ${isDark
+                                                ? 'bg-slate-800/40 border-slate-700/70'
+                                                : 'bg-white border-slate-200'
+                                            }`}
+                                    >
+                                        <div className="relative min-h-[158px] sm:min-h-[92px]">
+                                            <div className="flex items-start gap-4 pr-0 sm:pr-32 min-w-0">
+                                                <div
+                                                    className={`flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br ${invite.color ||
+                                                        'from-teal-500 to-cyan-600'
+                                                        } shadow-lg opacity-80`}
                                                 >
-                                                    Group streak · {
-                                                        (invite.members?.length ?? 0) + 1
-                                                    } members
-                                                </span>
-                                            </div>
-
-                                            <div
-                                                className={`mt-3 rounded-2xl p-3 ${isDark
-                                                        ? 'bg-slate-900/40'
-                                                        : 'bg-slate-50'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center justify-between text-sm mb-2">
-                                                    <span
-                                                        className={
-                                                            isDark
-                                                                ? 'text-slate-200'
-                                                                : 'text-slate-700'
-                                                        }
-                                                    >
-                                                        You
-                                                    </span>
-
-                                                    <span className="text-emerald-500 font-semibold">
-                                                        Accepted
-                                                    </span>
+                                                    <IconComponent className="w-8 h-8 text-white" />
                                                 </div>
 
-                                                {(invite.members ?? [])
-                                                    .filter(
-                                                        (member: any) =>
-                                                            member.userId !==
-                                                            user?.id
-                                                    )
-                                                    .map((member: any) => (
-                                                        <div
-                                                            key={member.userId}
-                                                            className="flex items-center justify-between text-sm mt-2"
-                                                        >
-                                                            <span
-                                                                className={
-                                                                    isDark
+                                                <div className="min-w-0 flex-1">
+                                                    <h3
+                                                        className={`text-lg font-semibold leading-tight whitespace-normal break-words ${isDark
+                                                                ? 'text-slate-100'
+                                                                : 'text-slate-800'
+                                                            }`}
+                                                    >
+                                                        {invite.habitName}
+                                                    </h3>
+
+                                                    <div className="mt-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <Users className="w-4 h-4 text-teal-500" />
+
+                                                            <p
+                                                                className={`text-sm font-medium ${isDark
                                                                         ? 'text-slate-300'
                                                                         : 'text-slate-700'
-                                                                }
-                                                            >
-                                                                {member.userName}
-                                                            </span>
-
-                                                            <span
-                                                                className={`font-semibold ${member.status ===
-                                                                        'Accepted'
-                                                                        ? 'text-emerald-500'
-                                                                        : 'text-amber-500'
                                                                     }`}
                                                             >
-                                                                {member.status}
-                                                            </span>
+                                                                Group streak · {
+                                                                    (invite.members?.length ?? 0) + 1
+                                                                } members
+                                                            </p>
                                                         </div>
-                                                    ))}
+
+                                                        <div
+                                                            className={`mt-3 rounded-2xl p-3 ${isDark
+                                                                    ? 'bg-slate-900/40'
+                                                                    : 'bg-slate-50'
+                                                                }`}
+                                                        >
+                                                            <p
+                                                                className={`text-xs font-semibold mb-2 ${isDark
+                                                                        ? 'text-slate-400'
+                                                                        : 'text-slate-500'
+                                                                    }`}
+                                                            >
+                                                                Invitation status
+                                                            </p>
+
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-center justify-between gap-4">
+                                                                    <span
+                                                                        className={`text-sm truncate ${isDark
+                                                                                ? 'text-slate-200'
+                                                                                : 'text-slate-700'
+                                                                            }`}
+                                                                    >
+                                                                        {invite.senderName}
+                                                                    </span>
+
+                                                                    <span className="text-xs font-semibold shrink-0 text-teal-500">
+                                                                        Creator
+                                                                    </span>
+                                                                </div>
+
+                                                                {(invite.members ?? []).map(
+                                                                    (member: any) => {
+                                                                        const isCurrentUser =
+                                                                            member.userId ===
+                                                                            user?.id;
+
+                                                                        return (
+                                                                            <div
+                                                                                key={member.userId}
+                                                                                className="flex items-center justify-between gap-4"
+                                                                            >
+                                                                                <span
+                                                                                    className={`text-sm truncate ${isDark
+                                                                                            ? 'text-slate-200'
+                                                                                            : 'text-slate-700'
+                                                                                        }`}
+                                                                                >
+                                                                                    {isCurrentUser
+                                                                                        ? 'You'
+                                                                                        : member.userName}
+                                                                                </span>
+
+                                                                                <span
+                                                                                    className={`text-xs font-semibold shrink-0 ${member.status === 'Accepted'
+                                                                                            ? 'text-emerald-500'
+                                                                                            : member.status === 'Rejected'
+                                                                                                ? 'text-rose-500'
+                                                                                                : 'text-amber-500'
+                                                                                        }`}
+                                                                                >
+                                                                                    {member.status}
+                                                                                </span>
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div
+                                                        className={`inline-flex items-center mt-2 px-2.5 py-1 rounded-full text-xs font-semibold ${isDark
+                                                                ? 'bg-slate-700/70 text-slate-300'
+                                                                : 'bg-slate-100 text-slate-600'
+                                                            }`}
+                                                    >
+                                                        {getScheduleLabel(
+                                                            invite.requiredCheckIns,
+                                                            invite.cycleLength,
+                                                            invite.cycleUnit
+                                                        )}
+                                                    </div>
+
+                                                    <p className="text-xs text-amber-500 font-semibold mt-2">
+                                                        {pendingCount === 0
+                                                            ? 'Starting group streak…'
+                                                            : `${pendingCount} ${pendingCount === 1
+                                                                ? 'person'
+                                                                : 'people'
+                                                            } awaiting response`}
+                                                    </p>
+                                                </div>
                                             </div>
 
-                                            <p className="text-xs text-amber-500 font-semibold mt-3">
-                                                You accepted · waiting for the remaining members
-                                            </p>
+                                            <div className="absolute right-0 bottom-0 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 flex items-center justify-end gap-2">
+                                                <div
+                                                    className={`px-4 py-2 rounded-2xl text-sm font-bold ${isDark
+                                                            ? 'bg-slate-700 text-slate-300'
+                                                            : 'bg-slate-100 text-slate-600'
+                                                        }`}
+                                                >
+                                                    Pending
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
 
                             {sentStreakRequests.map((request) => {
                                 const IconComponent = (LucideIcons as any)[request.habitIcon] || LucideIcons.Target;
@@ -1844,25 +1895,37 @@ export function StreakTracker({
                                                         )}
                                                         </button>
 
-                                                        {!streak.isGroupStreak && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
+                                                        {(
+                                                            !streak.isGroupStreak ||
+                                                            currentUserMember?.isCreator === true
+                                                        ) && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
 
-                                                                    const confirmed = window.confirm(
-                                                                        "Are you sure you want to cancel this streak? This will remove it for both users."
-                                                                    );
+                                                                        const confirmationMessage =
+                                                                            streak.isGroupStreak
+                                                                                ? 'Are you sure you want to cancel this group streak? It will be removed for every group member.'
+                                                                                : 'Are you sure you want to cancel this streak? It will be removed for both users.';
 
-                                                                    if (confirmed) {
-                                                                        onDismissStreak?.(streak.id);
-                                                                    }
-                                                                }}
-                                                                className="w-full flex items-center justify-center gap-3 py-3 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all font-bold shadow-sm"
-                                                            >
-                                                                <Trash2 className="w-5 h-5" />
-                                                                Cancel Streak
-                                                            </button>
-                                                        )}
+                                                                        const confirmed = window.confirm(
+                                                                            confirmationMessage
+                                                                        );
+
+                                                                        if (confirmed) {
+                                                                            onDismissStreak?.(streak.id);
+                                                                        }
+                                                                    }}
+                                                                    className="w-full flex items-center justify-center gap-3 py-3 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all font-bold shadow-sm"
+                                                                >
+                                                                    <Trash2 className="w-5 h-5" />
+
+                                                                    {streak.isGroupStreak
+                                                                        ? 'Cancel Group Streak'
+                                                                        : 'Cancel Streak'}
+                                                                </button>
+                                                            )}
                                                 </div>
                                             )}
                                             <p
