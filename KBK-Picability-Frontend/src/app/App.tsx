@@ -105,58 +105,319 @@ export default function App() {
 
     const fetchStreaks = async () => {
         if (!user) return;
+
         try {
             const response = await fetch(
                 `${BASE_URL}/api/Streaks/mine`,
                 {
                     headers: getAuthHeaders(user.token)
                 }
-            ); if (response.ok) {
-                const data = await response.json();
-                const formattedStreaks: Streak[] = data.map((s: any) => ({
-                    id: s.id,
-                    habitName: s.habitName,
-                    habitIcon: s.habitIcon,
-                    color: s.color,
-                    userName: s.partnerName,
-                    userAvatar: s.partnerName.substring(0, 2).toUpperCase(),
-                    streakCount: s.currentCount,
-                    requiredCheckIns: s.requiredCheckIns,
-                    cycleLength: s.cycleLength,
-                    cycleUnit: s.cycleUnit,
+            );
 
-                    cycleStartedAt: s.cycleStartedAt,
-                    cycleEndsAt: s.cycleEndsAt,
+            if (!response.ok) {
+                console.error(
+                    'Failed to fetch streaks:',
+                    response.status,
+                    await response.text()
+                );
 
-                    userCycleCheckInCount: s.userCycleCheckInCount,
-                    partnerCycleCheckInCount: s.partnerCycleCheckInCount,
-
-                    userCompletedCycle: s.userCompletedCycle,
-                    partnerCompletedCycle: s.partnerCompletedCycle,
-                    bothCompletedCycle: s.bothCompletedCycle,
-
-                    canCheckInCurrentCycle: s.canCheckInCurrentCycle,
-                    hoursUntilCycleEnds: s.hoursUntilCycleEnds,
-                    cycleProgressMessage: s.cycleProgressMessage,
-                    lastCompletedAt: s.lastCompletedAt,
-                    lastFullyCompletedAt: s.lastFullyCompletedAt,
-                    userOneLastCheckedInAt: s.userOneLastCheckedInAt,
-                    userTwoLastCheckedInAt: s.userTwoLastCheckedInAt,
-                    userCheckedInToday: s.userCheckedInToday,
-                    partnerCheckedInToday: s.partnerCheckedInToday,
-                    bothCheckedInToday: s.bothCheckedInToday,
-                    brokenMessage: s.brokenMessage,
-                    isActive: s.isActive,
-                    isPublic: s.isPublic ?? true,
-                    canCheckInToday: s.canCheckInToday,
-                    hoursUntilMidnight: s.hoursUntilMidnight,
-                    timeMessage: s.timeMessage,
-                    partnerId: s.partnerId
-                }));
-                setStreaks(formattedStreaks);
+                return;
             }
+
+            const data = await response.json();
+
+            const formattedStreaks: Streak[] =
+                data.map((s: any) => {
+                    const rawMembers =
+                        s.members ??
+                        s.Members ??
+                        [];
+
+                    const members = rawMembers.map(
+                        (member: any) => ({
+                            userId:
+                                member.userId ??
+                                member.UserId,
+
+                            userName:
+                                member.userName ??
+                                member.UserName ??
+                                'Unknown user',
+
+                            isCreator:
+                                member.isCreator ??
+                                member.IsCreator ??
+                                false,
+
+                            isCurrentUser:
+                                member.isCurrentUser ??
+                                member.IsCurrentUser ??
+                                false,
+
+                            cycleCheckInCount:
+                                member.cycleCheckInCount ??
+                                member.CycleCheckInCount ??
+                                0,
+
+                            completedCycle:
+                                member.completedCycle ??
+                                member.CompletedCycle ??
+                                false,
+
+                            visibilityPublic:
+                                member.visibilityPublic ??
+                                member.VisibilityPublic ??
+                                true
+                        })
+                    );
+
+                    const rawWaitingMembers =
+                        s.waitingOnMembers ??
+                        s.WaitingOnMembers ??
+                        [];
+
+                    const waitingOnMembers =
+                        rawWaitingMembers.map(
+                            (member: any) => ({
+                                userId:
+                                    member.userId ??
+                                    member.UserId,
+
+                                userName:
+                                    member.userName ??
+                                    member.UserName ??
+                                    'Unknown user',
+
+                                isCurrentUser:
+                                    member.isCurrentUser ??
+                                    member.IsCurrentUser ??
+                                    false
+                            })
+                        );
+
+                    const rawFailedMembers =
+                        s.failedMembers ??
+                        s.FailedMembers ??
+                        [];
+
+                    const failedMembers =
+                        rawFailedMembers.map(
+                            (member: any) => ({
+                                userId:
+                                    member.userId ??
+                                    member.UserId,
+
+                                userName:
+                                    member.userName ??
+                                    member.UserName ??
+                                    'Unknown user',
+
+                                isCurrentUser:
+                                    member.isCurrentUser ??
+                                    member.IsCurrentUser ??
+                                    false
+                            })
+                        );
+
+                    const partnerName =
+                        s.partnerName ??
+                        s.PartnerName ??
+                        'Group';
+
+                    return {
+                        id:
+                            s.id ??
+                            s.Id,
+
+                        habitName:
+                            s.habitName ??
+                            s.HabitName,
+
+                        habitIcon:
+                            s.habitIcon ??
+                            s.HabitIcon,
+
+                        color:
+                            s.color ??
+                            s.Color,
+
+                        userName:
+                            partnerName,
+
+                        userAvatar:
+                            partnerName
+                                .substring(0, 2)
+                                .toUpperCase(),
+
+                        streakCount:
+                            s.currentCount ??
+                            s.CurrentCount ??
+                            0,
+
+                        requiredCheckIns:
+                            s.requiredCheckIns ??
+                            s.RequiredCheckIns ??
+                            1,
+
+                        cycleLength:
+                            s.cycleLength ??
+                            s.CycleLength ??
+                            1,
+
+                        cycleUnit:
+                            s.cycleUnit ??
+                            s.CycleUnit ??
+                            'Day',
+
+                        cycleStartedAt:
+                            s.cycleStartedAt ??
+                            s.CycleStartedAt,
+
+                        cycleEndsAt:
+                            s.cycleEndsAt ??
+                            s.CycleEndsAt,
+
+                        userCycleCheckInCount:
+                            s.userCycleCheckInCount ??
+                            s.UserCycleCheckInCount ??
+                            0,
+
+                        partnerCycleCheckInCount:
+                            s.partnerCycleCheckInCount ??
+                            s.PartnerCycleCheckInCount ??
+                            0,
+
+                        userCompletedCycle:
+                            s.userCompletedCycle ??
+                            s.UserCompletedCycle ??
+                            false,
+
+                        partnerCompletedCycle:
+                            s.partnerCompletedCycle ??
+                            s.PartnerCompletedCycle ??
+                            false,
+
+                        bothCompletedCycle:
+                            s.bothCompletedCycle ??
+                            s.BothCompletedCycle ??
+                            false,
+
+                        canCheckInCurrentCycle:
+                            s.canCheckInCurrentCycle ??
+                            s.CanCheckInCurrentCycle ??
+                            false,
+
+                        hoursUntilCycleEnds:
+                            s.hoursUntilCycleEnds ??
+                            s.HoursUntilCycleEnds ??
+                            0,
+
+                        cycleProgressMessage:
+                            s.cycleProgressMessage ??
+                            s.CycleProgressMessage,
+
+                        /*
+                         * Group streak fields.
+                         */
+                        isGroupStreak:
+                            s.isGroupStreak ??
+                            s.IsGroupStreak ??
+                            members.length > 2,
+
+                        memberCount:
+                            s.memberCount ??
+                            s.MemberCount ??
+                            members.length,
+
+                        members:
+                            members,
+
+                        waitingOnMembers:
+                            waitingOnMembers,
+
+                        failedMembers:
+                            failedMembers,
+
+                        allMembersCompletedCycle:
+                            s.allMembersCompletedCycle ??
+                            s.AllMembersCompletedCycle ??
+                            (members.length > 0 &&
+                            members.every(
+                                (member: any) =>
+                                    member.completedCycle
+                            )),
+
+                        lastCompletedAt:
+                            s.lastCompletedAt ??
+                            s.LastCompletedAt,
+
+                        lastFullyCompletedAt:
+                            s.lastFullyCompletedAt ??
+                            s.LastFullyCompletedAt,
+
+                        userOneLastCheckedInAt:
+                            s.userOneLastCheckedInAt ??
+                            s.UserOneLastCheckedInAt,
+
+                        userTwoLastCheckedInAt:
+                            s.userTwoLastCheckedInAt ??
+                            s.UserTwoLastCheckedInAt,
+
+                        userCheckedInToday:
+                            s.userCheckedInToday ??
+                            s.UserCheckedInToday ??
+                            false,
+
+                        partnerCheckedInToday:
+                            s.partnerCheckedInToday ??
+                            s.PartnerCheckedInToday ??
+                            false,
+
+                        bothCheckedInToday:
+                            s.bothCheckedInToday ??
+                            s.BothCheckedInToday ??
+                            false,
+
+                        brokenMessage:
+                            s.brokenMessage ??
+                            s.BrokenMessage,
+
+                        isActive:
+                            s.isActive ??
+                            s.IsActive ??
+                            true,
+
+                        isPublic:
+                            s.isPublic ??
+                            s.IsPublic ??
+                            true,
+
+                        canCheckInToday:
+                            s.canCheckInToday ??
+                            s.CanCheckInToday ??
+                            false,
+
+                        hoursUntilMidnight:
+                            s.hoursUntilMidnight ??
+                            s.HoursUntilMidnight ??
+                            0,
+
+                        timeMessage:
+                            s.timeMessage ??
+                            s.TimeMessage,
+
+                        partnerId:
+                            s.partnerId ??
+                            s.PartnerId
+                    };
+                });
+
+            setStreaks(formattedStreaks);
         } catch (err) {
-            console.error("Error fetching streaks:", err);
+            console.error(
+                'Error fetching streaks:',
+                err
+            );
         }
     };
 
