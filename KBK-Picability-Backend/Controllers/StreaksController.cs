@@ -73,24 +73,36 @@ namespace Picability.Controllers
             var userId = GetCurrentUserId();
 
             if (string.IsNullOrEmpty(userId))
-            {
                 return Unauthorized();
-            }
 
             var streaks = await _context.Streaks
                 .Include(s => s.UserOne)
                 .Include(s => s.UserTwo)
-                .Where(s => s.UserOneId == userId || s.UserTwoId == userId)
+                .Include(s => s.Members)
+                    .ThenInclude(member => member.User)
+                .Where(s =>
+                    s.Members.Any(member => member.UserId == userId) ||
+                    s.UserOneId == userId ||
+                    s.UserTwoId == userId
+                )
                 .ToListAsync();
+
             var streakIds = streaks
                 .Select(s => s.Id)
                 .ToList();
+
             var checkIns = await _context.StreakCheckIns
-                .Where(c => streakIds.Contains(c.StreakId))
+                .Where(checkIn =>
+                    streakIds.Contains(checkIn.StreakId)
+                )
                 .ToListAsync();
+
             var nowUtc = DateTime.UtcNow;
+            var pacificTimeZone = GetPacificTimeZone();
             var todayPacific = GetPacificToday(nowUtc);
-            var hoursUntilMidnight = GetHoursUntilPacificMidnight(nowUtc);
+            var hoursUntilMidnight =
+                GetHoursUntilPacificMidnight(nowUtc);
+
             var defaultDate = new DateTime(
                 1900,
                 1,
@@ -101,9 +113,12 @@ namespace Picability.Controllers
                 DateTimeKind.Utc
             );
 
-            var pacificTimeZone = GetPacificTimeZone();
-            bool changesMade = false;
+            var changesMade = false;
 
+            /*
+             * Evaluate the most recently completed cycle.
+             * Every member must have completed the requirement.
+             */
             foreach (var streak in streaks.Where(s => s.IsActive))
             {
                 var requiredCheckIns = Math.Max(
@@ -133,10 +148,6 @@ namespace Picability.Controllers
                         pacificTimeZone
                     );
 
-                /*
-                 * If the flexible-cycle tracking timestamp falls inside the
-                 * current cycle, no tracked cycle has ended yet.
-                 */
                 if (
                     streak.CycleTrackingStartedAt >=
                     currentCycle.StartUtc
@@ -154,10 +165,8 @@ namespace Picability.Controllers
                         pacificTimeZone
                     );
 
-                                /*
+                /*
                  * Do not judge a partial first cycle.
-                 * Flexible tracking must have begun no later than the start
-                 * of the cycle for that cycle to count toward failure.
                  */
                 if (
                     streak.CycleTrackingStartedAt >
@@ -167,166 +176,230 @@ namespace Picability.Controllers
                     continue;
                 }
 
-                var userOneCheckInCount = checkIns.Count(c =>
-                    c.StreakId == streak.Id &&
-                    c.UserId == streak.UserOneId &&
-                    c.CheckedInAt >= previousCycle.StartUtc &&
-                    c.CheckedInAt < previousCycle.EndUtc
-                );
-
-                var userTwoCheckInCount = checkIns.Count(c =>
-                    c.StreakId == streak.Id &&
-                    c.UserId == streak.UserTwoId &&
-                    c.CheckedInAt >= previousCycle.StartUtc &&
-                    c.CheckedInAt < previousCycle.EndUtc
-                );
+                var memberIds = streak.Members
+                    .Select(member => member.UserId)
+                    .Distinct()
+                    .ToList();
 
                 /*
-                 * Preserve one legacy check-in for streaks transitioning from
-                 * the old timestamp-only implementation.
+                 * Transitional fallback for a legacy streak that somehow
+                 * does not yet have StreakMember rows.
                  */
-                if (
-                    userOneCheckInCount == 0 &&
-                    streak.UserOneLastCheckedInAt.HasValue &&
-                    streak.UserOneLastCheckedInAt.Value >=
-                        previousCycle.StartUtc &&
-                    streak.UserOneLastCheckedInAt.Value <
-                        previousCycle.EndUtc
-                )
+                if (memberIds.Count == 0)
                 {
-                    userOneCheckInCount = 1;
+                    memberIds.Add(streak.UserOneId);
+                    memberIds.Add(streak.UserTwoId);
                 }
 
-                if (
-                    userTwoCheckInCount == 0 &&
-                    streak.UserTwoLastCheckedInAt.HasValue &&
-                    streak.UserTwoLastCheckedInAt.Value >=
-                        previousCycle.StartUtc &&
-                    streak.UserTwoLastCheckedInAt.Value <
-                        previousCycle.EndUtc
-                )
+                var allMembersCompletedPreviousCycle =
+                    memberIds.All(memberId =>
+                    {
+                        var count = checkIns.Count(checkIn =>
+                            checkIn.StreakId == streak.Id &&
+                            checkIn.UserId == memberId &&
+                            checkIn.CheckedInAt >=
+                                previousCycle.StartUtc &&
+                            checkIn.CheckedInAt <
+                                previousCycle.EndUtc
+                        );
+
+                        /*
+                         * Preserve legacy timestamp support for the
+                         * original two users.
+                         */
+                        if (
+                            count == 0 &&
+                            memberId == streak.UserOneId &&
+                            streak.UserOneLastCheckedInAt.HasValue &&
+                            streak.UserOneLastCheckedInAt.Value >=
+                                previousCycle.StartUtc &&
+                            streak.UserOneLastCheckedInAt.Value <
+                                previousCycle.EndUtc
+                        )
+                        {
+                            count = 1;
+                        }
+
+                        if (
+                            count == 0 &&
+                            memberId == streak.UserTwoId &&
+                            streak.UserTwoLastCheckedInAt.HasValue &&
+                            streak.UserTwoLastCheckedInAt.Value >=
+                                previousCycle.StartUtc &&
+                            streak.UserTwoLastCheckedInAt.Value <
+                                previousCycle.EndUtc
+                        )
+                        {
+                            count = 1;
+                        }
+
+                        return count >= requiredCheckIns;
+                    });
+
+                if (!allMembersCompletedPreviousCycle)
                 {
-                    userTwoCheckInCount = 1;
-                }
-
-                var userOneCompletedCycle =
-                    userOneCheckInCount >= requiredCheckIns;
-
-                var userTwoCompletedCycle =
-                    userTwoCheckInCount >= requiredCheckIns;
-
-                if (
-                    !userOneCompletedCycle ||
-                    !userTwoCompletedCycle
-                )
-                {
-                    Console.WriteLine(
-                        "[STREAK FAILURE] " +
-                        $"StreakId={streak.Id}, " +
-                        $"Habit={streak.HabitName}, " +
-                        $"Required={requiredCheckIns}, " +
-                        $"Cycle={cycleLength} {cycleUnit}, " +
-                        $"TrackingStartedAt={streak.CycleTrackingStartedAt:o}, " +
-                        $"PreviousStart={previousCycle.StartUtc:o}, " +
-                        $"PreviousEnd={previousCycle.EndUtc:o}, " +
-                        $"UserOneCount={userOneCheckInCount}, " +
-                        $"UserTwoCount={userTwoCheckInCount}"
-                    );
-
                     streak.IsActive = false;
-
-                    /*
-                     * Store the boundary at which the streak officially broke,
-                     * rather than the later moment at which the API noticed it.
-                     */
                     streak.FailedAt = previousCycle.EndUtc;
-
                     changesMade = true;
                 }
             }
 
             if (changesMade)
-            {
                 await _context.SaveChangesAsync();
-            }
 
-            var result = streaks.Select(s =>
+            var result = streaks.Select(streak =>
             {
-                var isUserOne = s.UserOneId == userId;
-                var requiredCheckIns = Math.Max(1, s.RequiredCheckIns);
-                var cycleLength = Math.Max(1, s.CycleLength);
-
-                var cycleUnit = s.CycleUnit?.Trim().ToLowerInvariant() switch
-                {
-                    "week" => "Week",
-                    "month" => "Month",
-                    _ => "Day"
-                };
-
-                var cycle = StreakCycleCalculator.GetCurrentCycle(
-                    s.StartedAt,
-                    nowUtc,
-                    cycleLength,
-                    cycleUnit,
-                    GetPacificTimeZone()
+                var requiredCheckIns = Math.Max(
+                    1,
+                    streak.RequiredCheckIns
                 );
 
-                var userOneCycleCheckInCount = checkIns.Count(c =>
-                    c.StreakId == s.Id &&
-                    c.UserId == s.UserOneId &&
-                    c.CheckedInAt >= cycle.StartUtc &&
-                    c.CheckedInAt < cycle.EndUtc
+                var cycleLength = Math.Max(
+                    1,
+                    streak.CycleLength
                 );
 
-                var userTwoCycleCheckInCount = checkIns.Count(c =>
-                    c.StreakId == s.Id &&
-                    c.UserId == s.UserTwoId &&
-                    c.CheckedInAt >= cycle.StartUtc &&
-                    c.CheckedInAt < cycle.EndUtc
-                );
+                var cycleUnit =
+                    streak.CycleUnit?.Trim().ToLowerInvariant() switch
+                    {
+                        "week" => "Week",
+                        "month" => "Month",
+                        _ => "Day"
+                    };
+
+                var cycle =
+                    StreakCycleCalculator.GetCurrentCycle(
+                        streak.StartedAt,
+                        nowUtc,
+                        cycleLength,
+                        cycleUnit,
+                        pacificTimeZone
+                    );
+
+                var memberModels = streak.Members
+                    .OrderByDescending(member => member.IsCreator)
+                    .ThenBy(member => member.JoinedAt)
+                    .ToList();
 
                 /*
-                 * Existing streaks may have a legacy check-in timestamp but no
-                 * StreakCheckIn row yet. Count that timestamp as one check-in only
-                 * when the new history table has no record for that user this cycle.
+                 * Legacy fallback. Every new streak should already have
+                 * StreakMember rows.
                  */
-                if (
-                    userOneCycleCheckInCount == 0 &&
-                    s.UserOneLastCheckedInAt.HasValue &&
-                    s.UserOneLastCheckedInAt.Value >= cycle.StartUtc &&
-                    s.UserOneLastCheckedInAt.Value < cycle.EndUtc
-                )
+                if (memberModels.Count == 0)
                 {
-                    userOneCycleCheckInCount = 1;
+                    memberModels = new List<StreakMember>
+            {
+                new StreakMember
+                {
+                    StreakId = streak.Id,
+                    UserId = streak.UserOneId,
+                    User = streak.UserOne,
+                    IsCreator = true,
+                    VisibilityPublic =
+                        streak.UserOneVisibilityPublic
+                },
+                new StreakMember
+                {
+                    StreakId = streak.Id,
+                    UserId = streak.UserTwoId,
+                    User = streak.UserTwo,
+                    IsCreator = false,
+                    VisibilityPublic =
+                        streak.UserTwoVisibilityPublic
+                }
+            };
                 }
 
-                if (
-                    userTwoCycleCheckInCount == 0 &&
-                    s.UserTwoLastCheckedInAt.HasValue &&
-                    s.UserTwoLastCheckedInAt.Value >= cycle.StartUtc &&
-                    s.UserTwoLastCheckedInAt.Value < cycle.EndUtc
-                )
-                {
-                    userTwoCycleCheckInCount = 1;
-                }
+                var memberProgress = memberModels
+                    .Select(member =>
+                    {
+                        var count = checkIns.Count(checkIn =>
+                            checkIn.StreakId == streak.Id &&
+                            checkIn.UserId == member.UserId &&
+                            checkIn.CheckedInAt >= cycle.StartUtc &&
+                            checkIn.CheckedInAt < cycle.EndUtc
+                        );
 
-                var currentUserCycleCheckInCount = isUserOne
-                    ? userOneCycleCheckInCount
-                    : userTwoCycleCheckInCount;
+                        if (
+                            count == 0 &&
+                            member.UserId == streak.UserOneId &&
+                            streak.UserOneLastCheckedInAt.HasValue &&
+                            streak.UserOneLastCheckedInAt.Value >=
+                                cycle.StartUtc &&
+                            streak.UserOneLastCheckedInAt.Value <
+                                cycle.EndUtc
+                        )
+                        {
+                            count = 1;
+                        }
 
-                var partnerCycleCheckInCount = isUserOne
-                    ? userTwoCycleCheckInCount
-                    : userOneCycleCheckInCount;
+                        if (
+                            count == 0 &&
+                            member.UserId == streak.UserTwoId &&
+                            streak.UserTwoLastCheckedInAt.HasValue &&
+                            streak.UserTwoLastCheckedInAt.Value >=
+                                cycle.StartUtc &&
+                            streak.UserTwoLastCheckedInAt.Value <
+                                cycle.EndUtc
+                        )
+                        {
+                            count = 1;
+                        }
 
-                var currentUserCompletedCycle =
-                    currentUserCycleCheckInCount >= requiredCheckIns;
+                        return new
+                        {
+                            UserId = member.UserId,
 
-                var partnerCompletedCycle =
-                    partnerCycleCheckInCount >= requiredCheckIns;
+                            UserName =
+                                member.User?.UserName ??
+                                "Unknown user",
 
-                var bothCompletedCycle =
-                    currentUserCompletedCycle &&
-                    partnerCompletedCycle;
+                            IsCreator = member.IsCreator,
+
+                            IsCurrentUser =
+                                member.UserId == userId,
+
+                            CycleCheckInCount = count,
+
+                            CompletedCycle =
+                                count >= requiredCheckIns,
+
+                            VisibilityPublic =
+                                member.VisibilityPublic
+                        };
+                    })
+                    .ToList();
+
+                var currentMember = memberProgress
+                    .First(member =>
+                        member.UserId == userId
+                    );
+
+                var otherMembers = memberProgress
+                    .Where(member =>
+                        member.UserId != userId
+                    )
+                    .ToList();
+
+                var firstOtherMember =
+                    otherMembers.FirstOrDefault();
+
+                var allMembersCompletedCycle =
+                    memberProgress.All(member =>
+                        member.CompletedCycle
+                    );
+
+                var waitingOnMembers = memberProgress
+                    .Where(member =>
+                        !member.CompletedCycle
+                    )
+                    .Select(member => new
+                    {
+                        member.UserId,
+                        member.UserName,
+                        member.IsCurrentUser
+                    })
+                    .ToList();
 
                 var hoursUntilCycleEnds = Math.Max(
                     0,
@@ -334,109 +407,6 @@ namespace Picability.Controllers
                         (cycle.EndUtc - nowUtc).TotalHours
                     )
                 );
-
-                string? brokenMessage = null;
-
-                if (
-                    !s.IsActive &&
-                    s.FailedAt.HasValue &&
-                    s.FailedAt.Value != defaultDate
-)
-                {
-                    var failedCycle =
-                        StreakCycleCalculator.GetCurrentCycle(
-                            s.StartedAt,
-                            s.FailedAt.Value.AddTicks(-1),
-                            cycleLength,
-                            cycleUnit,
-                            pacificTimeZone
-                        );
-
-                    var userOneFailedCycleCount = checkIns.Count(c =>
-                        c.StreakId == s.Id &&
-                        c.UserId == s.UserOneId &&
-                        c.CheckedInAt >= failedCycle.StartUtc &&
-                        c.CheckedInAt < failedCycle.EndUtc
-                    );
-
-                    var userTwoFailedCycleCount = checkIns.Count(c =>
-                        c.StreakId == s.Id &&
-                        c.UserId == s.UserTwoId &&
-                        c.CheckedInAt >= failedCycle.StartUtc &&
-                        c.CheckedInAt < failedCycle.EndUtc
-                    );
-
-                    if (
-                        userOneFailedCycleCount == 0 &&
-                        s.UserOneLastCheckedInAt.HasValue &&
-                        s.UserOneLastCheckedInAt.Value >=
-                            failedCycle.StartUtc &&
-                        s.UserOneLastCheckedInAt.Value <
-                            failedCycle.EndUtc
-                    )
-                    {
-                        userOneFailedCycleCount = 1;
-                    }
-
-                    if (
-                        userTwoFailedCycleCount == 0 &&
-                        s.UserTwoLastCheckedInAt.HasValue &&
-                        s.UserTwoLastCheckedInAt.Value >=
-                            failedCycle.StartUtc &&
-                        s.UserTwoLastCheckedInAt.Value <
-                            failedCycle.EndUtc
-                    )
-                    {
-                        userTwoFailedCycleCount = 1;
-                    }
-
-                    var userOneCompletedFailedCycle =
-                        userOneFailedCycleCount >= requiredCheckIns;
-
-                    var userTwoCompletedFailedCycle =
-                        userTwoFailedCycleCount >= requiredCheckIns;
-
-                    var currentUserCompletedFailedCycle = isUserOne
-                        ? userOneCompletedFailedCycle
-                        : userTwoCompletedFailedCycle;
-
-                    var partnerCompletedFailedCycle = isUserOne
-                        ? userTwoCompletedFailedCycle
-                        : userOneCompletedFailedCycle;
-
-                    var partnerName = isUserOne
-                        ? s.UserTwo.UserName
-                        : s.UserOne.UserName;
-
-                    if (
-                        !currentUserCompletedFailedCycle &&
-                        partnerCompletedFailedCycle
-                    )
-                    {
-                        brokenMessage = "You killed him! :'C";
-                    }
-                    else if (
-                        currentUserCompletedFailedCycle &&
-                        !partnerCompletedFailedCycle
-                    )
-                    {
-                        brokenMessage =
-                            $"{partnerName} killed him! :'C";
-                    }
-                    else
-                    {
-                        brokenMessage =
-                            "You both killed him! :'C";
-                    }
-                }
-
-                var userCheckedInToday = isUserOne
-                    ? s.UserOneLastCheckedInAt.HasValue && ToPacificDate(s.UserOneLastCheckedInAt.Value) == todayPacific
-                    : s.UserTwoLastCheckedInAt.HasValue && ToPacificDate(s.UserTwoLastCheckedInAt.Value) == todayPacific;
-
-                var partnerCheckedInToday = isUserOne
-                    ? s.UserTwoLastCheckedInAt.HasValue && ToPacificDate(s.UserTwoLastCheckedInAt.Value) == todayPacific
-                    : s.UserOneLastCheckedInAt.HasValue && ToPacificDate(s.UserOneLastCheckedInAt.Value) == todayPacific;
 
                 var cycleUnitDisplay = cycleUnit switch
                 {
@@ -454,58 +424,222 @@ namespace Picability.Controllers
                 };
 
                 var cycleProgressMessage =
-                    $"{currentUserCycleCheckInCount} of " +
+                    $"{currentMember.CycleCheckInCount} of " +
                     $"{requiredCheckIns} check-ins this " +
                     $"{cycleUnitDisplay}";
 
+                string? brokenMessage = null;
+                var failedMembers = new List<object>();
+
+                if (
+                    !streak.IsActive &&
+                    streak.FailedAt.HasValue &&
+                    streak.FailedAt.Value != defaultDate
+                )
+                {
+                    var failedCycle =
+                        StreakCycleCalculator.GetCurrentCycle(
+                            streak.StartedAt,
+                            streak.FailedAt.Value.AddTicks(-1),
+                            cycleLength,
+                            cycleUnit,
+                            pacificTimeZone
+                        );
+
+                    var failedMemberData = memberModels
+                        .Select(member =>
+                        {
+                            var count = checkIns.Count(checkIn =>
+                                checkIn.StreakId == streak.Id &&
+                                checkIn.UserId == member.UserId &&
+                                checkIn.CheckedInAt >=
+                                    failedCycle.StartUtc &&
+                                checkIn.CheckedInAt <
+                                    failedCycle.EndUtc
+                            );
+
+                            return new
+                            {
+                                member.UserId,
+
+                                UserName =
+                                    member.User?.UserName ??
+                                    "Unknown user",
+
+                                IsCurrentUser =
+                                    member.UserId == userId,
+
+                                Count = count
+                            };
+                        })
+                        .Where(member =>
+                            member.Count < requiredCheckIns
+                        )
+                        .ToList();
+
+                    failedMembers.AddRange(
+                        failedMemberData.Select(member =>
+                            (object)new
+                            {
+                                member.UserId,
+                                member.UserName,
+                                member.IsCurrentUser
+                            }
+                        )
+                    );
+
+                    var failedNames = failedMemberData
+                        .Select(member =>
+                            member.IsCurrentUser
+                                ? "You"
+                                : member.UserName
+                        )
+                        .ToList();
+
+                    brokenMessage = failedNames.Count switch
+                    {
+                        0 => "The streak ended.",
+                        1 => $"{failedNames[0]} killed the streak.",
+                        2 => $"{failedNames[0]} and {failedNames[1]} killed the streak.",
+                        _ =>
+                            $"{string.Join(", ", failedNames.Take(failedNames.Count - 1))}, and {failedNames.Last()} killed the streak."
+                    };
+                }
+
+                var currentUserCheckedInToday =
+                    checkIns.Any(checkIn =>
+                        checkIn.StreakId == streak.Id &&
+                        checkIn.UserId == userId &&
+                        ToPacificDate(checkIn.CheckedInAt) ==
+                            todayPacific
+                    );
+
+                var partnerCheckInCount =
+                    firstOtherMember?.CycleCheckInCount ?? 0;
+
+                var partnerCompletedCycle =
+                    otherMembers.Count > 0 &&
+                    otherMembers.All(member =>
+                        member.CompletedCycle
+                    );
+
+                var currentMemberModel = memberModels
+                    .First(member =>
+                        member.UserId == userId
+                    );
+
                 return new
                 {
-                    s.Id,
-                    s.HabitName,
-                    s.HabitIcon,
-                    s.Color,
-                    s.CurrentCount,
-                    s.IsActive,
-                    RequiredCheckIns = requiredCheckIns,
-                    CycleLength = cycleLength,
-                    CycleUnit = cycleUnit,
-                    CycleStartedAt = cycle.StartUtc,
-                    CycleEndsAt = cycle.EndUtc,
+                    streak.Id,
+                    streak.HabitName,
+                    streak.HabitIcon,
+                    streak.Color,
+                    streak.CurrentCount,
+                    streak.IsActive,
+                    streak.IsGroupStreak,
+
+                    MemberCount = memberProgress.Count,
+                    Members = memberProgress,
+
+                    WaitingOnMembers =
+                        waitingOnMembers,
+
+                    FailedMembers =
+                        failedMembers,
+
+                    AllMembersCompletedCycle =
+                        allMembersCompletedCycle,
+
+                    RequiredCheckIns =
+                        requiredCheckIns,
+
+                    CycleLength =
+                        cycleLength,
+
+                    CycleUnit =
+                        cycleUnit,
+
+                    CycleStartedAt =
+                        cycle.StartUtc,
+
+                    CycleEndsAt =
+                        cycle.EndUtc,
+
                     UserCycleCheckInCount =
-                        currentUserCycleCheckInCount,
-                    PartnerCycleCheckInCount =
-                        partnerCycleCheckInCount,
+                        currentMember.CycleCheckInCount,
+
                     UserCompletedCycle =
-                        currentUserCompletedCycle,
-                    PartnerCompletedCycle =
-                        partnerCompletedCycle,
-                    BothCompletedCycle =
-                        bothCompletedCycle,
+                        currentMember.CompletedCycle,
+
                     CanCheckInCurrentCycle =
-                        s.IsActive &&
-                        !currentUserCompletedCycle,
+                        streak.IsActive &&
+                        !currentMember.CompletedCycle,
+
                     HoursUntilCycleEnds =
                         hoursUntilCycleEnds,
-                    IsPublic = isUserOne
-                        ? s.UserOneVisibilityPublic
-                        : s.UserTwoVisibilityPublic,
-                    PartnerName = isUserOne ? s.UserTwo.UserName : s.UserOne.UserName,
-                    CycleProgressMessage = cycleProgressMessage,
-                    s.LastCompletedAt,
-                    s.LastFullyCompletedAt,
-                    s.UserOneLastCheckedInAt,
-                    s.UserTwoLastCheckedInAt,
-                    UserCheckedInToday = userCheckedInToday,
-                    BrokenMessage = brokenMessage,
-                    PartnerCheckedInToday = partnerCheckedInToday,
-                    BothCheckedInToday = userCheckedInToday && partnerCheckedInToday,
-                    s.StartedAt,
-                    CanCheckInToday = !userCheckedInToday,
-                    HoursUntilMidnight = hoursUntilMidnight,
-                    PartnerId = isUserOne ? s.UserTwoId : s.UserOneId,
-                    TimeMessage = userCheckedInToday
-                        ? $"Send another streak in {hoursUntilMidnight} hours"
-                        : $"Send a streak within {hoursUntilMidnight} hours or the streak dies!"
+
+                    IsPublic =
+                        currentMemberModel.VisibilityPublic,
+
+                    CycleProgressMessage =
+                        cycleProgressMessage,
+
+                    streak.LastCompletedAt,
+                    streak.LastFullyCompletedAt,
+                    streak.UserOneLastCheckedInAt,
+                    streak.UserTwoLastCheckedInAt,
+
+                    BrokenMessage =
+                        brokenMessage,
+
+                    streak.StartedAt,
+
+                    /*
+                     * Legacy two-person response fields remain available
+                     * while the frontend is being migrated.
+                     */
+                    PartnerName =
+                        firstOtherMember?.UserName ??
+                        "Group",
+
+                    PartnerId =
+                        firstOtherMember?.UserId,
+
+                    PartnerCycleCheckInCount =
+                        partnerCheckInCount,
+
+                    PartnerCompletedCycle =
+                        partnerCompletedCycle,
+
+                    BothCompletedCycle =
+                        allMembersCompletedCycle,
+
+                    UserCheckedInToday =
+                        currentUserCheckedInToday,
+
+                    PartnerCheckedInToday =
+                        otherMembers.Any(member =>
+                            member.CycleCheckInCount > 0
+                        ),
+
+                    BothCheckedInToday =
+                        memberProgress.All(member =>
+                            member.CycleCheckInCount > 0
+                        ),
+
+                    CanCheckInToday =
+                        streak.IsActive &&
+                        !currentMember.CompletedCycle,
+
+                    HoursUntilMidnight =
+                        hoursUntilMidnight,
+
+                    TimeMessage =
+                        currentMember.CompletedCycle
+                            ? allMembersCompletedCycle
+                                ? "Completed"
+                                : "Your part is complete. Waiting on the remaining members."
+                            : $"{currentMember.CycleCheckInCount} of {requiredCheckIns} check-ins complete this cycle."
                 };
             });
 
@@ -910,24 +1044,26 @@ namespace Picability.Controllers
             var currentUserId = GetCurrentUserId();
 
             if (string.IsNullOrEmpty(currentUserId))
-            {
                 return Unauthorized();
-            }
 
             var streak = await _context.Streaks
                 .Include(s => s.UserOne)
                 .Include(s => s.UserTwo)
+                .Include(s => s.Members)
+                    .ThenInclude(member => member.User)
                 .FirstOrDefaultAsync(s =>
                     s.Id == id &&
                     (
+                        s.Members.Any(member =>
+                            member.UserId == currentUserId
+                        ) ||
                         s.UserOneId == currentUserId ||
                         s.UserTwoId == currentUserId
-                    ));
+                    )
+                );
 
             if (streak == null)
-            {
                 return NotFound("Streak not found.");
-            }
 
             if (!streak.IsActive)
             {
@@ -935,6 +1071,35 @@ namespace Picability.Controllers
                     "This streak is no longer active."
                 );
             }
+
+            var memberModels = streak.Members
+                .ToList();
+
+            if (memberModels.Count == 0)
+            {
+                memberModels = new List<StreakMember>
+        {
+            new StreakMember
+            {
+                UserId = streak.UserOneId,
+                User = streak.UserOne,
+                IsCreator = true
+            },
+            new StreakMember
+            {
+                UserId = streak.UserTwoId,
+                User = streak.UserTwo
+            }
+        };
+            }
+
+            var currentMember = memberModels
+                .FirstOrDefault(member =>
+                    member.UserId == currentUserId
+                );
+
+            if (currentMember == null)
+                return Forbid();
 
             var nowUtc = DateTime.UtcNow;
             var timeZone = GetPacificTimeZone();
@@ -957,43 +1122,73 @@ namespace Picability.Controllers
                     _ => "Day"
                 };
 
-            var cycle = StreakCycleCalculator.GetCurrentCycle(
-                streak.StartedAt,
-                nowUtc,
-                cycleLength,
-                cycleUnit,
-                timeZone
-            );
-
-            var isUserOne =
-                streak.UserOneId == currentUserId;
-
-            var currentUserCheckInCount =
-                await _context.StreakCheckIns.CountAsync(c =>
-                    c.StreakId == streak.Id &&
-                    c.UserId == currentUserId &&
-                    c.CheckedInAt >= cycle.StartUtc &&
-                    c.CheckedInAt < cycle.EndUtc
+            var cycle =
+                StreakCycleCalculator.GetCurrentCycle(
+                    streak.StartedAt,
+                    nowUtc,
+                    cycleLength,
+                    cycleUnit,
+                    timeZone
                 );
 
-            /*
-             * Existing streaks may contain a legacy last-check-in
-             * timestamp without a corresponding StreakCheckIn row.
-             * Count that timestamp once during the transition.
-             */
-            var currentUserLegacyCheckIn = isUserOne
-                ? streak.UserOneLastCheckedInAt
-                : streak.UserTwoLastCheckedInAt;
+            var memberIds = memberModels
+                .Select(member => member.UserId)
+                .Distinct()
+                .ToList();
 
+            var cycleCheckIns = await _context.StreakCheckIns
+                .Where(checkIn =>
+                    checkIn.StreakId == streak.Id &&
+                    memberIds.Contains(checkIn.UserId) &&
+                    checkIn.CheckedInAt >= cycle.StartUtc &&
+                    checkIn.CheckedInAt < cycle.EndUtc
+                )
+                .ToListAsync();
+
+            var memberCounts = memberIds.ToDictionary(
+                memberId => memberId,
+                memberId => cycleCheckIns.Count(checkIn =>
+                    checkIn.UserId == memberId
+                )
+            );
+
+            /*
+             * Preserve the two legacy timestamps during migration.
+             */
             if (
-                currentUserCheckInCount == 0 &&
-                currentUserLegacyCheckIn.HasValue &&
-                currentUserLegacyCheckIn.Value >= cycle.StartUtc &&
-                currentUserLegacyCheckIn.Value < cycle.EndUtc
+                memberCounts.TryGetValue(
+                    streak.UserOneId,
+                    out var userOneCount
+                ) &&
+                userOneCount == 0 &&
+                streak.UserOneLastCheckedInAt.HasValue &&
+                streak.UserOneLastCheckedInAt.Value >=
+                    cycle.StartUtc &&
+                streak.UserOneLastCheckedInAt.Value <
+                    cycle.EndUtc
             )
             {
-                currentUserCheckInCount = 1;
+                memberCounts[streak.UserOneId] = 1;
             }
+
+            if (
+                memberCounts.TryGetValue(
+                    streak.UserTwoId,
+                    out var userTwoCount
+                ) &&
+                userTwoCount == 0 &&
+                streak.UserTwoLastCheckedInAt.HasValue &&
+                streak.UserTwoLastCheckedInAt.Value >=
+                    cycle.StartUtc &&
+                streak.UserTwoLastCheckedInAt.Value <
+                    cycle.EndUtc
+            )
+            {
+                memberCounts[streak.UserTwoId] = 1;
+            }
+
+            var currentUserCheckInCount =
+                memberCounts[currentUserId];
 
             if (currentUserCheckInCount >= requiredCheckIns)
             {
@@ -1001,46 +1196,23 @@ namespace Picability.Controllers
                 {
                     message =
                         "You already completed all required check-ins for this cycle.",
-                    currentCheckIns = currentUserCheckInCount,
+
+                    currentCheckIns =
+                        currentUserCheckInCount,
+
                     requiredCheckIns,
-                    cycleEndsAt = cycle.EndUtc
+
+                    cycleEndsAt =
+                        cycle.EndUtc
                 });
-            }
-
-            var receiverId = isUserOne
-                ? streak.UserTwoId
-                : streak.UserOneId;
-
-            var senderName = isUserOne
-                ? streak.UserOne.UserName
-                : streak.UserTwo.UserName;
-
-            var partnerCheckInCount =
-                await _context.StreakCheckIns.CountAsync(c =>
-                    c.StreakId == streak.Id &&
-                    c.UserId == receiverId &&
-                    c.CheckedInAt >= cycle.StartUtc &&
-                    c.CheckedInAt < cycle.EndUtc
-                );
-
-            var partnerLegacyCheckIn = isUserOne
-                ? streak.UserTwoLastCheckedInAt
-                : streak.UserOneLastCheckedInAt;
-
-            if (
-                partnerCheckInCount == 0 &&
-                partnerLegacyCheckIn.HasValue &&
-                partnerLegacyCheckIn.Value >= cycle.StartUtc &&
-                partnerLegacyCheckIn.Value < cycle.EndUtc
-            )
-            {
-                partnerCheckInCount = 1;
             }
 
             var alreadyFullyCompletedThisCycle =
                 streak.LastFullyCompletedAt.HasValue &&
-                streak.LastFullyCompletedAt.Value >= cycle.StartUtc &&
-                streak.LastFullyCompletedAt.Value < cycle.EndUtc;
+                streak.LastFullyCompletedAt.Value >=
+                    cycle.StartUtc &&
+                streak.LastFullyCompletedAt.Value <
+                    cycle.EndUtc;
 
             _context.StreakCheckIns.Add(
                 new StreakCheckIn
@@ -1052,33 +1224,25 @@ namespace Picability.Controllers
             );
 
             currentUserCheckInCount++;
+            memberCounts[currentUserId] =
+                currentUserCheckInCount;
 
-            /*
-             * Continue updating the legacy timestamp fields.
-             * The current frontend and several existing features
-             * still rely on these values.
-             */
-            if (isUserOne)
-            {
+            if (currentUserId == streak.UserOneId)
                 streak.UserOneLastCheckedInAt = nowUtc;
-            }
-            else
-            {
+
+            if (currentUserId == streak.UserTwoId)
                 streak.UserTwoLastCheckedInAt = nowUtc;
-            }
 
             var currentUserCompletedCycle =
                 currentUserCheckInCount >= requiredCheckIns;
 
-            var partnerCompletedCycle =
-                partnerCheckInCount >= requiredCheckIns;
-
-            var bothCompletedCycle =
-                currentUserCompletedCycle &&
-                partnerCompletedCycle;
+            var allMembersCompletedCycle =
+                memberCounts.Values.All(count =>
+                    count >= requiredCheckIns
+                );
 
             if (
-                bothCompletedCycle &&
+                allMembersCompletedCycle &&
                 !alreadyFullyCompletedThisCycle
             )
             {
@@ -1089,36 +1253,88 @@ namespace Picability.Controllers
 
             await _context.SaveChangesAsync();
 
-            var recentContent = await _context.CheckInContents
-                .Where(c =>
-                    c.StreakId == streak.Id &&
-                    c.SenderId == currentUserId &&
-                    c.ReceiverId == receiverId &&
-                    !c.IsViewed &&
-                    c.CreatedAt >= nowUtc.AddMinutes(-5)
+            var senderName =
+                currentMember.User?.UserName ??
+                "A group member";
+
+            var recentContent =
+                await _context.CheckInContents
+                    .Where(content =>
+                        content.StreakId == streak.Id &&
+                        content.SenderId == currentUserId &&
+                        !content.IsViewed &&
+                        content.CreatedAt >=
+                            nowUtc.AddMinutes(-5)
+                    )
+                    .ToListAsync();
+
+            var sentMessage = recentContent.Any(content =>
+                content.ContentType == "Message"
+            );
+
+            var sentPhoto = recentContent.Any(content =>
+                content.ContentType == "Photo"
+            );
+
+            /*
+             * Notify every other member.
+             * Content recipient handling will be generalized separately.
+             */
+            foreach (
+                var receiverId in memberIds.Where(memberId =>
+                    memberId != currentUserId
                 )
-                .ToListAsync();
+            )
+            {
+                await _pushNotificationService
+                    .NotifyPartnerCheckedInAsync(
+                        receiverId,
+                        senderName,
+                        streak.HabitName,
+                        currentUserCheckInCount,
+                        requiredCheckIns,
+                        cycleLength,
+                        cycleUnit,
+                        sentMessage,
+                        sentPhoto
+                    );
+            }
 
-            var sentMessage = recentContent.Any(c =>
-                c.ContentType == "Message"
-            );
+            var memberProgress = memberModels
+                .Select(member => new
+                {
+                    UserId = member.UserId,
 
-            var sentPhoto = recentContent.Any(c =>
-                c.ContentType == "Photo"
-            );
+                    UserName =
+                        member.User?.UserName ??
+                        "Unknown user",
 
-            await _pushNotificationService
-                .NotifyPartnerCheckedInAsync(
-                    receiverId,
-                    senderName ?? "Your partner",
-                    streak.HabitName,
-                    currentUserCheckInCount,
-                    requiredCheckIns,
-                    cycleLength,
-                    cycleUnit,
-                    sentMessage,
-                    sentPhoto
-                );
+                    IsCreator =
+                        member.IsCreator,
+
+                    IsCurrentUser =
+                        member.UserId == currentUserId,
+
+                    CycleCheckInCount =
+                        memberCounts[member.UserId],
+
+                    CompletedCycle =
+                        memberCounts[member.UserId] >=
+                        requiredCheckIns
+                })
+                .ToList();
+
+            var waitingOnMembers = memberProgress
+                .Where(member =>
+                    !member.CompletedCycle
+                )
+                .Select(member => new
+                {
+                    member.UserId,
+                    member.UserName,
+                    member.IsCurrentUser
+                })
+                .ToList();
 
             var hoursUntilCycleEnds = Math.Max(
                 0,
@@ -1131,28 +1347,43 @@ namespace Picability.Controllers
             {
                 streak.Id,
                 streak.CurrentCount,
+                streak.IsGroupStreak,
 
-                RequiredCheckIns = requiredCheckIns,
-                CycleLength = cycleLength,
-                CycleUnit = cycleUnit,
+                MemberCount =
+                    memberProgress.Count,
 
-                CycleStartedAt = cycle.StartUtc,
-                CycleEndsAt = cycle.EndUtc,
+                Members =
+                    memberProgress,
+
+                WaitingOnMembers =
+                    waitingOnMembers,
+
+                AllMembersCompletedCycle =
+                    allMembersCompletedCycle,
+
+                RequiredCheckIns =
+                    requiredCheckIns,
+
+                CycleLength =
+                    cycleLength,
+
+                CycleUnit =
+                    cycleUnit,
+
+                CycleStartedAt =
+                    cycle.StartUtc,
+
+                CycleEndsAt =
+                    cycle.EndUtc,
 
                 UserCycleCheckInCount =
                     currentUserCheckInCount,
 
-                PartnerCycleCheckInCount =
-                    partnerCheckInCount,
-
                 UserCompletedCycle =
                     currentUserCompletedCycle,
 
-                PartnerCompletedCycle =
-                    partnerCompletedCycle,
-
                 BothCompletedCycle =
-                    bothCompletedCycle,
+                    allMembersCompletedCycle,
 
                 CanCheckInCurrentCycle =
                     currentUserCheckInCount <
@@ -1166,23 +1397,23 @@ namespace Picability.Controllers
                 streak.UserOneLastCheckedInAt,
                 streak.UserTwoLastCheckedInAt,
 
-                /*
-                 * Legacy response fields remain present until
-                 * the frontend has transitioned to cycle fields.
-                 */
                 UserCheckedInToday = true,
-                PartnerCheckedInToday =
-                    partnerCheckInCount > 0,
+
                 BothCheckedInToday =
-                    currentUserCheckInCount > 0 &&
-                    partnerCheckInCount > 0,
+                    memberCounts.Values.All(count =>
+                        count > 0
+                    ),
+
                 CanCheckInToday =
                     currentUserCheckInCount <
                     requiredCheckIns,
 
-                TimeMessage = currentUserCompletedCycle
-                    ? $"Cycle complete. Next cycle begins in approximately {hoursUntilCycleEnds} hours."
-                    : $"{currentUserCheckInCount} of {requiredCheckIns} check-ins complete this cycle."
+                TimeMessage =
+                    allMembersCompletedCycle
+                        ? "Completed"
+                        : currentUserCompletedCycle
+                            ? "Your part is complete. Waiting on the remaining members."
+                            : $"{currentUserCheckInCount} of {requiredCheckIns} check-ins complete this cycle."
             });
         }
     }
