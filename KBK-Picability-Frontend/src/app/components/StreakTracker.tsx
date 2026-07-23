@@ -4,6 +4,16 @@ import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { canUsePushNotifications, enablePushNotifications } from '../utils/pushNotifications';
 
+interface StreakMemberProgress {
+    userId: string;
+    userName: string;
+    isCreator?: boolean;
+    isCurrentUser?: boolean;
+    cycleCheckInCount: number;
+    completedCycle: boolean;
+    visibilityPublic?: boolean;
+}
+
 interface Streak {
     id: number;
     habitName: string;
@@ -38,6 +48,23 @@ interface Streak {
 
     canCheckInCurrentCycle?: boolean;
     hoursUntilCycleEnds?: number;
+    isGroupStreak?: boolean;
+    memberCount?: number;
+    members?: StreakMemberProgress[];
+
+    waitingOnMembers?: {
+        userId: string;
+        userName: string;
+        isCurrentUser?: boolean;
+    }[];
+
+    failedMembers?: {
+        userId: string;
+        userName: string;
+        isCurrentUser?: boolean;
+    }[];
+
+    allMembersCompletedCycle?: boolean;
     cycleProgressMessage?: string;
     brokenMessage?: string;
     timeMessage?: string;
@@ -426,17 +453,39 @@ export function StreakTracker({
             streak.userCheckedInToday ??
             false;
 
+        const otherMembers =
+            streak.members?.filter(
+                member => !member.isCurrentUser
+            ) ?? [];
+
         const partnerDone =
-            streak.partnerCompletedCycle ??
-            streak.partnerCheckedInToday ??
-            false;
+            streak.isGroupStreak
+                ? streak.allMembersCompletedCycle === true
+                : streak.partnerCompletedCycle ??
+                streak.partnerCheckedInToday ??
+                false;
+
+        const allOtherMembersDone =
+            streak.isGroupStreak
+                ? otherMembers.length > 0 &&
+                otherMembers.every(
+                    member => member.completedCycle
+                )
+                : partnerDone;
 
         const canCheckInNow =
             streak.canCheckInCurrentCycle ??
             streak.canCheckInToday ??
             false;
 
-        if (userDone && partnerDone) {
+        if (
+            userDone &&
+            (
+                streak.isGroupStreak
+                    ? streak.allMembersCompletedCycle === true
+                    : partnerDone
+            )
+        ) {
             return {
                 priority: 4,
                 label: 'Completed',
@@ -450,11 +499,23 @@ export function StreakTracker({
             };
         }
 
-        if (userDone && !partnerDone) {
+        if (
+            userDone &&
+            (
+                streak.isGroupStreak
+                    ? streak.allMembersCompletedCycle !== true
+                    : !partnerDone
+            )
+        ) {
             return {
                 priority: 3,
-                label: 'Waiting on partner',
-                detail: 'You completed your part.',
+                label: streak.isGroupStreak
+                    ? 'Waiting on group'
+                    : 'Waiting on partner',
+
+                detail: streak.isGroupStreak
+                    ? 'Your required check-ins are complete.'
+                    : 'You completed your part.',
                 emoji: '🔵',
                 cardClass:
                     'shadow-[0_0_18px_rgba(59,130,246,0.20)]',
@@ -487,7 +548,11 @@ export function StreakTracker({
         return {
             priority: 1,
             label: "Don't leave them hanging!",
-            detail: 'Your partner completed their part.',
+            detail: streak.isGroupStreak
+                ? allOtherMembersDone
+                    ? 'Everyone else completed their part.'
+                    : 'Other group members are checking in.'
+                : 'Your partner completed their part.',
             emoji: '🔥',
             cardClass:
                 'shadow-[0_0_30px_rgba(249,115,22,0.38)] scale-[1.005]',
@@ -526,6 +591,18 @@ export function StreakTracker({
 
     const activeStreaks = sortedStreaks.filter(s => s.isActive !== false);
     const brokenStreaks = streaks.filter(s => s.isActive === false);
+
+    const actionableStreakInvites =
+        streakInvites.filter(invite =>
+            !invite.isGroupRequest ||
+            invite.currentUserStatus !== 'Accepted'
+        );
+
+    const acceptedGroupInvites =
+        streakInvites.filter(invite =>
+            invite.isGroupRequest &&
+            invite.currentUserStatus === 'Accepted'
+        );
 
     useEffect(() => {
         if (!viewingContent) return;
@@ -739,14 +816,14 @@ export function StreakTracker({
 
                 {/* Streaks List */}
                 <div className="w-full max-w-2xl mx-auto space-y-4 mb-6 px-0 sm:px-0">
-                    {streakInvites.length > 0 && (
+                    {actionableStreakInvites.length > 0 && (
                         <div className="space-y-3">
                             <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'
                                 }`}>
                                 Incoming Streak Requests
                             </h2>
 
-                            {streakInvites.map((invite) => {
+                            {actionableStreakInvites.map((invite) => {
                                 const IconComponent = (LucideIcons as any)[invite.habitIcon] || LucideIcons.Target;
 
                                 return (
@@ -900,12 +977,131 @@ export function StreakTracker({
                         </div>
                     )}
 
-                    {sentStreakRequests.length > 0 && (
+                    {(
+                        sentStreakRequests.length > 0 ||
+                        acceptedGroupInvites.length > 0
+                    ) && (
                         <div className="space-y-3">
                             <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'
                                 }`}>
                                 Pending Streaks
                             </h2>
+
+                            {acceptedGroupInvites.map(invite => (
+                                <div
+                                    key={`accepted-group-${invite.id}`}
+                                    className={`relative w-full rounded-3xl p-6 shadow-sm border ${isDark
+                                            ? 'bg-slate-800/40 border-teal-500/20'
+                                            : 'bg-white border-teal-200'
+                                        }`}
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div
+                                            className={`flex items-center justify-center w-16 h-16 shrink-0 rounded-2xl bg-gradient-to-br ${invite.color ||
+                                                'from-teal-500 to-cyan-600'
+                                                } shadow-lg opacity-80`}
+                                        >
+                                            {(() => {
+                                                const IconComponent =
+                                                    (LucideIcons as any)[
+                                                    invite.habitIcon
+                                                    ] ||
+                                                    LucideIcons.Target;
+
+                                                return (
+                                                    <IconComponent className="w-8 h-8 text-white" />
+                                                );
+                                            })()}
+                                        </div>
+
+                                        <div className="min-w-0 flex-1">
+                                            <h3
+                                                className={`text-lg font-semibold ${isDark
+                                                        ? 'text-slate-100'
+                                                        : 'text-slate-800'
+                                                    }`}
+                                            >
+                                                {invite.habitName}
+                                            </h3>
+
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Users className="w-4 h-4 text-teal-500" />
+
+                                                <span
+                                                    className={`text-sm ${isDark
+                                                            ? 'text-slate-300'
+                                                            : 'text-slate-700'
+                                                        }`}
+                                                >
+                                                    Group streak · {
+                                                        (invite.members?.length ?? 0) + 1
+                                                    } members
+                                                </span>
+                                            </div>
+
+                                            <div
+                                                className={`mt-3 rounded-2xl p-3 ${isDark
+                                                        ? 'bg-slate-900/40'
+                                                        : 'bg-slate-50'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between text-sm mb-2">
+                                                    <span
+                                                        className={
+                                                            isDark
+                                                                ? 'text-slate-200'
+                                                                : 'text-slate-700'
+                                                        }
+                                                    >
+                                                        You
+                                                    </span>
+
+                                                    <span className="text-emerald-500 font-semibold">
+                                                        Accepted
+                                                    </span>
+                                                </div>
+
+                                                {(invite.members ?? [])
+                                                    .filter(
+                                                        (member: any) =>
+                                                            member.userId !==
+                                                            user?.id
+                                                    )
+                                                    .map((member: any) => (
+                                                        <div
+                                                            key={member.userId}
+                                                            className="flex items-center justify-between text-sm mt-2"
+                                                        >
+                                                            <span
+                                                                className={
+                                                                    isDark
+                                                                        ? 'text-slate-300'
+                                                                        : 'text-slate-700'
+                                                                }
+                                                            >
+                                                                {member.userName}
+                                                            </span>
+
+                                                            <span
+                                                                className={`font-semibold ${member.status ===
+                                                                        'Accepted'
+                                                                        ? 'text-emerald-500'
+                                                                        : 'text-amber-500'
+                                                                    }`}
+                                                            >
+                                                                {member.status}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                            </div>
+
+                                            <p className="text-xs text-amber-500 font-semibold mt-3">
+                                                You accepted · waiting for the remaining members
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
 
                             {sentStreakRequests.map((request) => {
                                 const IconComponent = (LucideIcons as any)[request.habitIcon] || LucideIcons.Target;
@@ -1101,6 +1297,42 @@ export function StreakTracker({
                         const IconComponent = (LucideIcons as any)[streak.habitIcon] || LucideIcons.Target;
                         const visualState = getStreakVisualState(streak);
 
+                        const streakMembers =
+                            streak.members ?? [];
+
+                        const currentUserMember =
+                            streakMembers.find(
+                                member => member.isCurrentUser
+                            );
+
+                        const groupWaitingNames =
+                            (streak.waitingOnMembers ?? [])
+                                .map(member =>
+                                    member.isCurrentUser
+                                        ? 'you'
+                                        : member.userName
+                                );
+
+                        const groupWaitingLabel =
+                            groupWaitingNames.length === 0
+                                ? 'Everyone completed'
+                                : groupWaitingNames.length === 1
+                                    ? `Waiting on ${groupWaitingNames[0]}`
+                                    : groupWaitingNames.length === 2
+                                        ? `Waiting on ${groupWaitingNames[0]} and ${groupWaitingNames[1]}`
+                                        : `Waiting on ${groupWaitingNames
+                                            .slice(0, -1)
+                                            .join(', ')}, and ${groupWaitingNames[
+                                        groupWaitingNames.length - 1
+                                        ]
+                                        }`;
+
+                        const allMembersCompletedCycle =
+                            streak.isGroupStreak
+                                ? streak.allMembersCompletedCycle === true
+                                : streak.bothCompletedCycle ??
+                                false;
+
                         const requiredCheckIns =
                             Math.max(1, streak.requiredCheckIns ?? 1);
 
@@ -1204,8 +1436,48 @@ export function StreakTracker({
                                                     )}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-2 mt-1 max-w-[210px] sm:max-w-none">
-                                                    <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>{streak.userAvatar}</div>
-                                                    <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>with {streak.userName}</span>
+                                                    {streak.isGroupStreak ? (
+                                                        <div className="inline-flex items-center gap-2">
+                                                            <div
+                                                                className={`flex items-center justify-center w-6 h-6 rounded-full ${isDark
+                                                                        ? 'bg-teal-500/15 text-teal-400'
+                                                                        : 'bg-teal-100 text-teal-700'
+                                                                    }`}
+                                                            >
+                                                                <Users className="w-3.5 h-3.5" />
+                                                            </div>
+
+                                                            <span
+                                                                className={`text-sm ${isDark
+                                                                        ? 'text-slate-400'
+                                                                        : 'text-slate-600'
+                                                                    }`}
+                                                            >
+                                                                Group streak · {streak.memberCount ??
+                                                                    streakMembers.length} members
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div
+                                                                className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${isDark
+                                                                        ? 'bg-slate-700 text-slate-300'
+                                                                        : 'bg-slate-200 text-slate-700'
+                                                                    }`}
+                                                            >
+                                                                {streak.userAvatar}
+                                                            </div>
+
+                                                            <span
+                                                                className={`text-sm ${isDark
+                                                                        ? 'text-slate-400'
+                                                                        : 'text-slate-600'
+                                                                    }`}
+                                                            >
+                                                                with {streak.userName}
+                                                            </span>
+                                                        </>
+                                                    )}
                                                     {!isBroken && (
                                                         <div className={`inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full border text-[11px] sm:text-xs font-bold whitespace-nowrap ${visualState.chipClass}`}>
                                                             <span>{visualState.emoji}</span>
@@ -1256,168 +1528,265 @@ export function StreakTracker({
                                         <div className="p-6">
                                             {!isBroken && (
                                                 <div className="mb-4">
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div
-                                                            className={`p-3 rounded-2xl ${userCompletedCycle
-                                                                    ? 'bg-emerald-500/15'
-                                                                    : isDark
-                                                                        ? 'bg-slate-700/50'
-                                                                        : 'bg-slate-100'
-                                                                }`}
-                                                        >
-                                                            <div className="flex items-center justify-between gap-2">
-                                                                <span
-                                                                    className={`text-sm font-bold ${userCompletedCycle
-                                                                            ? 'text-emerald-500'
-                                                                            : isDark
-                                                                                ? 'text-slate-200'
-                                                                                : 'text-slate-700'
-                                                                        }`}
-                                                                >
-                                                                    You
-                                                                </span>
+                                                    {streak.isGroupStreak ? (
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                            {streakMembers.map(member => {
+                                                                const memberCheckIns = Math.min(
+                                                                    requiredCheckIns,
+                                                                    member.cycleCheckInCount ?? 0
+                                                                );
 
-                                                                <span
-                                                                    className={`text-xs font-bold ${userCompletedCycle
-                                                                            ? 'text-emerald-500'
-                                                                            : isDark
-                                                                                ? 'text-slate-400'
-                                                                                : 'text-slate-500'
-                                                                        }`}
-                                                                >
-                                                                    {customFrequency
-                                                                        ? `${userCycleCheckIns}/${requiredCheckIns}`
-                                                                        : userCompletedCycle
-                                                                            ? 'Done'
-                                                                            : 'Waiting'}
-                                                                </span>
+                                                                const memberProgressPercent = Math.min(
+                                                                    100,
+                                                                    (memberCheckIns / requiredCheckIns) * 100
+                                                                );
+
+                                                                return (
+                                                                    <div
+                                                                        key={member.userId}
+                                                                        className={`p-3 rounded-2xl ${member.completedCycle
+                                                                                ? 'bg-emerald-500/15'
+                                                                                : isDark
+                                                                                    ? 'bg-slate-700/50'
+                                                                                    : 'bg-slate-100'
+                                                                            }`}
+                                                                    >
+                                                                        <div className="flex items-center justify-between gap-3">
+                                                                            <div className="min-w-0">
+                                                                                <span
+                                                                                    className={`block text-sm font-bold truncate ${member.completedCycle
+                                                                                            ? 'text-emerald-500'
+                                                                                            : isDark
+                                                                                                ? 'text-slate-200'
+                                                                                                : 'text-slate-700'
+                                                                                        }`}
+                                                                                >
+                                                                                    {member.isCurrentUser
+                                                                                        ? 'You'
+                                                                                        : member.userName}
+                                                                                </span>
+
+                                                                                {member.isCreator && (
+                                                                                    <span className="block text-[10px] font-semibold text-teal-500 mt-0.5">
+                                                                                        Creator
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+
+                                                                            <span
+                                                                                className={`text-xs font-bold shrink-0 ${member.completedCycle
+                                                                                        ? 'text-emerald-500'
+                                                                                        : isDark
+                                                                                            ? 'text-slate-400'
+                                                                                            : 'text-slate-500'
+                                                                                    }`}
+                                                                            >
+                                                                                {memberCheckIns}/{requiredCheckIns}
+                                                                            </span>
+                                                                        </div>
+
+                                                                        <div
+                                                                            className={`mt-3 h-2 rounded-full overflow-hidden ${isDark
+                                                                                    ? 'bg-slate-800'
+                                                                                    : 'bg-slate-200'
+                                                                                }`}
+                                                                        >
+                                                                            <div
+                                                                                className={`h-full rounded-full transition-all duration-500 ${member.completedCycle
+                                                                                        ? 'bg-emerald-500'
+                                                                                        : member.isCurrentUser
+                                                                                            ? 'bg-teal-500'
+                                                                                            : 'bg-violet-500'
+                                                                                    }`}
+                                                                                style={{
+                                                                                    width: `${memberProgressPercent}%`
+                                                                                }}
+                                                                            />
+                                                                        </div>
+
+                                                                        <p
+                                                                            className={`mt-2 text-xs ${member.completedCycle
+                                                                                    ? 'text-emerald-500'
+                                                                                    : isDark
+                                                                                        ? 'text-slate-400'
+                                                                                        : 'text-slate-500'
+                                                                                }`}
+                                                                        >
+                                                                            {member.completedCycle
+                                                                                ? 'Completed ✅'
+                                                                                : `${requiredCheckIns - memberCheckIns} remaining`}
+                                                                        </p>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div
+                                                                className={`p-3 rounded-2xl ${userCompletedCycle
+                                                                        ? 'bg-emerald-500/15'
+                                                                        : isDark
+                                                                            ? 'bg-slate-700/50'
+                                                                            : 'bg-slate-100'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-center justify-between gap-2">
+                                                                    <span
+                                                                        className={`text-sm font-bold ${userCompletedCycle
+                                                                                ? 'text-emerald-500'
+                                                                                : isDark
+                                                                                    ? 'text-slate-200'
+                                                                                    : 'text-slate-700'
+                                                                            }`}
+                                                                    >
+                                                                        You
+                                                                    </span>
+
+                                                                    <span
+                                                                        className={`text-xs font-bold ${userCompletedCycle
+                                                                                ? 'text-emerald-500'
+                                                                                : isDark
+                                                                                    ? 'text-slate-400'
+                                                                                    : 'text-slate-500'
+                                                                            }`}
+                                                                    >
+                                                                        {customFrequency
+                                                                            ? `${userCycleCheckIns}/${requiredCheckIns}`
+                                                                            : userCompletedCycle
+                                                                                ? 'Done'
+                                                                                : 'Waiting'}
+                                                                    </span>
+                                                                </div>
+
+                                                                {customFrequency ? (
+                                                                    <div
+                                                                        className={`mt-3 h-2 rounded-full overflow-hidden ${isDark
+                                                                                ? 'bg-slate-800'
+                                                                                : 'bg-slate-200'
+                                                                            }`}
+                                                                    >
+                                                                        <div
+                                                                            className={`h-full rounded-full transition-all duration-500 ${userCompletedCycle
+                                                                                    ? 'bg-emerald-500'
+                                                                                    : 'bg-teal-500'
+                                                                                }`}
+                                                                            style={{
+                                                                                width: `${userProgressPercent}%`
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div
+                                                                        className={`mt-1 text-xs ${userCompletedCycle
+                                                                                ? 'text-emerald-500'
+                                                                                : isDark
+                                                                                    ? 'text-slate-400'
+                                                                                    : 'text-slate-500'
+                                                                            }`}
+                                                                    >
+                                                                        {userCompletedCycle
+                                                                            ? 'Checked in ✅'
+                                                                            : 'Waiting ⏳'}
+                                                                    </div>
+                                                                )}
                                                             </div>
 
-                                                            {customFrequency ? (
-                                                                <div
-                                                                    className={`mt-3 h-2 rounded-full overflow-hidden ${isDark
-                                                                            ? 'bg-slate-800'
-                                                                            : 'bg-slate-200'
-                                                                        }`}
-                                                                >
-                                                                    <div
-                                                                        className={`h-full rounded-full transition-all duration-500 ${userCompletedCycle
-                                                                                ? 'bg-emerald-500'
-                                                                                : 'bg-teal-500'
+                                                            <div
+                                                                className={`p-3 rounded-2xl ${partnerCompletedCycle
+                                                                        ? 'bg-emerald-500/15'
+                                                                        : isDark
+                                                                            ? 'bg-slate-700/50'
+                                                                            : 'bg-slate-100'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-center justify-between gap-2">
+                                                                    <span
+                                                                        className={`text-sm font-bold ${partnerCompletedCycle
+                                                                                ? 'text-emerald-500'
+                                                                                : isDark
+                                                                                    ? 'text-slate-200'
+                                                                                    : 'text-slate-700'
                                                                             }`}
-                                                                        style={{
-                                                                            width: `${userProgressPercent}%`
-                                                                        }}
-                                                                    />
-                                                                </div>
-                                                            ) : (
-                                                                <div
-                                                                    className={`mt-1 text-xs ${userCompletedCycle
-                                                                            ? 'text-emerald-500'
-                                                                            : isDark
-                                                                                ? 'text-slate-400'
-                                                                                : 'text-slate-500'
-                                                                        }`}
-                                                                >
-                                                                    {userCompletedCycle
-                                                                        ? 'Checked in ✅'
-                                                                        : 'Waiting ⏳'}
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                                                    >
+                                                                        {streak.userName}
+                                                                    </span>
 
-                                                        <div
-                                                            className={`p-3 rounded-2xl ${partnerCompletedCycle
-                                                                    ? 'bg-emerald-500/15'
-                                                                    : isDark
-                                                                        ? 'bg-slate-700/50'
-                                                                        : 'bg-slate-100'
-                                                                }`}
-                                                        >
-                                                            <div className="flex items-center justify-between gap-2">
-                                                                <span
-                                                                    className={`text-sm font-bold ${partnerCompletedCycle
-                                                                            ? 'text-emerald-500'
-                                                                            : isDark
-                                                                                ? 'text-slate-200'
-                                                                                : 'text-slate-700'
-                                                                        }`}
-                                                                >
-                                                                    {streak.userName}
-                                                                </span>
+                                                                    <span
+                                                                        className={`text-xs font-bold ${partnerCompletedCycle
+                                                                                ? 'text-emerald-500'
+                                                                                : isDark
+                                                                                    ? 'text-slate-400'
+                                                                                    : 'text-slate-500'
+                                                                            }`}
+                                                                    >
+                                                                        {customFrequency
+                                                                            ? `${partnerCycleCheckIns}/${requiredCheckIns}`
+                                                                            : partnerCompletedCycle
+                                                                                ? 'Done'
+                                                                                : 'Waiting'}
+                                                                    </span>
+                                                                </div>
 
-                                                                <span
-                                                                    className={`text-xs font-bold ${partnerCompletedCycle
-                                                                            ? 'text-emerald-500'
-                                                                            : isDark
-                                                                                ? 'text-slate-400'
-                                                                                : 'text-slate-500'
-                                                                        }`}
-                                                                >
-                                                                    {customFrequency
-                                                                        ? `${partnerCycleCheckIns}/${requiredCheckIns}`
-                                                                        : partnerCompletedCycle
-                                                                            ? 'Done'
-                                                                            : 'Waiting'}
-                                                                </span>
+                                                                {customFrequency ? (
+                                                                    <div
+                                                                        className={`mt-3 h-2 rounded-full overflow-hidden ${isDark
+                                                                                ? 'bg-slate-800'
+                                                                                : 'bg-slate-200'
+                                                                            }`}
+                                                                    >
+                                                                        <div
+                                                                            className={`h-full rounded-full transition-all duration-500 ${partnerCompletedCycle
+                                                                                    ? 'bg-emerald-500'
+                                                                                    : 'bg-violet-500'
+                                                                                }`}
+                                                                            style={{
+                                                                                width: `${partnerProgressPercent}%`
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div
+                                                                        className={`mt-1 text-xs ${partnerCompletedCycle
+                                                                                ? 'text-emerald-500'
+                                                                                : isDark
+                                                                                    ? 'text-slate-400'
+                                                                                    : 'text-slate-500'
+                                                                            }`}
+                                                                    >
+                                                                        {partnerCompletedCycle
+                                                                            ? 'Checked in ✅'
+                                                                            : 'Waiting ⏳'}
+                                                                    </div>
+                                                                )}
                                                             </div>
-
-                                                            {customFrequency ? (
-                                                                <div
-                                                                    className={`mt-3 h-2 rounded-full overflow-hidden ${isDark
-                                                                            ? 'bg-slate-800'
-                                                                            : 'bg-slate-200'
-                                                                        }`}
-                                                                >
-                                                                    <div
-                                                                        className={`h-full rounded-full transition-all duration-500 ${partnerCompletedCycle
-                                                                                ? 'bg-emerald-500'
-                                                                                : 'bg-violet-500'
-                                                                            }`}
-                                                                        style={{
-                                                                            width: `${partnerProgressPercent}%`
-                                                                        }}
-                                                                    />
-                                                                </div>
-                                                            ) : (
-                                                                <div
-                                                                    className={`mt-1 text-xs ${partnerCompletedCycle
-                                                                            ? 'text-emerald-500'
-                                                                            : isDark
-                                                                                ? 'text-slate-400'
-                                                                                : 'text-slate-500'
-                                                                        }`}
-                                                                >
-                                                                    {partnerCompletedCycle
-                                                                        ? 'Checked in ✅'
-                                                                        : 'Waiting ⏳'}
-                                                                </div>
-                                                            )}
                                                         </div>
-                                                    </div>
+                                                    )}
 
-                                                    {customFrequency && (
+                                                    {(customFrequency || streak.isGroupStreak) && (
                                                         <div className="mt-3 text-center">
                                                             <p
-                                                                className={`text-sm font-semibold ${bothCompletedCycle
+                                                                className={`text-sm font-semibold ${allMembersCompletedCycle
                                                                         ? 'text-emerald-500'
-                                                                        : userCompletedCycle
+                                                                        : currentUserMember?.completedCycle ||
+                                                                            userCompletedCycle
                                                                             ? 'text-blue-400'
                                                                             : isDark
                                                                                 ? 'text-slate-300'
                                                                                 : 'text-slate-600'
                                                                     }`}
                                                             >
-                                                                {bothCompletedCycle
-                                                                    ? 'Completed'
-                                                                    : userCompletedCycle
-                                                                        ? `Your part is complete. Waiting on ${streak.userName}.`
-                                                                        : `${requiredCheckIns - userCycleCheckIns} ${requiredCheckIns -
-                                                                            userCycleCheckIns ===
-                                                                            1
-                                                                            ? 'check-in'
-                                                                            : 'check-ins'
-                                                                        } left for you`}
+                                                                {streak.isGroupStreak
+                                                                    ? allMembersCompletedCycle
+                                                                        ? 'Completed'
+                                                                        : groupWaitingLabel
+                                                                    : bothCompletedCycle
+                                                                        ? 'Completed'
+                                                                        : userCompletedCycle
+                                                                            ? `Your part is complete. Waiting on ${streak.userName}.`
+                                                                            : `${requiredCheckIns - userCycleCheckIns} ${requiredCheckIns - userCycleCheckIns === 1
+                                                                                ? 'check-in'
+                                                                                : 'check-ins'
+                                                                            } left for you`}
                                                             </p>
 
                                                             <p
@@ -1432,6 +1801,7 @@ export function StreakTracker({
                                                     )}
                                                 </div>
                                             )}
+
                                             {isBroken ? (
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); onDismissStreak?.(streak.id); }}
@@ -1474,19 +1844,25 @@ export function StreakTracker({
                                                         )}
                                                         </button>
 
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const confirmed = window.confirm("Are you sure you want to cancel this streak? This will remove it for both users.");
-                                                            if (confirmed) {
-                                                                onDismissStreak?.(streak.id);
-                                                            }
-                                                        }}
-                                                        className="w-full flex items-center justify-center gap-3 py-3 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all font-bold shadow-sm"
-                                                    >
-                                                        <Trash2 className="w-5 h-5" />
-                                                        Cancel Streak
-                                                    </button>
+                                                        {!streak.isGroupStreak && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+
+                                                                    const confirmed = window.confirm(
+                                                                        "Are you sure you want to cancel this streak? This will remove it for both users."
+                                                                    );
+
+                                                                    if (confirmed) {
+                                                                        onDismissStreak?.(streak.id);
+                                                                    }
+                                                                }}
+                                                                className="w-full flex items-center justify-center gap-3 py-3 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all font-bold shadow-sm"
+                                                            >
+                                                                <Trash2 className="w-5 h-5" />
+                                                                Cancel Streak
+                                                            </button>
+                                                        )}
                                                 </div>
                                             )}
                                             <p

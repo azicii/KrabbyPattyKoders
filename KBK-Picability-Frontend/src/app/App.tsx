@@ -338,6 +338,11 @@ export default function App() {
                             invite.IsGroupRequest ??
                             members.length > 1,
 
+                        currentUserStatus:
+                            invite.currentUserStatus ??
+                            invite.CurrentUserStatus ??
+                            'Pending',
+
                         members: members.map((member: any) => ({
                             userId:
                                 member.userId ??

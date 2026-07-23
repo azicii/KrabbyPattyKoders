@@ -429,8 +429,7 @@ namespace Picability.Controllers
                     sr.IsGroupRequest &&
                     sr.Status == "Pending" &&
                     sr.Members.Any(member =>
-                        member.UserId == currentUserId &&
-                        member.Status == "Pending"
+                        member.UserId == currentUserId
                     )
                 )
                 .ToListAsync();
@@ -485,6 +484,13 @@ namespace Picability.Controllers
 
                     SenderName = sr.Sender.UserName,
                     SenderId = sr.SenderId,
+
+                    CurrentUserStatus = sr.Members
+                        .Where(member =>
+                            member.UserId == currentUserId
+                        )
+                        .Select(member => member.Status)
+                        .FirstOrDefault() ?? "Pending",
 
                     Members = sr.Members
                         .Select(member => new
