@@ -768,11 +768,86 @@ export function StreakTracker({
                                                         {invite.habitName}
                                                     </h3>
                                                     <p
-                                                        className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'
+                                                        className={`text-sm ${isDark
+                                                                ? 'text-slate-400'
+                                                                : 'text-slate-600'
                                                             }`}
                                                     >
-                                                        {invite.senderName} invited you to start this streak
+                                                        {invite.isGroupRequest
+                                                            ? `${invite.senderName} invited you to join a group streak`
+                                                            : `${invite.senderName} invited you to start this streak`}
                                                     </p>
+
+                                                    {invite.isGroupRequest && (
+                                                        <div className="mt-3 space-y-2">
+                                                            <div className="inline-flex items-center gap-2 rounded-full bg-teal-500/15 px-3 py-1 text-xs font-semibold text-teal-400">
+                                                                <Users className="w-3.5 h-3.5" />
+                                                                Group streak
+                                                            </div>
+
+                                                            <div
+                                                                className={`rounded-2xl p-3 ${isDark
+                                                                        ? 'bg-slate-900/40'
+                                                                        : 'bg-white/70'
+                                                                    }`}
+                                                            >
+                                                                <p
+                                                                    className={`text-xs font-semibold mb-2 ${isDark
+                                                                            ? 'text-slate-300'
+                                                                            : 'text-slate-700'
+                                                                        }`}
+                                                                >
+                                                                    Participants
+                                                                </p>
+
+                                                                <div className="space-y-1.5">
+                                                                    <div className="flex items-center justify-between gap-3 text-xs">
+                                                                        <span
+                                                                            className={
+                                                                                isDark
+                                                                                    ? 'text-slate-300'
+                                                                                    : 'text-slate-700'
+                                                                            }
+                                                                        >
+                                                                            {invite.senderName}
+                                                                        </span>
+
+                                                                        <span className="text-teal-500 font-semibold">
+                                                                            Creator
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {(invite.members ?? []).map(
+                                                                        (member: any) => (
+                                                                            <div
+                                                                                key={member.userId}
+                                                                                className="flex items-center justify-between gap-3 text-xs"
+                                                                            >
+                                                                                <span
+                                                                                    className={
+                                                                                        isDark
+                                                                                            ? 'text-slate-300'
+                                                                                            : 'text-slate-700'
+                                                                                    }
+                                                                                >
+                                                                                    {member.userName}
+                                                                                </span>
+
+                                                                                <span
+                                                                                    className={`font-semibold ${member.status === 'Accepted'
+                                                                                            ? 'text-emerald-500'
+                                                                                            : 'text-amber-500'
+                                                                                        }`}
+                                                                                >
+                                                                                    {member.status}
+                                                                                </span>
+                                                                            </div>
+                                                                        )
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                     <div
                                                         className={`inline-flex items-center mt-2 px-2.5 py-1 rounded-full text-xs font-semibold ${isDark
@@ -853,12 +928,78 @@ export function StreakTracker({
                                                     <h3 className={`text-lg font-semibold leading-tight whitespace-normal break-words ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                                                         {request.habitName}
                                                     </h3>
-                                                    <p
-                                                        className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'
-                                                            }`}
-                                                    >
-                                                        Requested with {request.receiverName}
-                                                    </p>
+                                                    {request.isGroupRequest ? (
+                                                        <div className="mt-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <Users className="w-4 h-4 text-teal-500" />
+
+                                                                <p
+                                                                    className={`text-sm font-medium ${isDark
+                                                                            ? 'text-slate-300'
+                                                                            : 'text-slate-700'
+                                                                        }`}
+                                                                >
+                                                                    Group streak · {(request.members?.length ?? 0) + 1} members
+                                                                </p>
+                                                            </div>
+
+                                                            <div
+                                                                className={`mt-3 rounded-2xl p-3 ${isDark
+                                                                        ? 'bg-slate-900/40'
+                                                                        : 'bg-slate-50'
+                                                                    }`}
+                                                            >
+                                                                <p
+                                                                    className={`text-xs font-semibold mb-2 ${isDark
+                                                                            ? 'text-slate-400'
+                                                                            : 'text-slate-500'
+                                                                        }`}
+                                                                >
+                                                                    Invitation status
+                                                                </p>
+
+                                                                <div className="space-y-2">
+                                                                    {(request.members ?? []).map(
+                                                                        (member: any) => (
+                                                                            <div
+                                                                                key={member.userId}
+                                                                                className="flex items-center justify-between gap-4"
+                                                                            >
+                                                                                <span
+                                                                                    className={`text-sm truncate ${isDark
+                                                                                            ? 'text-slate-200'
+                                                                                            : 'text-slate-700'
+                                                                                        }`}
+                                                                                >
+                                                                                    {member.userName}
+                                                                                </span>
+
+                                                                                <span
+                                                                                    className={`text-xs font-semibold shrink-0 ${member.status === 'Accepted'
+                                                                                            ? 'text-emerald-500'
+                                                                                            : member.status === 'Rejected'
+                                                                                                ? 'text-rose-500'
+                                                                                                : 'text-amber-500'
+                                                                                        }`}
+                                                                                >
+                                                                                    {member.status}
+                                                                                </span>
+                                                                            </div>
+                                                                        )
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p
+                                                            className={`text-sm ${isDark
+                                                                    ? 'text-slate-400'
+                                                                    : 'text-slate-600'
+                                                                }`}
+                                                        >
+                                                            Requested with {request.receiverName}
+                                                        </p>
+                                                    )}
 
                                                     <div
                                                         className={`inline-flex items-center mt-2 px-2.5 py-1 rounded-full text-xs font-semibold ${isDark
@@ -874,7 +1015,13 @@ export function StreakTracker({
                                                     </div>
 
                                                     <p className="text-xs text-amber-500 font-semibold mt-2">
-                                                        Pending response ⏳
+                                                        {request.isGroupRequest
+                                                            ? `${request.members?.filter(
+                                                                (member: any) =>
+                                                                    member.status === 'Pending'
+                                                            ).length ?? 0
+                                                            } awaiting response`
+                                                            : 'Pending response ⏳'}
                                                     </p>
                                                 </div>
                                             </div>

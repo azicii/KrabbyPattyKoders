@@ -323,7 +323,40 @@ export default function App() {
             });
             if (response.ok) {
                 const data = await response.json();
-                setStreakInvites(data);
+
+                const normalizedInvites = data.map((invite: any) => {
+                    const members =
+                        invite.members ??
+                        invite.Members ??
+                        [];
+
+                    return {
+                        ...invite,
+
+                        isGroupRequest:
+                            invite.isGroupRequest ??
+                            invite.IsGroupRequest ??
+                            members.length > 1,
+
+                        members: members.map((member: any) => ({
+                            userId:
+                                member.userId ??
+                                member.UserId,
+
+                            userName:
+                                member.userName ??
+                                member.UserName ??
+                                'Unknown user',
+
+                            status:
+                                member.status ??
+                                member.Status ??
+                                'Pending'
+                        }))
+                    };
+                });
+
+                setStreakInvites(normalizedInvites);
             }
         } catch (err) {
             console.error("Error fetching streak invites:", err);
@@ -469,7 +502,44 @@ export default function App() {
             });
             if (response.ok) {
                 const data = await response.json();
-                setSentStreakRequests(data);
+
+                const normalizedRequests = data.map((request: any) => {
+                    const members =
+                        request.members ??
+                        request.Members ??
+                        [];
+
+                    return {
+                        ...request,
+
+                        receiverName:
+                            request.receiverName ??
+                            request.ReceiverName,
+
+                        isGroupRequest:
+                            request.isGroupRequest ??
+                            request.IsGroupRequest ??
+                            members.length > 1,
+
+                        members: members.map((member: any) => ({
+                            userId:
+                                member.userId ??
+                                member.UserId,
+
+                            userName:
+                                member.userName ??
+                                member.UserName ??
+                                'Unknown user',
+
+                            status:
+                                member.status ??
+                                member.Status ??
+                                'Pending'
+                        }))
+                    };
+                });
+
+                setSentStreakRequests(normalizedRequests);
             }
         } catch (err) {
             console.error("Error fetching sent streak requests:", err);
@@ -844,45 +914,51 @@ export default function App() {
                 headers: getAuthHeaders(user.token)
             });
 
-            if (response.ok) {
-                setTimeout(() => {
-                    fetchStreakInvites();
-                    fetchSentStreakRequests();
-                    fetchStreaks();
-                }, 800);
-            } else {
-                const contentType =
-                    response.headers.get('content-type');
+            const contentType =
+                response.headers.get('content-type');
 
-                let message =
-                    'Failed to accept streak request.';
+            const result =
+                contentType?.includes('application/json')
+                    ? await response.json()
+                    : await response.text();
 
-                if (contentType?.includes('application/json')) {
-                    const error = await response.json();
-
-                    message =
-                        error.message ??
-                        error.title ??
-                        message;
-                } else {
-                    const errorText =
-                        await response.text();
-
-                    if (errorText) {
-                        message = errorText;
-                    }
-                }
+            if (!response.ok) {
+                const message =
+                    typeof result === 'string'
+                        ? result
+                        : result.message ??
+                        result.title ??
+                        'Failed to accept streak request.';
 
                 alert(message);
+                return;
+            }
+
+            await Promise.all([
+                fetchStreakInvites(),
+                fetchSentStreakRequests(),
+                fetchStreaks()
+            ]);
+
+            if (isGroupRequest) {
+                if (result.allAccepted === true) {
+                    alert(
+                        'Everyone accepted. The group streak has started!'
+                    );
+                } else {
+                    alert(
+                        'Request accepted. The group streak will begin once everyone accepts.'
+                    );
+                }
             }
         } catch (err) {
             console.error(
-                "Error accepting streak:",
+                'Error accepting streak:',
                 err
             );
 
             alert(
-                "Network error while accepting streak request."
+                'Network error while accepting streak request.'
             );
         }
     };
@@ -901,43 +977,45 @@ export default function App() {
                 headers: getAuthHeaders(user.token)
             });
 
-            if (response.ok) {
-                fetchStreakInvites();
-                fetchSentStreakRequests();
-                fetchStreaks();
-            } else {
-                const contentType =
-                    response.headers.get('content-type');
+            const contentType =
+                response.headers.get('content-type');
 
-                let message =
-                    'Failed to reject streak request.';
+            const result =
+                contentType?.includes('application/json')
+                    ? await response.json()
+                    : await response.text();
 
-                if (contentType?.includes('application/json')) {
-                    const error = await response.json();
-
-                    message =
-                        error.message ??
-                        error.title ??
-                        message;
-                } else {
-                    const errorText =
-                        await response.text();
-
-                    if (errorText) {
-                        message = errorText;
-                    }
-                }
+            if (!response.ok) {
+                const message =
+                    typeof result === 'string'
+                        ? result
+                        : result.message ??
+                        result.title ??
+                        'Failed to reject streak request.';
 
                 alert(message);
+                return;
+            }
+
+            await Promise.all([
+                fetchStreakInvites(),
+                fetchSentStreakRequests(),
+                fetchStreaks()
+            ]);
+
+            if (isGroupRequest) {
+                alert(
+                    'Group streak declined. The invitation has been cancelled for everyone.'
+                );
             }
         } catch (err) {
             console.error(
-                "Error rejecting streak:",
+                'Error rejecting streak:',
                 err
             );
 
             alert(
-                "Network error while rejecting streak request."
+                'Network error while rejecting streak request.'
             );
         }
     };
