@@ -21,6 +21,7 @@ namespace Picability.Data
         public DbSet<StreakCheckIn> StreakCheckIns { get; set; }
         public DbSet<StreakMember> StreakMembers { get; set; }
         public DbSet<StreakRequestMember> StreakRequestMembers { get; set; }
+        public DbSet<CheckInContentRecipient> CheckInContentRecipients { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -109,6 +110,30 @@ namespace Picability.Data
                 .WithMany()
                 .HasForeignKey(c => c.StreakId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<CheckInContentRecipient>()
+                .HasOne(recipient => recipient.CheckInContent)
+                .WithMany(content => content.Recipients)
+                .HasForeignKey(recipient => recipient.CheckInContentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<CheckInContentRecipient>()
+                .HasOne(recipient => recipient.User)
+                .WithMany()
+                .HasForeignKey(recipient => recipient.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<CheckInContentRecipient>()
+                .HasIndex(recipient => new
+                {
+                    recipient.CheckInContentId,
+                    recipient.UserId
+                })
+                .IsUnique();
+
+            builder.Entity<CheckInContentRecipient>()
+                .Property(recipient => recipient.IsViewed)
+                .HasDefaultValue(false);
 
             builder.Entity<StreakReaction>()
                 .HasOne(r => r.Streak)

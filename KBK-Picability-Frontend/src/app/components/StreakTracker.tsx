@@ -105,14 +105,14 @@ interface StreakTrackerProps {
         streakId: number,
         messageText: string,
         viewDurationSeconds: number
-    ) => void;
+    ) => Promise<boolean>;
     unreadContent?: any[];
     onViewCheckInContent?: (contentId: number) => void;
     onSendCheckInPhoto?: (
         streakId: number,
         photoDataUrl: string,
         viewDurationSeconds: number
-    ) => void;
+    ) => Promise<boolean>;
     onPublicFeed?: () => void;
     onToggleVisibility?: (streakId: number, isPublic: boolean) => void;
     onSendReminderPing?: (streakId: number) => Promise<void>;
@@ -163,25 +163,84 @@ export function StreakTracker({
         localStorage.getItem(pushStorageKey) === 'true'
     );
 
-    const getUnreadForStreak = (streakId: number) => {
-        return unreadContent
-            ?.filter(c => c.streakId === streakId)
-            .sort((a, b) => {
-                // Oldest check-in in the current cycle first.
-                if (a.checkInNumber !== b.checkInNumber) {
-                    return a.checkInNumber - b.checkInNumber;
+    const getUnreadQueueForStreak = (
+        streakId: number
+    ) => {
+        return [...unreadContent]
+            .filter(content =>
+                content.streakId === streakId
+            )
+            .sort((first, second) => {
+                const firstCheckIn =
+                    first.checkInNumber ?? 1;
+
+                const secondCheckIn =
+                    second.checkInNumber ?? 1;
+
+                if (
+                    firstCheckIn !==
+                    secondCheckIn
+                ) {
+                    return (
+                        firstCheckIn -
+                        secondCheckIn
+                    );
                 }
 
                 return (
-                    new Date(a.createdAt).getTime() -
-                    new Date(b.createdAt).getTime()
+                    new Date(
+                        first.createdAt
+                    ).getTime() -
+                    new Date(
+                        second.createdAt
+                    ).getTime()
                 );
-            })[0];
+            });
     };
 
-    const openUnreadContent = (content: any) => {
+    const getUnreadForStreak = (
+        streakId: number
+    ) => {
+        return (
+            getUnreadQueueForStreak(
+                streakId
+            )[0] ?? null
+        );
+    };
+
+    const openUnreadContent = (
+        content: any
+    ) => {
         setViewingContent(content);
-        onViewCheckInContent?.(content.id);
+
+        void onViewCheckInContent?.(
+            content.id
+        );
+    };
+
+    const closeViewingContent = () => {
+        setViewingContent(null);
+    };
+
+    const openNextUnreadContent = () => {
+        if (!viewingContent) {
+            return;
+        }
+
+        const nextContent =
+            getUnreadQueueForStreak(
+                viewingContent.streakId
+            ).find(content =>
+                content.id !==
+                viewingContent.id
+            );
+
+        if (!nextContent) {
+            closeViewingContent();
+            return;
+        }
+
+        openUnreadContent(nextContent);
     };
 
     const flipSelectedPhotoHorizontally = async () => {
@@ -276,22 +335,37 @@ export function StreakTracker({
         closeCheckInModal();
     };
 
-    const confirmMessageCheckIn = () => {
-        if (!checkInModalStreak) return;
+    const confirmMessageCheckIn =
+        async () => {
+            if (
+                !checkInModalStreak ||
+                !onSendCheckInMessage
+            ) {
+                return;
+            }
 
-        if (!checkInMessage.trim()) {
-            alert("Please enter a message first.");
-            return;
-        }
+            const normalizedMessage =
+                checkInMessage.trim();
 
-        onSendCheckInMessage?.(
-            checkInModalStreak.id,
-            checkInMessage.trim(),
-            10
-        );
+            if (!normalizedMessage) {
+                alert(
+                    'Please enter a message first.'
+                );
 
-        closeCheckInModal();
-    };
+                return;
+            }
+
+            const succeeded =
+                await onSendCheckInMessage(
+                    checkInModalStreak.id,
+                    normalizedMessage,
+                    10
+                );
+
+            if (succeeded) {
+                closeCheckInModal();
+            }
+        };
 
     const handleReminderPing = async (
         streakId: number,
@@ -318,20 +392,88 @@ export function StreakTracker({
         }
     };
 
-    const confirmPhotoCheckIn = () => {
-        if (!checkInModalStreak || !selectedPhoto) {
-            return;
+    const confirmPhotoCheckIn =
+        async () => {
+            if (
+                !checkInModalStreak ||
+                !selectedPhoto ||
+                !onSendCheckInPhoto
+            ) {
+                return;
+            }
+
+            const succeeded =
+                await onSendCheckInPhoto(
+                    checkInModalStreak.id,
+                    selectedPhoto,
+                    10
+                );
+
+            if (!succeeded) {
+                return;
+            }
+
+            setSelectedPhoto(null);
+            setSelectedPhotoName('');
+            closeCheckInModal();
+        };
+
+    const getContentStreak = (content: any) => {
+        return streaks.find(
+            streak => streak.id === content.streakId
+        );
+    };
+
+    const getContentSenderInitials = (
+        senderName?: string
+    ) => {
+        const normalizedName =
+            senderName?.trim() || 'Unknown member';
+
+        const nameParts = normalizedName
+            .split(/\s+/)
+            .filter(Boolean);
+
+        if (nameParts.length === 1) {
+            return nameParts[0]
+                .substring(0, 2)
+                .toUpperCase();
         }
 
-        onSendCheckInPhoto?.(
-            checkInModalStreak.id,
-            selectedPhoto,
-            10
-        );
+        return nameParts
+            .slice(0, 2)
+            .map(part => part[0])
+            .join('')
+            .toUpperCase();
+    };
 
-        setSelectedPhoto(null);
-        setSelectedPhotoName('');
-        closeCheckInModal();
+    const getContentSentTime = (
+        createdAt?: string
+    ) => {
+        if (!createdAt) {
+            return '';
+        }
+
+        const createdDate =
+            new Date(createdAt);
+
+        if (
+            Number.isNaN(
+                createdDate.getTime()
+            )
+        ) {
+            return '';
+        }
+
+        return createdDate.toLocaleString(
+            undefined,
+            {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            }
+        );
     };
 
     const getContentAccentColor = (content: any) => {
@@ -619,7 +761,7 @@ export function StreakTracker({
             setViewerProgress(remainingPercent);
 
             if (remainingPercent <= 0) {
-                setViewingContent(null);
+                closeViewingContent();
                 window.clearInterval(interval);
             }
         }, 50);
@@ -1441,14 +1583,46 @@ export function StreakTracker({
                                         : streak.color.includes('emerald') || streak.color.includes('teal') ? 'border-teal-500 text-teal-400'
                                             : 'border-teal-500 text-teal-400';
 
-                        const unreadForThisStreak = getUnreadForStreak(streak.id);
-                        const rewardEmoji = getStreakReward(streak.streakCount);
+                        const unreadQueueForThisStreak =
+                            getUnreadQueueForStreak(
+                                streak.id
+                            );
+
+                        const unreadForThisStreak =
+                            unreadQueueForThisStreak[0] ??
+                            null;
+
+                        const unreadContentCount =
+                            unreadQueueForThisStreak.length;
+
+                        const unreadMessageCount =
+                            unreadQueueForThisStreak.filter(
+                                content =>
+                                    content.contentType ===
+                                    'Message'
+                            ).length;
+
+                        const unreadPhotoCount =
+                            unreadQueueForThisStreak.filter(
+                                content =>
+                                    content.contentType ===
+                                    'Photo'
+                            ).length;
 
                         const hasMessageBubble =
-                            unreadForThisStreak?.contentType === "Message";
+                            unreadMessageCount > 0;
 
                         const hasPhotoBubble =
-                            unreadForThisStreak?.contentType === "Photo";
+                            unreadPhotoCount > 0;
+
+                        const hasMixedContentBubble =
+                            hasMessageBubble &&
+                            hasPhotoBubble;
+
+                        const rewardEmoji =
+                            getStreakReward(
+                                streak.streakCount
+                            );
 
 
 
@@ -1553,26 +1727,62 @@ export function StreakTracker({
                                     </div>
                                 </button>
 
-                                {!isBroken && (hasMessageBubble || hasPhotoBubble) && (
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (unreadForThisStreak) {
-                                                openUnreadContent(unreadForThisStreak);
-                                            }
-                                        }}
-                                        className={`absolute top-1/2 -right-1 -translate-y-1/2 sm:-right-12 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark ? 'bg-slate-800' : 'bg-white'
-                                            } ${bubbleAccentClass}`}
-                                    >
+                                {!isBroken &&
+                                    unreadContentCount > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={(event) => {
+                                                event.stopPropagation();
 
-                                        {hasPhotoBubble ? (
-                                            <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6 relative z-10" />
-                                        ) : (
-                                            <MessageCircle className="w-5 h-5 sm:w-7 sm:h-7 relative z-10" />
-                                        )}
-                                    </button>
-                                )}
+                                                if (
+                                                    unreadForThisStreak
+                                                ) {
+                                                    openUnreadContent(
+                                                        unreadForThisStreak
+                                                    );
+                                                }
+                                            }}
+                                            aria-label={`${unreadContentCount} unread ${unreadContentCount === 1
+                                                    ? 'check-in item'
+                                                    : 'check-in items'
+                                                }`}
+                                            title={
+                                                unreadContentCount === 1
+                                                    ? `${unreadForThisStreak
+                                                        ?.contentType ===
+                                                        'Photo'
+                                                        ? 'Photo'
+                                                        : 'Message'
+                                                    } from ${unreadForThisStreak
+                                                        ?.senderName ??
+                                                    'a group member'
+                                                    }`
+                                                    : `${unreadContentCount} unread check-in items`
+                                            }
+                                            className={`absolute top-1/2 -right-1 -translate-y-1/2 sm:-right-12 z-20 w-10 h-10 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all ${isDark
+                                                    ? 'bg-slate-800'
+                                                    : 'bg-white'
+                                                } ${bubbleAccentClass}`}
+                                        >
+                                            {hasMixedContentBubble ? (
+                                                <div className="relative w-6 h-6">
+                                                    <MessageCircle className="absolute left-0 bottom-0 w-4 h-4" />
+
+                                                    <ImageIcon className="absolute right-0 top-0 w-4 h-4" />
+                                                </div>
+                                            ) : hasPhotoBubble ? (
+                                                <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                                            ) : (
+                                                <MessageCircle className="w-5 h-5 sm:w-7 sm:h-7" />
+                                            )}
+
+                                            <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-800 shadow">
+                                                {unreadContentCount > 99
+                                                    ? '99+'
+                                                    : unreadContentCount}
+                                            </span>
+                                        </button>
+                                    )}
 
                                 {isExpanded && (
                                     <div className={`rounded-b-3xl overflow-hidden shadow-lg border-t ${isDark ? 'bg-slate-800/80 backdrop-blur-md border-slate-700/50' : 'bg-white border-slate-100'}`}>
@@ -2233,80 +2443,258 @@ export function StreakTracker({
                     )}
 
                     {viewingContent && createPortal(
-                        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                            <div
-                                className={`w-full max-w-md rounded-3xl p-6 shadow-2xl border animate-in fade-in slide-in-from-bottom-4 duration-200 ${isDark
-                                        ? 'bg-slate-900 border-slate-700 text-slate-100'
-                                        : 'bg-white border-slate-200 text-slate-800'
-                                    }`}
-                            >
-                                <div className="flex items-start justify-between gap-4 mb-3">
-                                    <div>
-                                        <p className="text-sm font-bold uppercase tracking-widest text-teal-500">
-                                            {viewingContent.contentType === "Photo"
-                                                ? "Check-in Photo"
-                                                : "Check-in Message"}
-                                        </p>
+                        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                            {(() => {
+                                const contentStreak =
+                                    getContentStreak(
+                                        viewingContent
+                                    );
+
+                                const SenderIcon =
+                                    contentStreak
+                                        ? (
+                                            LucideIcons as any
+                                        )[
+                                        contentStreak.habitIcon
+                                        ] ||
+                                        LucideIcons.Target
+                                        : LucideIcons.Target;
+
+                                const senderInitials =
+                                    getContentSenderInitials(
+                                        viewingContent.senderName
+                                    );
+
+                                const sentTime =
+                                    getContentSentTime(
+                                        viewingContent.createdAt
+                                    );
+
+                                const checkInNumber =
+                                    Math.max(
+                                        1,
+                                        viewingContent.checkInNumber ??
+                                        1
+                                    );
+
+                                const requiredCheckIns =
+                                    Math.max(
+                                        1,
+                                        viewingContent.requiredCheckIns ??
+                                        1
+                                    );
+
+                                const remainingUnreadContent =
+                                    getUnreadQueueForStreak(
+                                        viewingContent.streakId
+                                    ).filter(content =>
+                                        content.id !==
+                                        viewingContent.id
+                                    );
+
+                                const remainingUnreadCount =
+                                    remainingUnreadContent.length;
+
+                                return (
+                                    <div
+                                        className={`w-full max-w-md max-h-[calc(100dvh-32px)] overflow-y-auto overscroll-contain rounded-3xl p-5 sm:p-6 shadow-2xl border animate-in fade-in zoom-in-95 duration-200 ${isDark
+                                                ? 'bg-slate-900 border-slate-700 text-slate-100'
+                                                : 'bg-white border-slate-200 text-slate-800'
+                                            }`}
+                                    >
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div
+                                                    className={`relative flex items-center justify-center w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br ${contentStreak?.color ||
+                                                        'from-teal-500 to-cyan-600'
+                                                        } shadow-lg`}
+                                                >
+                                                    <SenderIcon className="w-6 h-6 text-white" />
+
+                                                    <div
+                                                        className={`absolute -right-2 -bottom-2 flex items-center justify-center w-7 h-7 rounded-full border-2 text-[9px] font-bold ${isDark
+                                                                ? 'bg-slate-800 border-slate-900 text-slate-100'
+                                                                : 'bg-white border-white text-slate-700'
+                                                            }`}
+                                                    >
+                                                        {senderInitials}
+                                                    </div>
+                                                </div>
+
+                                                <div className="min-w-0">
+                                                    <p
+                                                        className={`font-semibold truncate ${isDark
+                                                                ? 'text-slate-100'
+                                                                : 'text-slate-800'
+                                                            }`}
+                                                    >
+                                                        {viewingContent.senderName ||
+                                                            'Unknown member'}
+                                                    </p>
+
+                                                    <p
+                                                        className={`text-sm truncate ${isDark
+                                                                ? 'text-slate-400'
+                                                                : 'text-slate-500'
+                                                            }`}
+                                                    >
+                                                        {contentStreak?.habitName ||
+                                                            'Accountability streak'}
+                                                    </p>
+
+                                                    {sentTime && (
+                                                        <p
+                                                            className={`text-xs mt-0.5 ${isDark
+                                                                    ? 'text-slate-500'
+                                                                    : 'text-slate-400'
+                                                                }`}
+                                                        >
+                                                            {sentTime}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div
+                                                className="w-9 h-9 rounded-full shrink-0 p-[3px]"
+                                                style={{
+                                                    background: `conic-gradient(
+                                    ${getContentAccentColor(
+                                                        viewingContent
+                                                    )}
+                                    ${viewerProgress * 3.6}deg,
+                                    rgba(148, 163, 184, 0.18) 0deg
+                                )`
+                                                }}
+                                                aria-label={`${Math.ceil(
+                                                    (
+                                                        viewerProgress /
+                                                        100
+                                                    ) *
+                                                    (
+                                                        viewingContent
+                                                            .viewDurationSeconds ||
+                                                        10
+                                                    )
+                                                )} seconds remaining`}
+                                            >
+                                                <div
+                                                    className={`w-full h-full rounded-full ${isDark
+                                                            ? 'bg-slate-900'
+                                                            : 'bg-white'
+                                                        }`}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-2 mt-5 mb-4">
+                                            <div className="inline-flex items-center rounded-full bg-teal-500/15 px-3 py-1.5 text-xs font-bold text-teal-500">
+                                                {viewingContent.contentType ===
+                                                    'Photo'
+                                                    ? 'Photo check-in'
+                                                    : 'Message check-in'}
+                                            </div>
+
+                                            <div
+                                                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-bold ${isDark
+                                                        ? 'bg-slate-800 border-slate-700 text-slate-300'
+                                                        : 'bg-slate-100 border-slate-200 text-slate-600'
+                                                    }`}
+                                            >
+                                                Check-in {checkInNumber} of{' '}
+                                                {requiredCheckIns}
+                                            </div>
+
+                                            {remainingUnreadCount > 0 && (
+                                                <div
+                                                    className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-bold ${isDark
+                                                            ? 'bg-slate-800 border-slate-700 text-slate-300'
+                                                            : 'bg-slate-100 border-slate-200 text-slate-600'
+                                                        }`}
+                                                >
+                                                    {remainingUnreadCount}{' '}
+                                                    more waiting
+                                                </div>
+                                            )}
+                                        </div>
 
                                         <div
-                                            className={`inline-flex items-center mt-2 px-2.5 py-1 rounded-full border text-xs font-bold ${isDark
-                                                    ? 'bg-slate-800 border-slate-700 text-slate-300'
-                                                    : 'bg-slate-100 border-slate-200 text-slate-600'
+                                            className={`rounded-3xl p-3 ${isDark
+                                                    ? 'bg-slate-800 text-slate-100'
+                                                    : 'bg-slate-100 text-slate-800'
                                                 }`}
                                         >
-                                            Check-in {Math.max(
-                                                1,
-                                                viewingContent.checkInNumber ?? 1
-                                            )} of {Math.max(
-                                                1,
-                                                viewingContent.requiredCheckIns ?? 1
+                                            {viewingContent.contentType ===
+                                                'Photo' ? (
+                                                <img
+                                                    src={
+                                                        viewingContent.photoUrl
+                                                    }
+                                                    alt={`Check-in ${checkInNumber} of ${requiredCheckIns} from ${viewingContent.senderName ||
+                                                        'a group member'
+                                                        }`}
+                                                    className="w-full max-h-[62dvh] object-contain rounded-2xl"
+                                                />
+                                            ) : (
+                                                <div className="p-3">
+                                                    <p
+                                                        className={`text-xs font-bold uppercase tracking-widest mb-3 ${isDark
+                                                                ? 'text-slate-500'
+                                                                : 'text-slate-400'
+                                                            }`}
+                                                    >
+                                                        Message
+                                                    </p>
+
+                                                    <p className="text-lg font-semibold leading-relaxed whitespace-pre-wrap break-words">
+                                                        {
+                                                            viewingContent.messageText
+                                                        }
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <p
+                                            className={`text-xs text-center mt-4 ${isDark
+                                                    ? 'text-slate-500'
+                                                    : 'text-slate-400'
+                                                }`}
+                                        >
+                                            This content disappears for you after
+                                            viewing. It is permanently removed once
+                                            every recipient has viewed it.
+                                        </p>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                                            <button
+                                                type="button"
+                                                onClick={
+                                                    closeViewingContent
+                                                }
+                                                className={`w-full py-3 rounded-2xl font-bold transition-all ${isDark
+                                                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                                                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                                                    }`}
+                                            >
+                                                Done
+                                            </button>
+
+                                            {remainingUnreadCount > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={
+                                                        openNextUnreadContent
+                                                    }
+                                                    className="w-full py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold transition-all"
+                                                >
+                                                    View next ({remainingUnreadCount})
+                                                </button>
                                             )}
                                         </div>
                                     </div>
-
-                                    <div
-                                        className="w-8 h-8 rounded-full shrink-0"
-                                        style={{
-                                            background: `conic-gradient(
-                                                ${getContentAccentColor(viewingContent)}
-                                                ${viewerProgress * 3.6}deg,
-                                                rgba(148, 163, 184, 0.18) 0deg
-                                            )`
-                                        }}
-                                    >
-                                        <div className={`w-full h-full rounded-full scale-[0.72] ${isDark ? 'bg-slate-900' : 'bg-white'
-                                            }`} />
-                                    </div>
-                                </div>
-
-                                <div className={`rounded-3xl p-3 mb-4 ${isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-800'
-                                    }`}>
-                                    {viewingContent.contentType === "Photo" ? (
-                                        <img
-                                            src={viewingContent.photoUrl}
-                                            alt="Check-in"
-                                            className="w-full max-h-[70vh] object-contain rounded-2xl"
-                                        />
-                                    ) : (
-                                        <p className="text-lg font-semibold leading-relaxed p-2">
-                                            {viewingContent.messageText}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <p className="text-xs text-slate-500 text-center mb-4">
-                                    {viewingContent.contentType === "Photo"
-                                        ? `Photo from ${viewingContent.senderName}`
-                                        : `Message from ${viewingContent.senderName}`}
-                                </p>
-
-                                <button
-                                    onClick={() => setViewingContent(null)}
-                                    className="w-full py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold transition-all"
-                                >
-                                    Done
-                                </button>
-                            </div>
+                                );
+                            })()}
                         </div>,
                         document.body
                     )}

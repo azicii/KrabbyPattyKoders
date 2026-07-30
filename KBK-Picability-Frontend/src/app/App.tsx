@@ -684,80 +684,213 @@ export default function App() {
                 `${BASE_URL}/api/CheckInContent/message`,
                 {
                     method: 'POST',
-                    headers: getAuthHeaders(user.token),
+                    headers:
+                        getAuthHeaders(
+                            user.token
+                        ),
+
                     body: JSON.stringify({
                         streakId,
-                        senderId: user.id,
+                        senderId:
+                            user.id,
                         messageText,
                         viewDurationSeconds
                     })
                 }
             );
 
+            const contentType =
+                response.headers.get(
+                    'content-type'
+                );
+
+            const result =
+                contentType?.includes(
+                    'application/json'
+                )
+                    ? await response.json()
+                    : await response.text();
+
             if (!response.ok) {
-                const errorText = await response.text();
+                const message =
+                    typeof result ===
+                        'string'
+                        ? result
+                        : result.message ??
+                        result.title ??
+                        'Failed to complete the message check-in.';
 
-                alert(
-                    errorText ||
-                    'Failed to send the check-in message.'
-                );
-
+                alert(message);
                 return false;
             }
 
-            const checkInSucceeded =
-                await handleCheckIn(streakId);
-
-            if (!checkInSucceeded) {
-                console.error(
-                    'Message content was created, but check-in completion failed.'
-                );
-
-                return false;
-            }
+            await Promise.all([
+                fetchStreaks(),
+                fetchPublicFeed(),
+                fetchUnreadContent()
+            ]);
 
             return true;
         } catch (error) {
             console.error(
-                'Check-in message error:',
+                'Message check-in error:',
                 error
             );
 
             alert(
-                'Network error while sending the check-in message.'
+                'Network error while completing the message check-in.'
             );
 
             return false;
         }
     };
 
-    const handleViewCheckInContent = async (contentId: number) => {
+    const handleViewCheckInContent = async (
+        contentId: number
+    ) => {
         try {
-            await fetch(`${BASE_URL}/api/CheckInContent/${contentId}/view`, {
-                method: 'POST',
-                headers: getAuthHeaders(user.token)
-            });
+            const response = await fetch(
+                `${BASE_URL}/api/CheckInContent/${contentId}/view`,
+                {
+                    method: 'POST',
+                    headers: getAuthHeaders(user.token)
+                }
+            );
+
+            if (!response.ok) {
+                const contentType =
+                    response.headers.get(
+                        'content-type'
+                    );
+
+                let message =
+                    'The check-in content could not be marked as viewed.';
+
+                if (
+                    contentType?.includes(
+                        'application/json'
+                    )
+                ) {
+                    const error =
+                        await response.json();
+
+                    message =
+                        error.message ??
+                        error.title ??
+                        message;
+                } else {
+                    const errorText =
+                        await response.text();
+
+                    if (errorText) {
+                        message = errorText;
+                    }
+                }
+
+                console.error(
+                    'Mark viewed failed:',
+                    response.status,
+                    message
+                );
+
+                return;
+            }
 
             await fetchUnreadContent();
-        } catch (err) {
-            console.error("Error marking content viewed:", err);
+        } catch (error) {
+            console.error(
+                'Error marking content viewed:',
+                error
+            );
         }
     };
 
     const fetchUnreadContent = async () => {
         if (!user) return;
 
-        const response = await fetch(
-            `${BASE_URL}/api/CheckInContent/unread`,
-            {
-                headers: getAuthHeaders(user.token)
+        try {
+            const response = await fetch(
+                `${BASE_URL}/api/CheckInContent/unread`,
+                {
+                    headers: getAuthHeaders(user.token)
+                }
+            );
+
+            if (!response.ok) {
+                console.error(
+                    'Failed to fetch unread check-in content:',
+                    response.status,
+                    await response.text()
+                );
+
+                return;
             }
-        );
 
-        if (!response.ok) return;
+            const data = await response.json();
 
-        const data = await response.json();
-        setUnreadContent(data);
+            const normalizedContent = data.map(
+                (content: any) => ({
+                    id:
+                        content.id ??
+                        content.Id,
+
+                    streakId:
+                        content.streakId ??
+                        content.StreakId,
+
+                    senderId:
+                        content.senderId ??
+                        content.SenderId,
+
+                    senderName:
+                        content.senderName ??
+                        content.SenderName ??
+                        'Unknown member',
+
+                    receiverId:
+                        content.receiverId ??
+                        content.ReceiverId,
+
+                    contentType:
+                        content.contentType ??
+                        content.ContentType,
+
+                    checkInNumber:
+                        content.checkInNumber ??
+                        content.CheckInNumber ??
+                        1,
+
+                    requiredCheckIns:
+                        content.requiredCheckIns ??
+                        content.RequiredCheckIns ??
+                        1,
+
+                    messageText:
+                        content.messageText ??
+                        content.MessageText,
+
+                    photoUrl:
+                        content.photoUrl ??
+                        content.PhotoUrl,
+
+                    viewDurationSeconds:
+                        content.viewDurationSeconds ??
+                        content.ViewDurationSeconds ??
+                        10,
+
+                    createdAt:
+                        content.createdAt ??
+                        content.CreatedAt
+                })
+            );
+
+            setUnreadContent(normalizedContent);
+        } catch (error) {
+            console.error(
+                'Error fetching unread check-in content:',
+                error
+            );
+        }
     };
 
     const fetchSentStreakRequests = async () => {
@@ -1397,62 +1530,61 @@ export default function App() {
                 `${BASE_URL}/api/CheckInContent/photo`,
                 {
                     method: 'POST',
-                    headers: getAuthHeaders(user.token),
+                    headers:
+                        getAuthHeaders(
+                            user.token
+                        ),
+
                     body: JSON.stringify({
                         streakId,
-                        senderId: user.id,
+                        senderId:
+                            user.id,
                         photoDataUrl,
                         viewDurationSeconds
                     })
                 }
             );
 
+            const contentType =
+                response.headers.get(
+                    'content-type'
+                );
+
+            const result =
+                contentType?.includes(
+                    'application/json'
+                )
+                    ? await response.json()
+                    : await response.text();
+
             if (!response.ok) {
-                const contentType =
-                    response.headers.get('content-type');
-
-                let message =
-                    'Failed to send the check-in photo.';
-
-                if (contentType?.includes('application/json')) {
-                    const error = await response.json();
-
-                    message =
-                        error.message ??
-                        error.title ??
-                        message;
-                } else {
-                    const errorText = await response.text();
-
-                    if (errorText) {
-                        message = errorText;
-                    }
-                }
+                const message =
+                    typeof result ===
+                        'string'
+                        ? result
+                        : result.message ??
+                        result.title ??
+                        'Failed to complete the photo check-in.';
 
                 alert(message);
                 return false;
             }
 
-            const checkInSucceeded =
-                await handleCheckIn(streakId);
-
-            if (!checkInSucceeded) {
-                console.error(
-                    'Photo content was created, but check-in completion failed.'
-                );
-
-                return false;
-            }
+            await Promise.all([
+                fetchStreaks(),
+                fetchPublicFeed(),
+                fetchUnreadContent()
+            ]);
 
             return true;
         } catch (error) {
             console.error(
-                'Check-in photo error:',
+                'Photo check-in error:',
                 error
             );
 
             alert(
-                'Network error while sending the check-in photo.'
+                'Network error while completing the photo check-in.'
             );
 
             return false;
