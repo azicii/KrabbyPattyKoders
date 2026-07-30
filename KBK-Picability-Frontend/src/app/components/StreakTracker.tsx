@@ -2720,7 +2720,12 @@ export function StreakTracker({
                                             every recipient has viewed it.
                                         </p>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                                        <div
+                                            className={`grid gap-3 mt-4 ${remainingUnreadCount > 0
+                                                    ? 'grid-cols-1 sm:grid-cols-2'
+                                                    : 'grid-cols-1'
+                                                }`}
+                                        >
                                             <button
                                                 type="button"
                                                 onClick={
