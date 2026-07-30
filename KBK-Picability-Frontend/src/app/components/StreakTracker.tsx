@@ -158,6 +158,7 @@ export function StreakTracker({
     const [showPushPrompt, setShowPushPrompt] = useState(false);
     const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
     const [reminderSentId, setReminderSentId] = useState<number | null>(null);
+    const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
 
     const [pushEnabled, setPushEnabled] = useState(
         localStorage.getItem(pushStorageKey) === 'true'
@@ -321,6 +322,10 @@ export function StreakTracker({
     };
 
     const closeCheckInModal = () => {
+        if (isSubmittingCheckIn) {
+            return;
+        }
+
         setCheckInModalStreak(null);
         setCheckInMode('options');
         setCheckInMessage('');
@@ -339,7 +344,8 @@ export function StreakTracker({
         async () => {
             if (
                 !checkInModalStreak ||
-                !onSendCheckInMessage
+                !onSendCheckInMessage ||
+                isSubmittingCheckIn
             ) {
                 return;
             }
@@ -355,15 +361,25 @@ export function StreakTracker({
                 return;
             }
 
-            const succeeded =
-                await onSendCheckInMessage(
-                    checkInModalStreak.id,
-                    normalizedMessage,
-                    10
-                );
+            try {
+                setIsSubmittingCheckIn(true);
 
-            if (succeeded) {
-                closeCheckInModal();
+                const succeeded =
+                    await onSendCheckInMessage(
+                        checkInModalStreak.id,
+                        normalizedMessage,
+                        10
+                    );
+
+                if (succeeded) {
+                    setCheckInModalStreak(null);
+                    setCheckInMode('options');
+                    setCheckInMessage('');
+                    setSelectedPhotoName('');
+                    setSelectedPhoto(null);
+                }
+            } finally {
+                setIsSubmittingCheckIn(false);
             }
         };
 
@@ -397,25 +413,34 @@ export function StreakTracker({
             if (
                 !checkInModalStreak ||
                 !selectedPhoto ||
-                !onSendCheckInPhoto
+                !onSendCheckInPhoto ||
+                isSubmittingCheckIn
             ) {
                 return;
             }
 
-            const succeeded =
-                await onSendCheckInPhoto(
-                    checkInModalStreak.id,
-                    selectedPhoto,
-                    10
-                );
+            try {
+                setIsSubmittingCheckIn(true);
 
-            if (!succeeded) {
-                return;
+                const succeeded =
+                    await onSendCheckInPhoto(
+                        checkInModalStreak.id,
+                        selectedPhoto,
+                        10
+                    );
+
+                if (!succeeded) {
+                    return;
+                }
+
+                setCheckInModalStreak(null);
+                setCheckInMode('options');
+                setCheckInMessage('');
+                setSelectedPhotoName('');
+                setSelectedPhoto(null);
+            } finally {
+                setIsSubmittingCheckIn(false);
             }
-
-            setSelectedPhoto(null);
-            setSelectedPhotoName('');
-            closeCheckInModal();
         };
 
     const getContentStreak = (content: any) => {
@@ -2320,11 +2345,25 @@ export function StreakTracker({
                                         </div>
 
                                         <button
+                                            type="button"
                                             onClick={confirmMessageCheckIn}
-                                            className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`}
+                                            disabled={isSubmittingCheckIn}
+                                            className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all ${isSubmittingCheckIn
+                                                    ? 'bg-slate-700/40 text-slate-400 cursor-wait'
+                                                    : `bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`
+                                                }`}
                                         >
-                                            <span>Send message + check in</span>
-                                            <CheckCircle2 className="w-5 h-5" />
+                                            <span>
+                                                {isSubmittingCheckIn
+                                                    ? 'Sending check-in...'
+                                                    : 'Send message + check in'}
+                                            </span>
+
+                                            {isSubmittingCheckIn ? (
+                                                <span className="w-5 h-5 rounded-full border-2 border-slate-400 border-t-transparent animate-spin" />
+                                            ) : (
+                                                <CheckCircle2 className="w-5 h-5" />
+                                            )}
                                         </button>
 
                                         <button
@@ -2402,15 +2441,30 @@ export function StreakTracker({
                                         )}
 
                                         <button
+                                            type="button"
                                             onClick={confirmPhotoCheckIn}
-                                            disabled={!selectedPhotoName}
-                                            className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all ${selectedPhotoName
-                                                    ? `bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`
-                                                    : 'bg-slate-700/30 text-slate-500 cursor-not-allowed'
+                                            disabled={
+                                                !selectedPhotoName ||
+                                                isSubmittingCheckIn
+                                            }
+                                            className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all ${isSubmittingCheckIn
+                                                    ? 'bg-slate-700/40 text-slate-400 cursor-wait'
+                                                    : selectedPhotoName
+                                                        ? `bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`
+                                                        : 'bg-slate-700/30 text-slate-500 cursor-not-allowed'
                                                 }`}
                                         >
-                                            <span>Send photo + check in</span>
-                                            <CheckCircle2 className="w-5 h-5" />
+                                            <span>
+                                                {isSubmittingCheckIn
+                                                    ? 'Sending check-in...'
+                                                    : 'Send photo + check in'}
+                                            </span>
+
+                                            {isSubmittingCheckIn ? (
+                                                <span className="w-5 h-5 rounded-full border-2 border-slate-400 border-t-transparent animate-spin" />
+                                            ) : (
+                                                <CheckCircle2 className="w-5 h-5" />
+                                            )}
                                         </button>
 
                                         <div className="flex items-center justify-between text-xs text-slate-500">

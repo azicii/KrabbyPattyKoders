@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef} from 'react';
 import { HabitSelector } from './components/HabitSelector.tsx';
 import { StreakTracker, Streak } from './components/StreakTracker.tsx';
 import { HabitConfig, HabitConfiguration } from './components/HabitConfig.tsx';
@@ -102,6 +102,7 @@ export default function App() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isSelectingFriendForStreak, setIsSelectingFriendForStreak] = useState(false);
     const [friendsRefreshKey, setFriendsRefreshKey] = useState(0);
+    const submittingContentStreakIds = useRef<Set<number>>(new Set());
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -679,6 +680,18 @@ export default function App() {
     ): Promise<boolean> => {
         if (!user) return false;
 
+        if (
+            submittingContentStreakIds.current.has(
+                streakId
+            )
+        ) {
+            return false;
+        }
+
+        submittingContentStreakIds.current.add(
+            streakId
+        );
+
         try {
             const response = await fetch(
                 `${BASE_URL}/api/CheckInContent/message`,
@@ -742,6 +755,10 @@ export default function App() {
             );
 
             return false;
+        } finally {
+            submittingContentStreakIds.current.delete(
+                streakId
+            );
         }
     };
 
