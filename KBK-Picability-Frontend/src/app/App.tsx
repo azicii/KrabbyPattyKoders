@@ -1542,6 +1542,18 @@ export default function App() {
     ): Promise<boolean> => {
         if (!user) return false;
 
+        if (
+            submittingContentStreakIds.current.has(
+                streakId
+            )
+        ) {
+            return false;
+        }
+
+        submittingContentStreakIds.current.add(
+            streakId
+        );
+
         try {
             const response = await fetch(
                 `${BASE_URL}/api/CheckInContent/photo`,
@@ -1605,6 +1617,10 @@ export default function App() {
             );
 
             return false;
+        } finally {
+            submittingContentStreakIds.current.delete(
+                streakId
+            );
         }
     };
 

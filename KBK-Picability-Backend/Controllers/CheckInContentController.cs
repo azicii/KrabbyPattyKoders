@@ -378,10 +378,109 @@ namespace Picability.Controllers
                     memberCounts[currentUserId];
 
                 if (
-                    currentCheckInCount >=
-                    requiredCheckIns
-                )
+    currentCheckInCount >=
+    requiredCheckIns
+)
                 {
+                    /*
+                     * A stale browser bundle or rapid retry may send the
+                     * same content request again after the first request
+                     * already completed successfully.
+                     *
+                     * Treat a very recent matching request as an
+                     * idempotent retry rather than showing the user an
+                     * erroneous "already checked in" error.
+                     */
+                    var duplicateCutoff =
+                        nowUtc.AddSeconds(-30);
+
+                    var recentMatchingContent =
+                        await _context.CheckInContents
+                            .Include(existingContent =>
+                                existingContent.Recipients
+                            )
+                            .Where(existingContent =>
+                                existingContent.StreakId ==
+                                    streak.Id &&
+                                existingContent.SenderId ==
+                                    currentUserId &&
+                                existingContent.ContentType ==
+                                    contentType &&
+                                existingContent.CreatedAt >=
+                                    duplicateCutoff
+                            )
+                            .OrderByDescending(existingContent =>
+                                existingContent.CreatedAt
+                            )
+                            .FirstOrDefaultAsync();
+
+                    if (recentMatchingContent != null)
+                    {
+                        await transaction.RollbackAsync();
+
+                        return Ok(new
+                        {
+                            message =
+                                contentType == "Photo"
+                                    ? "Photo check-in was already completed."
+                                    : "Message check-in was already completed.",
+
+                            recentMatchingContent.Id,
+
+                            recentMatchingContent.StreakId,
+
+                            recentMatchingContent.SenderId,
+
+                            RecipientIds =
+                                recentMatchingContent
+                                    .Recipients
+                                    .Select(recipient =>
+                                        recipient.UserId
+                                    )
+                                    .ToList(),
+
+                            RecipientCount =
+                                recentMatchingContent
+                                    .Recipients
+                                    .Count,
+
+                            recentMatchingContent.ContentType,
+
+                            recentMatchingContent.MessageText,
+
+                            recentMatchingContent.PhotoUrl,
+
+                            recentMatchingContent
+                                .ViewDurationSeconds,
+
+                            recentMatchingContent.CreatedAt,
+
+                            recentMatchingContent.CheckInNumber,
+
+                            recentMatchingContent.RequiredCheckIns,
+
+                            CheckInCompleted =
+                                true,
+
+                            DuplicateSubmissionIgnored =
+                                true,
+
+                            UserCycleCheckInCount =
+                                currentCheckInCount,
+
+                            UserCompletedCycle =
+                                true,
+
+                            CycleStartedAt =
+                                cycle.StartUtc,
+
+                            CycleEndsAt =
+                                cycle.EndUtc
+                        });
+                    }
+
+                    await transaction.RollbackAsync();
+
                     return BadRequest(new
                     {
                         message =
