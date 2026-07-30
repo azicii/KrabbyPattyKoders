@@ -1,6 +1,10 @@
 import { Flame, Home, Users } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
-export type MobileTab = 'friends' | 'tracker' | 'feed';
+export type MobileTab =
+    | 'friends'
+    | 'tracker'
+    | 'feed';
 
 interface MobileBottomNavProps {
     activeTab: MobileTab;
@@ -35,7 +39,7 @@ export function MobileBottomNav({
     onChangeTab,
     isDark
 }: MobileBottomNavProps) {
-    return (
+    return createPortal(
         <nav
             className="fixed inset-x-0 bottom-0 z-[120] flex justify-center pointer-events-none"
             style={{
@@ -51,18 +55,23 @@ export function MobileBottomNav({
                         : 'bg-white/90 border-slate-200/80'
                     }`}
             >
-                {tabs.map((tab) => {
+                {tabs.map(tab => {
                     const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
+                    const isActive =
+                        activeTab === tab.id;
 
                     return (
                         <button
                             key={tab.id}
                             type="button"
-                            onClick={() => onChangeTab(tab.id)}
+                            onClick={() =>
+                                onChangeTab(tab.id)
+                            }
                             aria-label={tab.label}
                             aria-current={
-                                isActive ? 'page' : undefined
+                                isActive
+                                    ? 'page'
+                                    : undefined
                             }
                             className={`h-9 rounded-full transition-all duration-300 flex items-center justify-center ${isActive
                                     ? 'w-16 bg-teal-500/20 text-teal-400'
@@ -80,6 +89,7 @@ export function MobileBottomNav({
                     );
                 })}
             </div>
-        </nav>
+        </nav>,
+        document.body
     );
 }
