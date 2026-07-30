@@ -115,7 +115,7 @@ interface StreakTrackerProps {
     ) => Promise<boolean>;
     onPublicFeed?: () => void;
     onToggleVisibility?: (streakId: number, isPublic: boolean) => void;
-    onSendReminderPing?: (streakId: number) => Promise<void>;
+    onSendReminderPing?: (streakId: number) => Promise<boolean>;
 }
 
 export function StreakTracker({
@@ -386,25 +386,45 @@ export function StreakTracker({
     const handleReminderPing = async (
         streakId: number,
         event: React.MouseEvent
-        ) => {
+    ) => {
         event.stopPropagation();
 
-        if (sendingReminderId === streakId) return;
+        if (
+            sendingReminderId === streakId ||
+            !onSendReminderPing
+        ) {
+            return;
+        }
 
         try {
-            setSendingReminderId(streakId);
+            setSendingReminderId(
+                streakId
+            );
 
-            await onSendReminderPing?.(streakId);
+            const succeeded =
+                await onSendReminderPing(
+                    streakId
+                );
 
-            setReminderSentId(streakId);
+            if (!succeeded) {
+                return;
+            }
+
+            setReminderSentId(
+                streakId
+            );
 
             window.setTimeout(() => {
                 setReminderSentId(current =>
-                    current === streakId ? null : current
+                    current === streakId
+                        ? null
+                        : current
                 );
             }, 2500);
         } finally {
-            setSendingReminderId(null);
+            setSendingReminderId(
+                null
+            );
         }
     };
 
@@ -2182,7 +2202,17 @@ export function StreakTracker({
                                                 <div className="min-w-[44px]">
                                                     {!isBroken &&
                                                         userCompletedCycle &&
-                                                        !partnerCompletedCycle && (
+                                                        (
+                                                            streak.isGroupStreak
+                                                                ? (
+                                                                    streak.members?.some(
+                                                                        member =>
+                                                                            !member.isCurrentUser &&
+                                                                            !member.completedCycle
+                                                                    ) ?? false
+                                                                )
+                                                                : !partnerCompletedCycle
+                                                        ) && (
                                                             <button
                                                                 type="button"
                                                                 onClick={(event) =>
@@ -2198,16 +2228,20 @@ export function StreakTracker({
                                                                         ? 'opacity-60 cursor-wait'
                                                                         : ''
                                                                     }`}
-                                                                title={
-                                                                    reminderSentId === streak.id
-                                                                        ? 'Reminder sent'
+                                                            title={
+                                                                reminderSentId === streak.id
+                                                                    ? 'Reminder sent'
+                                                                    : streak.isGroupStreak
+                                                                        ? 'Remind incomplete group members'
                                                                         : 'Remind your partner'
-                                                                }
-                                                                aria-label={
-                                                                    reminderSentId === streak.id
-                                                                        ? 'Reminder sent'
+                                                            }
+                                                            aria-label={
+                                                                reminderSentId === streak.id
+                                                                    ? 'Reminder sent'
+                                                                    : streak.isGroupStreak
+                                                                        ? 'Remind incomplete group members to check in'
                                                                         : `Remind ${streak.userName} to check in`
-                                                                }
+                                                            }
                                                             >
                                                                 {reminderSentId === streak.id ? (
                                                                     <Check className="w-5 h-5" />

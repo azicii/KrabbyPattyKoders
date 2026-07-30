@@ -1092,6 +1092,302 @@ namespace Picability.Controllers
             });
         }
 
+        [HttpPost("{id}/remind")]
+        public async Task<IActionResult> SendStreakReminder(int id)
+        {
+            var currentUserId = GetCurrentUserId();
+
+            if (string.IsNullOrWhiteSpace(currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var streak = await _context.Streaks
+                .Include(s => s.UserOne)
+                .Include(s => s.UserTwo)
+                .Include(s => s.Members)
+                    .ThenInclude(member => member.User)
+                .FirstOrDefaultAsync(s =>
+                    s.Id == id &&
+                    s.IsActive &&
+                    (
+                        s.Members.Any(member =>
+                            member.UserId == currentUserId
+                        ) ||
+                        s.UserOneId == currentUserId ||
+                        s.UserTwoId == currentUserId
+                    )
+                );
+
+            if (streak == null)
+            {
+                return NotFound(new
+                {
+                    message =
+                        "Active streak not found or you are not a member."
+                });
+            }
+
+            var memberModels = streak.Members
+                .OrderByDescending(member =>
+                    member.IsCreator
+                )
+                .ThenBy(member =>
+                    member.JoinedAt
+                )
+                .ToList();
+
+            /*
+             * Compatibility fallback for older two-person streaks
+             * that do not have StreakMember rows.
+             */
+            if (memberModels.Count == 0)
+            {
+                memberModels = new List<StreakMember>
+        {
+            new StreakMember
+            {
+                StreakId = streak.Id,
+                UserId = streak.UserOneId,
+                User = streak.UserOne,
+                IsCreator = true
+            },
+            new StreakMember
+            {
+                StreakId = streak.Id,
+                UserId = streak.UserTwoId,
+                User = streak.UserTwo,
+                IsCreator = false
+            }
+        };
+            }
+
+            if (
+                !memberModels.Any(member =>
+                    member.UserId == currentUserId
+                )
+            )
+            {
+                return Forbid();
+            }
+
+            var nowUtc = DateTime.UtcNow;
+
+            var requiredCheckIns = Math.Max(
+                1,
+                streak.RequiredCheckIns
+            );
+
+            var cycleLength = Math.Max(
+                1,
+                streak.CycleLength
+            );
+
+            var cycleUnit =
+                streak.CycleUnit?
+                    .Trim()
+                    .ToLowerInvariant() switch
+                {
+                    "week" => "Week",
+                    "month" => "Month",
+                    _ => "Day"
+                };
+
+            var cycle =
+                StreakCycleCalculator.GetCurrentCycle(
+                    streak.StartedAt,
+                    nowUtc,
+                    cycleLength,
+                    cycleUnit,
+                    GetPacificTimeZone()
+                );
+
+            var memberIds = memberModels
+                .Select(member => member.UserId)
+                .Distinct()
+                .ToList();
+
+            var cycleCheckIns =
+                await _context.StreakCheckIns
+                    .Where(checkIn =>
+                        checkIn.StreakId == streak.Id &&
+                        memberIds.Contains(
+                            checkIn.UserId
+                        ) &&
+                        checkIn.CheckedInAt >=
+                            cycle.StartUtc &&
+                        checkIn.CheckedInAt <
+                            cycle.EndUtc
+                    )
+                    .ToListAsync();
+
+            var memberProgress = memberModels
+                .Select(member =>
+                {
+                    var checkInCount =
+                        cycleCheckIns.Count(checkIn =>
+                            checkIn.UserId ==
+                            member.UserId
+                        );
+
+                    /*
+                     * Preserve compatibility with old timestamp-only
+                     * check-ins for the original two users.
+                     */
+                    if (
+                        checkInCount == 0 &&
+                        member.UserId ==
+                            streak.UserOneId &&
+                        streak.UserOneLastCheckedInAt
+                            .HasValue &&
+                        streak.UserOneLastCheckedInAt
+                            .Value >= cycle.StartUtc &&
+                        streak.UserOneLastCheckedInAt
+                            .Value < cycle.EndUtc
+                    )
+                    {
+                        checkInCount = 1;
+                    }
+
+                    if (
+                        checkInCount == 0 &&
+                        member.UserId ==
+                            streak.UserTwoId &&
+                        streak.UserTwoLastCheckedInAt
+                            .HasValue &&
+                        streak.UserTwoLastCheckedInAt
+                            .Value >= cycle.StartUtc &&
+                        streak.UserTwoLastCheckedInAt
+                            .Value < cycle.EndUtc
+                    )
+                    {
+                        checkInCount = 1;
+                    }
+
+                    return new
+                    {
+                        member.UserId,
+
+                        UserName =
+                            member.User?.UserName ??
+                            "Unknown user",
+
+                        CheckInCount =
+                            checkInCount,
+
+                        CompletedCycle =
+                            checkInCount >=
+                            requiredCheckIns
+                    };
+                })
+                .ToList();
+
+            var currentMember =
+                memberProgress.First(member =>
+                    member.UserId ==
+                    currentUserId
+                );
+
+            /*
+             * Preserve the existing reminder rule:
+             * users send reminders after completing their own part.
+             */
+            if (!currentMember.CompletedCycle)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Complete your required check-ins before reminding other members."
+                });
+            }
+
+            var incompleteRecipients =
+                memberProgress
+                    .Where(member =>
+                        member.UserId !=
+                            currentUserId &&
+                        !member.CompletedCycle
+                    )
+                    .ToList();
+
+            if (incompleteRecipients.Count == 0)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Every other member has already completed this cycle."
+                });
+            }
+
+            var senderName =
+                currentMember.UserName;
+
+            var subscriptionsFound = 0;
+            var sent = 0;
+            var removed = 0;
+            var failed = 0;
+            var errors = new List<string>();
+
+            foreach (var recipient in incompleteRecipients)
+            {
+                var result =
+                    await _pushNotificationService
+                        .NotifyStreakReminderAsync(
+                            recipient.UserId,
+                            senderName,
+                            streak.HabitName
+                        );
+
+                subscriptionsFound +=
+                    result.SubscriptionsFound;
+
+                sent += result.Sent;
+                removed += result.Removed;
+                failed += result.Failed;
+
+                errors.AddRange(
+                    result.Errors.Select(error =>
+                        $"{recipient.UserName}: {error}"
+                    )
+                );
+            }
+
+            return Ok(new
+            {
+                message =
+                    incompleteRecipients.Count == 1
+                        ? "Reminder sent."
+                        : $"Reminders sent to {incompleteRecipients.Count} members.",
+
+                RecipientCount =
+                    incompleteRecipients.Count,
+
+                Recipients =
+                    incompleteRecipients.Select(member =>
+                        new
+                        {
+                            member.UserId,
+                            member.UserName
+                        }
+                    ),
+
+                SubscriptionsFound =
+                    subscriptionsFound,
+
+                Sent =
+                    sent,
+
+                Removed =
+                    removed,
+
+                Failed =
+                    failed,
+
+                Errors =
+                    errors
+            });
+        }
+
         [HttpPost("{id}/complete")]
         public async Task<IActionResult> CompleteStreak(
     int id,

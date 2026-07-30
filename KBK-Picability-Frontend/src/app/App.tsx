@@ -1097,34 +1097,66 @@ export default function App() {
         }
     };
 
-    const handleSendReminderPing = async (streakId: number) => {
-        if (!user) return;
+    const handleSendReminderPing = async (
+        streakId: number
+    ): Promise<boolean> => {
+        if (!user) {
+            return false;
+        }
 
         try {
             const response = await fetch(
                 `${BASE_URL}/api/Streaks/${streakId}/remind`,
                 {
                     method: 'POST',
-                    headers: getAuthHeaders(user.token)
+                    headers:
+                        getAuthHeaders(
+                            user.token
+                        )
                 }
             );
 
+            const contentType =
+                response.headers.get(
+                    'content-type'
+                );
+
+            const result =
+                contentType?.includes(
+                    'application/json'
+                )
+                    ? await response.json()
+                    : await response.text();
+
             if (!response.ok) {
-                const contentType = response.headers.get('content-type');
+                const message =
+                    typeof result === 'string'
+                        ? result
+                        : result.message ??
+                        result.title ??
+                        'Could not send reminder.';
 
-                if (contentType?.includes('application/json')) {
-                    const error = await response.json();
-                    alert(error.message || 'Could not send reminder.');
-                } else {
-                    const errorText = await response.text();
-                    alert(errorText || 'Could not send reminder.');
-                }
-
-                return;
+                alert(message);
+                return false;
             }
-        } catch (err) {
-            console.error('Reminder ping error:', err);
-            alert('Network error while sending the reminder.');
+
+            console.log(
+                'Reminder result:',
+                result
+            );
+
+            return true;
+        } catch (error) {
+            console.error(
+                'Reminder ping error:',
+                error
+            );
+
+            alert(
+                'Network error while sending the reminder.'
+            );
+
+            return false;
         }
     };
 
