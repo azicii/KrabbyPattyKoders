@@ -103,6 +103,7 @@ export default function App() {
     const [isSelectingFriendForStreak, setIsSelectingFriendForStreak] = useState(false);
     const [friendsRefreshKey, setFriendsRefreshKey] = useState(0);
     const submittingContentStreakIds = useRef<Set<number>>(new Set());
+    const processingStreakRequestIds = useRef<Set<number>>(new Set());
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -1351,35 +1352,77 @@ export default function App() {
     const handleAcceptStreakInvite = async (
         requestId: number,
         isGroupRequest = false
-    ) => {
-        try {
-            const endpoint = isGroupRequest
-                ? `${BASE_URL}/api/StreakRequests/group/${requestId}/accept`
-                : `${BASE_URL}/api/StreakRequests/accept/${requestId}`;
+    ): Promise<boolean> => {
+        if (!user) {
+            return false;
+        }
 
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: getAuthHeaders(user.token)
-            });
+        if (
+            processingStreakRequestIds
+                .current
+                .has(requestId)
+        ) {
+            return false;
+        }
+
+        processingStreakRequestIds
+            .current
+            .add(requestId);
+
+        try {
+            const endpoint =
+                isGroupRequest
+                    ? `${BASE_URL}/api/StreakRequests/group/${requestId}/accept`
+                    : `${BASE_URL}/api/StreakRequests/accept/${requestId}`;
+
+            const response =
+                await fetch(
+                    endpoint,
+                    {
+                        method: 'POST',
+                        headers:
+                            getAuthHeaders(
+                                user.token
+                            )
+                    }
+                );
 
             const contentType =
-                response.headers.get('content-type');
+                response.headers.get(
+                    'content-type'
+                );
 
             const result =
-                contentType?.includes('application/json')
+                contentType?.includes(
+                    'application/json'
+                )
                     ? await response.json()
                     : await response.text();
 
             if (!response.ok) {
                 const message =
-                    typeof result === 'string'
+                    typeof result ===
+                        'string'
                         ? result
                         : result.message ??
                         result.title ??
                         'Failed to accept streak request.';
 
                 alert(message);
-                return;
+                return false;
+            }
+
+            /*
+             * Remove the accepted request immediately so the
+             * user cannot click it again while refreshes run.
+             */
+            if (!isGroupRequest) {
+                setStreakInvites(current =>
+                    current.filter(invite =>
+                        invite.id !==
+                        requestId
+                    )
+                );
             }
 
             await Promise.all([
@@ -1389,7 +1432,10 @@ export default function App() {
             ]);
 
             if (isGroupRequest) {
-                if (result.allAccepted === true) {
+                if (
+                    result.allAccepted ===
+                    true
+                ) {
                     alert(
                         'Everyone accepted. The group streak has started!'
                     );
@@ -1399,15 +1445,33 @@ export default function App() {
                     );
                 }
             }
-        } catch (err) {
+
+            return true;
+        } catch (error) {
             console.error(
                 'Error accepting streak:',
-                err
+                error
             );
 
+            /*
+             * Re-fetch before claiming the action failed.
+             * A connection can drop after the server commits.
+             */
+            await Promise.allSettled([
+                fetchStreakInvites(),
+                fetchSentStreakRequests(),
+                fetchStreaks()
+            ]);
+
             alert(
-                'Network error while accepting streak request.'
+                'The acceptance response could not be confirmed. Your streaks have been refreshed.'
             );
+
+            return false;
+        } finally {
+            processingStreakRequestIds
+                .current
+                .delete(requestId);
         }
     };
 

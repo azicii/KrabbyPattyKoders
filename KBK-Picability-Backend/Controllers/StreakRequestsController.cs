@@ -676,31 +676,37 @@ namespace Picability.Controllers
             return Ok(results);
         }
 
-        // MODIFIED BY REECE
-        // Before: LastCompletedAt or FailedAt could be NULL, which caused issues 
-        // when creating a new streak as these fields are NOT NULL in the database. 
-        // After: When accepting a streak request, set default values for LastCompletedAt 
-        // and FailedAt to avoid NULL values and satisfy the database constraints.
-        // POST api/streakrequests/accept/{requestId}
         [HttpPost("accept/{requestId}")]
-        public async Task<IActionResult> AcceptStreakRequest(int requestId)
+        public async Task<IActionResult> AcceptStreakRequest(
+    int requestId)
         {
-            var currentUserId = GetCurrentUserId();
+            var currentUserId =
+                GetCurrentUserId();
 
-            if (currentUserId == null)
+            if (
+                string.IsNullOrWhiteSpace(
+                    currentUserId
+                )
+            )
+            {
                 return Unauthorized();
+            }
 
-            var request = await _context.StreakRequests
-                .FirstOrDefaultAsync(sr => sr.Id == requestId);
+            var request =
+                await _context.StreakRequests
+                    .FirstOrDefaultAsync(sr =>
+                        sr.Id == requestId
+                    );
 
             if (request == null)
-                return NotFound("Streak request not found.");
+            {
+                return NotFound(new
+                {
+                    message =
+                        "Streak request not found."
+                });
+            }
 
-            /*
-             * Group request acceptance is handled separately.
-             * Do not allow the legacy two-person acceptance flow
-             * to accidentally create a partial group streak.
-             */
             if (request.IsGroupRequest)
             {
                 return BadRequest(new
@@ -710,149 +716,480 @@ namespace Picability.Controllers
                 });
             }
 
-            if (request.ReceiverId != currentUserId)
+            if (
+                request.ReceiverId !=
+                currentUserId
+            )
+            {
                 return Forbid();
-
-            if (request.Status != "Pending")
-                return BadRequest("Request already handled.");
+            }
 
             var normalizedHabitName =
-                request.HabitName.Trim().ToLower();
+                request.HabitName
+                    .Trim()
+                    .ToLower();
+
+            /*
+             * Make the endpoint idempotent.
+             *
+             * A browser retry after a successful database commit
+             * should return the already-created streak instead of
+             * displaying "Request already handled."
+             */
+            if (
+                request.Status ==
+                "Accepted"
+            )
+            {
+                var existingAcceptedStreak =
+                    await _context.Streaks
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(streak =>
+                            streak.StreakRequestId ==
+                                request.Id
+                        );
+
+                if (
+                    existingAcceptedStreak !=
+                    null
+                )
+                {
+                    return Ok(new
+                    {
+                        message =
+                            "Streak request was already accepted.",
+
+                        alreadyAccepted =
+                            true,
+
+                        streak = new
+                        {
+                            existingAcceptedStreak.Id,
+
+                            existingAcceptedStreak
+                                .HabitName,
+
+                            existingAcceptedStreak
+                                .HabitIcon,
+
+                            existingAcceptedStreak
+                                .Color,
+
+                            existingAcceptedStreak
+                                .RequiredCheckIns,
+
+                            existingAcceptedStreak
+                                .CycleLength,
+
+                            existingAcceptedStreak
+                                .CycleUnit,
+
+                            existingAcceptedStreak
+                                .CurrentCount,
+
+                            existingAcceptedStreak
+                                .IsActive,
+
+                            existingAcceptedStreak
+                                .IsGroupStreak,
+
+                            existingAcceptedStreak
+                                .StartedAt
+                        }
+                    });
+                }
+
+                return Conflict(new
+                {
+                    message =
+                        "The request is marked accepted, but its streak could not be found."
+                });
+            }
+
+            if (
+                request.Status !=
+                "Pending"
+            )
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Request already handled."
+                });
+            }
 
             var activeDuplicate =
-                await _context.Streaks.FirstOrDefaultAsync(s =>
-                    s.IsActive &&
-                    (
+                await _context.Streaks
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(streak =>
+                        streak.IsActive &&
+                        !streak.IsGroupStreak &&
                         (
-                            s.UserOneId == request.SenderId &&
-                            s.UserTwoId == request.ReceiverId
-                        ) ||
-                        (
-                            s.UserOneId == request.ReceiverId &&
-                            s.UserTwoId == request.SenderId
-                        )
-                    ) &&
-                    s.HabitName.Trim().ToLower() ==
-                        normalizedHabitName
-                );
+                            (
+                                streak.UserOneId ==
+                                    request.SenderId &&
+                                streak.UserTwoId ==
+                                    request.ReceiverId
+                            ) ||
+                            (
+                                streak.UserOneId ==
+                                    request.ReceiverId &&
+                                streak.UserTwoId ==
+                                    request.SenderId
+                            )
+                        ) &&
+                        streak.HabitName
+                            .Trim()
+                            .ToLower() ==
+                            normalizedHabitName
+                    );
 
             if (activeDuplicate != null)
             {
-                request.Status = "Rejected";
-                await _context.SaveChangesAsync();
+                /*
+                 * If this exact request already created the active
+                 * streak, treat the request as an idempotent retry.
+                 */
+                if (
+                    activeDuplicate
+                        .StreakRequestId ==
+                    request.Id
+                )
+                {
+                    request.Status =
+                        "Accepted";
+
+                    await _context
+                        .SaveChangesAsync();
+
+                    return Ok(new
+                    {
+                        message =
+                            "Streak request was already accepted.",
+
+                        alreadyAccepted =
+                            true,
+
+                        streak = new
+                        {
+                            activeDuplicate.Id,
+
+                            activeDuplicate
+                                .HabitName,
+
+                            activeDuplicate
+                                .HabitIcon,
+
+                            activeDuplicate
+                                .Color,
+
+                            activeDuplicate
+                                .RequiredCheckIns,
+
+                            activeDuplicate
+                                .CycleLength,
+
+                            activeDuplicate
+                                .CycleUnit,
+
+                            activeDuplicate
+                                .CurrentCount,
+
+                            activeDuplicate
+                                .IsActive,
+
+                            activeDuplicate
+                                .IsGroupStreak,
+
+                            activeDuplicate
+                                .StartedAt
+                        }
+                    });
+                }
 
                 return Conflict(new
                 {
                     message =
                         "An active version of this streak already exists.",
-                    existingStreakId = activeDuplicate.Id
+
+                    existingStreakId =
+                        activeDuplicate.Id
                 });
             }
 
-            var nowUtc = DateTime.UtcNow;
-            var defaultDate = new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            await using var transaction =
+                await _context.Database
+                    .BeginTransactionAsync();
 
-            var oldDeadStreaks = await _context.Streaks
-                .Where(s =>
-                    !s.IsActive &&
-                    s.HabitName == request.HabitName &&
-                    (
-                        (s.UserOneId == request.SenderId && s.UserTwoId == request.ReceiverId) ||
-                        (s.UserOneId == request.ReceiverId && s.UserTwoId == request.SenderId)
-                    ))
-                .ToListAsync();
-
-            if (oldDeadStreaks.Any())
+            try
             {
-                _context.Streaks.RemoveRange(oldDeadStreaks);
-            }
+                var nowUtc =
+                    DateTime.UtcNow;
 
-            Console.WriteLine(
-                "[STREAK ACCEPT] " +
-                $"RequestId={request.Id}, " +
-                $"Sender={request.SenderId}, " +
-                $"Receiver={request.ReceiverId}, " +
-                $"Habit={request.HabitName}"
-            );
+                var defaultDate =
+                    new DateTime(
+                        1900,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        DateTimeKind.Utc
+                    );
 
-            var streak = new Streak
-            {
-                UserOneId = request.SenderId,
-                UserTwoId = request.ReceiverId,
+                var oldDeadStreaks =
+                    await _context.Streaks
+                        .Where(streak =>
+                            !streak.IsActive &&
+                            streak.HabitName ==
+                                request.HabitName &&
+                            (
+                                (
+                                    streak.UserOneId ==
+                                        request.SenderId &&
+                                    streak.UserTwoId ==
+                                        request.ReceiverId
+                                ) ||
+                                (
+                                    streak.UserOneId ==
+                                        request.ReceiverId &&
+                                    streak.UserTwoId ==
+                                        request.SenderId
+                                )
+                            )
+                        )
+                        .ToListAsync();
 
-                CreatedByUserId = request.SenderId,
-                IsGroupStreak = false,
+                if (
+                    oldDeadStreaks.Count >
+                    0
+                )
+                {
+                    _context.Streaks
+                        .RemoveRange(
+                            oldDeadStreaks
+                        );
+                }
 
-                HabitName = request.HabitName,
-                HabitIcon = request.HabitIcon,
-                Color = request.Color,
+                var streak =
+                    new Streak
+                    {
+                        UserOneId =
+                            request.SenderId,
 
-                RequiredCheckIns = request.RequiredCheckIns,
-                CycleLength = request.CycleLength,
-                CycleUnit = request.CycleUnit,
+                        UserTwoId =
+                            request.ReceiverId,
 
-                CurrentCount = 0,
-                IsActive = true,
-                StreakRequestId = request.Id,
-                StartedAt = nowUtc,
-                CycleTrackingStartedAt = nowUtc,
-                LastCompletedAt = defaultDate,
-                FailedAt = defaultDate,
-                IntervalHours = 24
-            };
+                        CreatedByUserId =
+                            request.SenderId,
 
-            _context.Streaks.Add(streak);
-            request.Status = "Accepted";
+                        IsGroupStreak =
+                            false,
 
-            /*
-             * Keep the new StreakRequestMember representation
-             * synchronized with the legacy two-person request.
-             */
-            var requestMember = await _context.StreakRequestMembers
-                .FirstOrDefaultAsync(member =>
-                    member.StreakRequestId == request.Id &&
-                    member.UserId == request.ReceiverId
+                        HabitName =
+                            request.HabitName,
+
+                        HabitIcon =
+                            request.HabitIcon,
+
+                        Color =
+                            request.Color,
+
+                        RequiredCheckIns =
+                            request.RequiredCheckIns,
+
+                        CycleLength =
+                            request.CycleLength,
+
+                        CycleUnit =
+                            request.CycleUnit,
+
+                        CurrentCount =
+                            0,
+
+                        IsActive =
+                            true,
+
+                        StreakRequestId =
+                            request.Id,
+
+                        StartedAt =
+                            nowUtc,
+
+                        CycleTrackingStartedAt =
+                            nowUtc,
+
+                        LastCompletedAt =
+                            defaultDate,
+
+                        FailedAt =
+                            defaultDate,
+
+                        IntervalHours =
+                            24
+                    };
+
+                _context.Streaks.Add(
+                    streak
                 );
 
-            if (requestMember != null)
-            {
-                requestMember.Status = "Accepted";
-                requestMember.RespondedAt = nowUtc;
-            }
+                request.Status =
+                    "Accepted";
 
-            // First save creates the Streak row and gives streak.Id
-            // its database-generated value.
-            await _context.SaveChangesAsync();
+                var requestMember =
+                    await _context
+                        .StreakRequestMembers
+                        .FirstOrDefaultAsync(
+                            member =>
+                                member
+                                    .StreakRequestId ==
+                                    request.Id &&
+                                member.UserId ==
+                                    request.ReceiverId
+                        );
 
-            // Every streak now gets StreakMember records.
-            // Existing two-person controller logic can continue using
-            // UserOneId and UserTwoId while the application is gradually
-            // migrated to the member-based architecture.
-            var streakMembers = new List<StreakMember>
-            {
-                new StreakMember
+                if (
+                    requestMember !=
+                    null
+                )
                 {
-                    StreakId = streak.Id,
-                    UserId = request.SenderId,
-                    IsCreator = true,
-                    VisibilityPublic = streak.UserOneVisibilityPublic,
-                    JoinedAt = nowUtc
-                },
-                new StreakMember
-                {
-                    StreakId = streak.Id,
-                    UserId = request.ReceiverId,
-                    IsCreator = false,
-                    VisibilityPublic = streak.UserTwoVisibilityPublic,
-                    JoinedAt = nowUtc
+                    requestMember.Status =
+                        "Accepted";
+
+                    requestMember.RespondedAt =
+                        nowUtc;
                 }
-            };
 
-            _context.StreakMembers.AddRange(streakMembers);
+                /*
+                 * Save once to obtain the generated Streak ID.
+                 */
+                await _context
+                    .SaveChangesAsync();
 
-            await _context.SaveChangesAsync();
+                var streakMembers =
+                    new List<StreakMember>
+                    {
+                new StreakMember
+                {
+                    StreakId =
+                        streak.Id,
 
-            return Ok(streak);
+                    UserId =
+                        request.SenderId,
+
+                    IsCreator =
+                        true,
+
+                    VisibilityPublic =
+                        streak
+                            .UserOneVisibilityPublic,
+
+                    JoinedAt =
+                        nowUtc
+                },
+
+                new StreakMember
+                {
+                    StreakId =
+                        streak.Id,
+
+                    UserId =
+                        request.ReceiverId,
+
+                    IsCreator =
+                        false,
+
+                    VisibilityPublic =
+                        streak
+                            .UserTwoVisibilityPublic,
+
+                    JoinedAt =
+                        nowUtc
+                }
+                    };
+
+                _context.StreakMembers
+                    .AddRange(
+                        streakMembers
+                    );
+
+                await _context
+                    .SaveChangesAsync();
+
+                await transaction
+                    .CommitAsync();
+
+                /*
+                 * Return a flat DTO rather than the tracked EF entity.
+                 * Returning the entity directly can serialize navigation
+                 * properties and cause a reference-cycle 500 after the
+                 * database work already succeeded.
+                 */
+                return Ok(new
+                {
+                    message =
+                        "Streak request accepted.",
+
+                    alreadyAccepted =
+                        false,
+
+                    streak = new
+                    {
+                        streak.Id,
+
+                        streak.HabitName,
+
+                        streak.HabitIcon,
+
+                        streak.Color,
+
+                        streak.RequiredCheckIns,
+
+                        streak.CycleLength,
+
+                        streak.CycleUnit,
+
+                        streak.CurrentCount,
+
+                        streak.IsActive,
+
+                        streak.IsGroupStreak,
+
+                        streak.StartedAt,
+
+                        MemberCount =
+                            streakMembers.Count
+                    }
+                });
+            }
+            catch (Exception exception)
+            {
+                await transaction
+                    .RollbackAsync();
+
+                Console.WriteLine(
+                    "[STREAK ACCEPT ERROR] " +
+                    $"RequestId={requestId}, " +
+                    $"UserId={currentUserId}, " +
+                    $"Error={exception}"
+                );
+
+                return StatusCode(
+                    StatusCodes
+                        .Status500InternalServerError,
+                    new
+                    {
+                        message =
+                            "The streak request could not be accepted.",
+
+                        detail =
+                            exception
+                                .InnerException
+                                ?.Message ??
+                            exception.Message
+                    }
+                );
+            }
         }
 
         // POST api/streakrequests/reject/{requestId}

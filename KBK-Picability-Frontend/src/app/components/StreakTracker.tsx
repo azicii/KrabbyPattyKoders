@@ -92,7 +92,7 @@ interface StreakTrackerProps {
     onAcceptInvite?: (
         id: number,
         isGroupRequest?: boolean
-    ) => void;
+    ) => Promise<boolean>;
 
     onRejectInvite?: (
         id: number,
@@ -146,6 +146,7 @@ export function StreakTracker({
     const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
     const [showInvites, setShowInvites] = useState(false);
     const [acceptedIds, setAcceptedIds] = useState<number[]>([]);
+    const [acceptingRequestId,setAcceptingRequestId] = useState<number | null>(null);
     const [checkInModalStreak, setCheckInModalStreak] = useState<Streak | null>(null);
     const [checkInMode, setCheckInMode] = useState<'options' | 'message' | 'photo'>('options');
     const [checkInMessage, setCheckInMessage] = useState('');
@@ -207,6 +208,48 @@ export function StreakTracker({
                 streakId
             )[0] ?? null
         );
+    };
+
+    const handleAcceptInviteClick = async (
+        invite: any,
+        event?: React.MouseEvent
+    ) => {
+        event?.stopPropagation();
+
+        if (
+            !onAcceptInvite ||
+            acceptingRequestId !== null
+        ) {
+            return;
+        }
+
+        try {
+            setAcceptingRequestId(
+                invite.id
+            );
+
+            const succeeded =
+                await onAcceptInvite(
+                    invite.id,
+                    invite.isGroupRequest ===
+                    true
+                );
+
+            if (succeeded) {
+                setAcceptedIds(current =>
+                    current.includes(invite.id)
+                        ? current
+                        : [
+                            ...current,
+                            invite.id
+                        ]
+                );
+            }
+        } finally {
+            setAcceptingRequestId(
+                null
+            );
+        }
     };
 
     const openUnreadContent = (
@@ -904,14 +947,18 @@ export function StreakTracker({
                                                         <span className="text-[10px] text-slate-400 truncate">Habit: {invite.habitName}</span>
                                                     </div>
                                                     <button
-                                                        disabled={isAccepted}
-                                                        onClick={() => {
-                                                            setAcceptedIds(prev => [...prev, invite.id]);
-                                                            onAcceptInvite?.(
-                                                                invite.id,
-                                                                invite.isGroupRequest === true
-                                                            );
-                                                        }}
+                                                        type="button"
+                                                        disabled={
+                                                            isAccepted ||
+                                                            acceptingRequestId !==
+                                                            null
+                                                        }
+                                                        onClick={(event) =>
+                                                            void handleAcceptInviteClick(
+                                                                invite,
+                                                                event
+                                                            )
+                                                        }
                                                         className={`p-2 rounded-lg transition-all duration-300 ${isAccepted
                                                             ? 'bg-emerald-500 text-white scale-110'
                                                             : 'bg-teal-600 text-white hover:bg-teal-500'
@@ -1134,15 +1181,30 @@ export function StreakTracker({
 
                                             <div className="flex items-center gap-2 w-full sm:w-auto">
                                                 <button
-                                                    onClick={() =>
-                                                        onAcceptInvite?.(
-                                                            invite.id,
-                                                            invite.isGroupRequest === true
+                                                    type="button"
+                                                    onClick={(event) =>
+                                                        void handleAcceptInviteClick(
+                                                            invite,
+                                                            event
                                                         )
                                                     }
-                                                    className="flex-1 sm:flex-none px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all"
+                                                    disabled={
+                                                        acceptingRequestId !==
+                                                        null
+                                                    }
+                                                    className={`flex-1 sm:flex-none px-4 py-3 rounded-2xl text-white font-bold transition-all ${acceptingRequestId ===
+                                                            invite.id
+                                                            ? 'bg-emerald-700/70 cursor-wait'
+                                                            : acceptingRequestId !==
+                                                                null
+                                                                ? 'bg-emerald-700/50 opacity-60 cursor-not-allowed'
+                                                                : 'bg-emerald-600 hover:bg-emerald-500'
+                                                        }`}
                                                 >
-                                                    Accept
+                                                    {acceptingRequestId ===
+                                                        invite.id
+                                                        ? 'Accepting...'
+                                                        : 'Accept'}
                                                 </button>
 
                                                 <button
