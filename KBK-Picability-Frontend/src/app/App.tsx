@@ -1997,7 +1997,9 @@ export default function App() {
                 setPreSelectedFriend(null);
                 setSelectedGroupFriends([]);
                 setIsSelectingGroupFriends(false);
+                setIsSelectingFriendForStreak(false);
                 setCurrentScreen('tracker');
+                setMobileTab('tracker');
             }}
         />
     )
