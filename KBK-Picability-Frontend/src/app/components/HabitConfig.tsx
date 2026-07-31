@@ -10,6 +10,7 @@ interface HabitConfigProps {
     onConfirm?: (config: HabitConfiguration) => void;
     habitType?: number | 'create';
     presetHabitName?: string;
+    presetHabitColor?: string;
     preSelectedFriend?: User | null;
     selectedGroupFriends?: User[];
     onSelectGroupFriends?: () => void;
@@ -97,6 +98,7 @@ export function HabitConfig({
     onConfirm,
     habitType,
     presetHabitName = '',
+    presetHabitColor = '',
     preSelectedFriend = null,
     selectedGroupFriends = [],
     onSelectGroupFriends,
@@ -117,10 +119,22 @@ export function HabitConfig({
         draftConfig?.IsGroupRequest ?? false
     );
     const [selectedColorIndex, setSelectedColorIndex] = useState(() => {
-        if (draftConfig?.Color) {
-            const index = colorOptions.findIndex(color => color.gradient === draftConfig.Color);
-            return index !== -1 ? index : 0;
+        const initialColor =
+            draftConfig?.Color ||
+            presetHabitColor;
+
+        if (initialColor) {
+            const index = colorOptions.findIndex(
+                color =>
+                    color.gradient ===
+                    initialColor
+            );
+
+            return index !== -1
+                ? index
+                : 0;
         }
+
         return 0;
     });
     const [showColorPicker, setShowColorPicker] = useState<number | null>(null);
@@ -258,15 +272,45 @@ export function HabitConfig({
     const SelectedIcon = iconOptions[selectedIconIndex].icon;
 
     useEffect(() => {
-        if (presetHabitName) {
-            setHabitName(presetHabitName);
-            const iconLabel = habitToIconMap[presetHabitName];
-            const index = iconOptions.findIndex(option => option.label === iconLabel);
-            if (index !== -1) {
-                setSelectedIconIndex(index);
+        if (!presetHabitName) {
+            return;
+        }
+
+        setHabitName(presetHabitName);
+
+        const iconLabel =
+            habitToIconMap[presetHabitName];
+
+        const iconIndex =
+            iconOptions.findIndex(
+                option =>
+                    option.label === iconLabel
+            );
+
+        if (iconIndex !== -1) {
+            setSelectedIconIndex(
+                iconIndex
+            );
+        }
+
+        if (presetHabitColor) {
+            const colorIndex =
+                colorOptions.findIndex(
+                    color =>
+                        color.gradient ===
+                        presetHabitColor
+                );
+
+            if (colorIndex !== -1) {
+                setSelectedColorIndex(
+                    colorIndex
+                );
             }
         }
-    }, [presetHabitName]);
+    }, [
+        presetHabitName,
+        presetHabitColor
+    ]);
 
     useEffect(() => {
         onDraftChange?.({

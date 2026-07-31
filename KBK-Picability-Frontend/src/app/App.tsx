@@ -52,16 +52,38 @@ const getIconForHabit = (name: string) => {
     return map[name] || 'Target';
 };
 
-const getColorForHabit = (name: string) => {
-    const map: { [key: string]: string } = {
-        'Exercise': 'from-emerald-500 to-teal-600',
-        'Reading': 'from-violet-500 to-purple-600',
-        'Hydration': 'from-sky-500 to-blue-600',
-        'Sleep': 'from-indigo-500 to-purple-600',
-        'Healthy Eating': 'from-rose-500 to-pink-600',
-        'Meditation': 'from-cyan-500 to-blue-600',
+const getColorForHabit = (
+    name: string
+) => {
+    const map: {
+        [key: string]: string
+    } = {
+        'Exercise':
+            'from-emerald-500 to-teal-600',
+
+        'Reading':
+            'from-violet-500 to-purple-600',
+
+        'Hydration':
+            'from-sky-500 to-blue-600',
+
+        'Sleep':
+            'from-indigo-500 to-violet-600',
+
+        'Healthy Eating':
+            'from-rose-500 to-pink-600',
+
+        'Meditation':
+            'from-amber-500 to-orange-600',
+
+        'Goal Setting':
+            'from-cyan-500 to-teal-600'
     };
-    return map[name] || 'from-teal-500 to-cyan-600';
+
+    return (
+        map[name] ||
+        'from-emerald-500 to-teal-600'
+    );
 };
 
 // const BASE_URL = 'http://localhost:5232';
@@ -1893,9 +1915,33 @@ export default function App() {
                 setMobileTab('friends');
             }}
             onConfirm={handleConfirmConfig}
-            habitType={selectedHabitType || undefined}
-            presetHabitName={selectedHabitType && typeof selectedHabitType === 'number' ? habitNames[selectedHabitType] : ''}
-            preSelectedFriend={preSelectedFriend}
+            habitType={
+                selectedHabitType ||
+                undefined
+            }
+            presetHabitName={
+                selectedHabitType &&
+                    typeof selectedHabitType ===
+                    'number'
+                    ? habitNames[
+                    selectedHabitType
+                    ]
+                    : ''
+            }
+            presetHabitColor={
+                selectedHabitType &&
+                    typeof selectedHabitType ===
+                    'number'
+                    ? getColorForHabit(
+                        habitNames[
+                        selectedHabitType
+                        ]
+                    )
+                    : ''
+            }
+            preSelectedFriend={
+                preSelectedFriend
+            }
             draftConfig={draftHabitConfig}
             onDraftChange={setDraftHabitConfig}
             selectedGroupFriends={selectedGroupFriends}
