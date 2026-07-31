@@ -2856,106 +2856,307 @@ export function StreakTracker({
 
                     {brokenStreaks.length > 0 && (
                         <div className="space-y-3">
-                            <h2 className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'
-                                }`}>
+                            <h2
+                                className={`text-sm font-bold uppercase tracking-widest ${isDark
+                                        ? 'text-slate-400'
+                                        : 'text-slate-500'
+                                    }`}
+                            >
                                 Broken Streaks
                             </h2>
 
-                            {brokenStreaks.map((streak) => {
-                                const IconComponent = (LucideIcons as any)[streak.habitIcon] || LucideIcons.Target;
+                            {brokenStreaks.map(streak => {
+                                const IconComponent =
+                                    (LucideIcons as any)[
+                                    streak.habitIcon
+                                    ] ||
+                                    LucideIcons.Target;
 
-                                const unreadForThisStreak = getUnreadForStreak(streak.id);
+                                const streakMembers =
+                                    streak.members ?? [];
 
-                                const hasMessageBubble = unreadForThisStreak?.contentType === "Message";
-                                const hasPhotoBubble = unreadForThisStreak?.contentType === "Photo";
+                                const participantNames =
+                                    streakMembers.length > 0
+                                        ? streakMembers.map(member =>
+                                            member.isCurrentUser
+                                                ? 'You'
+                                                : member.userName
+                                        )
+                                        : [
+                                            'You',
+                                            streak.userName
+                                        ].filter(Boolean);
 
-                                const bubbleAccentClass = streak.color.includes('orange') ? 'border-orange-500 text-orange-400'
-                                    : streak.color.includes('violet') || streak.color.includes('purple') ? 'border-purple-500 text-purple-400'
-                                        : streak.color.includes('rose') || streak.color.includes('pink') ? 'border-pink-500 text-pink-400'
-                                            : streak.color.includes('sky') || streak.color.includes('blue') ? 'border-blue-500 text-blue-400'
-                                                : streak.color.includes('emerald') || streak.color.includes('teal') ? 'border-teal-500 text-teal-400'
-                                                    : 'border-teal-500 text-teal-400';
+                                const failedMemberNames =
+                                    (streak.failedMembers ?? []).map(
+                                        member =>
+                                            member.isCurrentUser
+                                                ? 'You'
+                                                : member.userName
+                                    );
+
+                                const formatNames = (
+                                    names: string[]
+                                ) => {
+                                    const uniqueNames =
+                                        names.filter(
+                                            (
+                                                name,
+                                                index,
+                                                allNames
+                                            ) =>
+                                                Boolean(name) &&
+                                                allNames.indexOf(name) ===
+                                                index
+                                        );
+
+                                    if (uniqueNames.length === 0) {
+                                        return 'Unknown members';
+                                    }
+
+                                    if (uniqueNames.length === 1) {
+                                        return uniqueNames[0];
+                                    }
+
+                                    if (uniqueNames.length === 2) {
+                                        return (
+                                            `${uniqueNames[0]} and ` +
+                                            `${uniqueNames[1]}`
+                                        );
+                                    }
+
+                                    return (
+                                        `${uniqueNames
+                                            .slice(0, -1)
+                                            .join(', ')}, and ` +
+                                        `${uniqueNames[
+                                        uniqueNames.length - 1
+                                        ]}`
+                                    );
+                                };
+
+                                const participantLabel =
+                                    formatNames(
+                                        participantNames
+                                    );
+
+                                const failedMemberLabel =
+                                    formatNames(
+                                        failedMemberNames
+                                    );
+
+                                const memberCount =
+                                    streak.memberCount ??
+                                    streakMembers.length;
+
+                                const isGroupStreak =
+                                    streak.isGroupStreak === true ||
+                                    memberCount > 2;
+
+                                const unreadForThisStreak =
+                                    getUnreadForStreak(
+                                        streak.id
+                                    );
+
+                                const hasMessageBubble =
+                                    unreadForThisStreak
+                                        ?.contentType ===
+                                    'Message';
+
+                                const hasPhotoBubble =
+                                    unreadForThisStreak
+                                        ?.contentType ===
+                                    'Photo';
+
+                                const bubbleAccentClass =
+                                    streak.color.includes('orange')
+                                        ? 'border-orange-500 text-orange-400'
+                                        : streak.color.includes(
+                                            'violet'
+                                        ) ||
+                                            streak.color.includes(
+                                                'purple'
+                                            )
+                                            ? 'border-purple-500 text-purple-400'
+                                            : streak.color.includes(
+                                                'rose'
+                                            ) ||
+                                                streak.color.includes(
+                                                    'pink'
+                                                )
+                                                ? 'border-pink-500 text-pink-400'
+                                                : streak.color.includes(
+                                                    'sky'
+                                                ) ||
+                                                    streak.color.includes(
+                                                        'blue'
+                                                    )
+                                                    ? 'border-blue-500 text-blue-400'
+                                                    : streak.color.includes(
+                                                        'emerald'
+                                                    ) ||
+                                                        streak.color.includes(
+                                                            'teal'
+                                                        )
+                                                        ? 'border-teal-500 text-teal-400'
+                                                        : 'border-teal-500 text-teal-400';
 
                                 return (
                                     <div
                                         key={`broken-${streak.id}`}
-                                        className={`relative w-full rounded-3xl p-6 shadow-sm border transition-all grayscale opacity-80 ${isDark ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'
+                                        className={`relative w-full rounded-3xl p-5 sm:p-6 shadow-sm border transition-all opacity-85 ${isDark
+                                                ? 'bg-slate-800/40 border-slate-700'
+                                                : 'bg-white border-slate-200'
                                             }`}
                                     >
                                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                            <div className="flex items-start sm:items-center gap-4 w-full min-w-0">
-                                                <div
-                                                    className="flex items-center justify-center
-                                                        w-16 h-16
-                                                        min-w-[4rem]
-                                                        min-h-[4rem]
-                                                        shrink-0
-                                                        rounded-2xl
-                                                        bg-gradient-to-br
-                                                        from-slate-500
-                                                        to-slate-700
-                                                        shadow-lg"
-                                                >
+                                            <div className="flex items-start gap-4 w-full min-w-0">
+                                                <div className="flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-700 shadow-lg grayscale">
                                                     <IconComponent className="w-8 h-8 text-white" />
                                                 </div>
 
                                                 <div className="min-w-0 flex-1">
-                                                    <h3
-                                                        className={`text-lg font-semibold
-                                                            leading-tight
-                                                            whitespace-normal
-                                                            break-words
-                                                            ${isDark ? 'text-slate-100' : 'text-slate-800'}`}
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <h3
+                                                            className={`text-lg font-semibold leading-tight whitespace-normal break-words ${isDark
+                                                                    ? 'text-slate-100'
+                                                                    : 'text-slate-800'
+                                                                }`}
+                                                        >
+                                                            {streak.habitName}{' '}
+                                                            💔
+                                                        </h3>
+
+                                                        {isGroupStreak && (
+                                                            <span
+                                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isDark
+                                                                        ? 'bg-violet-500/15 text-violet-300'
+                                                                        : 'bg-violet-100 text-violet-700'
+                                                                    }`}
+                                                            >
+                                                                <Users className="w-3.5 h-3.5" />
+
+                                                                {memberCount}{' '}
+                                                                members
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <p
+                                                        className={`text-sm mt-1 leading-relaxed ${isDark
+                                                                ? 'text-slate-400'
+                                                                : 'text-slate-600'
+                                                            }`}
                                                     >
-                                                        {streak.habitName} 💔
-                                                    </h3>
-                                                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                                                        with {streak.userName}
+                                                        {isGroupStreak
+                                                            ? participantLabel
+                                                            : `with ${streak.userName}`}
                                                     </p>
-                                                    <p className="text-sm text-rose-400 font-bold mt-1">
-                                                        {streak.brokenMessage || "The streak died! :'C"}
-                                                    </p>
-                                                    <p className="text-xs text-slate-400 mt-1">
-                                                        Made it to {streak.streakCount} {streak.streakCount === 1 ? 'day' : 'days'}
+
+                                                    <div
+                                                        className={`mt-3 rounded-2xl p-3 border ${isDark
+                                                                ? 'bg-rose-500/10 border-rose-500/20'
+                                                                : 'bg-rose-50 border-rose-100'
+                                                            }`}
+                                                    >
+                                                        <p className="text-sm text-rose-500 font-bold">
+                                                            {streak.brokenMessage ||
+                                                                (
+                                                                    failedMemberNames.length >
+                                                                        0
+                                                                        ? `${failedMemberLabel} ${failedMemberNames.length ===
+                                                                            1
+                                                                            ? 'did not complete'
+                                                                            : 'did not complete'
+                                                                        } the final cycle.`
+                                                                        : 'The streak ended.'
+                                                                )}
+                                                        </p>
+
+                                                        {failedMemberNames.length >
+                                                            0 && (
+                                                                <p
+                                                                    className={`text-xs mt-1 ${isDark
+                                                                            ? 'text-rose-200/80'
+                                                                            : 'text-rose-700'
+                                                                        }`}
+                                                                >
+                                                                    Failed cycle:{' '}
+                                                                    {failedMemberLabel}
+                                                                </p>
+                                                            )}
+                                                    </div>
+
+                                                    <p
+                                                        className={`text-xs mt-2 ${isDark
+                                                                ? 'text-slate-500'
+                                                                : 'text-slate-500'
+                                                            }`}
+                                                    >
+                                                        Made it to{' '}
+                                                        {streak.streakCount}{' '}
+                                                        {getStreakCountUnitLabel(
+                                                            streak
+                                                        )}
                                                     </p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
+                                            <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto shrink-0">
                                                 <button
-                                                    onClick={() => onRestartStreak?.(streak)}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        onRestartStreak?.(
+                                                            streak
+                                                        )
+                                                    }
                                                     className="flex-1 sm:flex-none px-4 py-2 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold transition-all"
                                                 >
                                                     Try Again?
                                                 </button>
 
                                                 <button
-                                                    onClick={() => onDismissStreak?.(streak.id)}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        onDismissStreak?.(
+                                                            streak.id
+                                                        )
+                                                    }
                                                     className="flex-1 sm:flex-none px-4 py-2 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white font-bold transition-all"
                                                 >
                                                     Dismiss
                                                 </button>
                                             </div>
                                         </div>
-                                        {(hasMessageBubble || hasPhotoBubble) && (
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (unreadForThisStreak) {
-                                                        openUnreadContent(unreadForThisStreak);
-                                                    }
-                                                }}
-                                                className={`absolute top-1/2 -right-1 -translate-y-1/2 sm:-right-12 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all opacity-70 grayscale ${isDark ? 'bg-slate-800' : 'bg-white'
-                                                    } ${bubbleAccentClass}`}
-                                            >
-                                                {hasPhotoBubble ? (
-                                                    <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6 relative z-10" />
-                                                ) : (
-                                                    <MessageCircle className="w-5 h-5 sm:w-7 sm:h-7 relative z-10" />
-                                                )}
-                                            </button>
-                                        )}
+
+                                        {(hasMessageBubble ||
+                                            hasPhotoBubble) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={event => {
+                                                        event.stopPropagation();
+
+                                                        if (
+                                                            unreadForThisStreak
+                                                        ) {
+                                                            openUnreadContent(
+                                                                unreadForThisStreak
+                                                            );
+                                                        }
+                                                    }}
+                                                    className={`absolute top-1/2 -right-1 -translate-y-1/2 sm:-right-12 z-20 w-9 h-9 sm:w-[60px] sm:h-[48px] rounded-full shadow-xl border-2 flex items-center justify-center hover:scale-105 transition-all opacity-70 grayscale ${isDark
+                                                            ? 'bg-slate-800'
+                                                            : 'bg-white'
+                                                        } ${bubbleAccentClass}`}
+                                                    aria-label="View unread check-in content"
+                                                >
+                                                    {hasPhotoBubble ? (
+                                                        <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6 relative z-10" />
+                                                    ) : (
+                                                        <MessageCircle className="w-5 h-5 sm:w-7 sm:h-7 relative z-10" />
+                                                    )}
+                                                </button>
+                                            )}
                                     </div>
                                 );
                             })}

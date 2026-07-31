@@ -867,100 +867,491 @@ namespace Picability.Controllers
         {
             var currentUserId = GetCurrentUserId();
 
-            if (string.IsNullOrEmpty(currentUserId))
+            if (string.IsNullOrWhiteSpace(currentUserId))
             {
                 return Unauthorized();
             }
 
             var nowUtc = DateTime.UtcNow;
             var todayPacific = GetPacificToday(nowUtc);
+            var pacificTimeZone = GetPacificTimeZone();
 
             var friendIds = await _context.FriendRequests
-                .Where(fr =>
-                    fr.Status == "Accepted" &&
-                    (fr.SenderId == currentUserId || fr.ReceiverId == currentUserId))
-                .Select(fr => fr.SenderId == currentUserId ? fr.ReceiverId : fr.SenderId)
+                .Where(friendRequest =>
+                    friendRequest.Status == "Accepted" &&
+                    (
+                        friendRequest.SenderId == currentUserId ||
+                        friendRequest.ReceiverId == currentUserId
+                    )
+                )
+                .Select(friendRequest =>
+                    friendRequest.SenderId == currentUserId
+                        ? friendRequest.ReceiverId
+                        : friendRequest.SenderId
+                )
                 .Distinct()
                 .ToListAsync();
 
+            if (friendIds.Count == 0)
+            {
+                return Ok(Array.Empty<object>());
+            }
+
+            /*
+             * Load both the modern StreakMember collection and the original
+             * two-user navigation properties. The legacy users remain as a
+             * compatibility fallback for older streaks.
+             */
             var streaks = await _context.Streaks
-                .Include(s => s.UserOne)
-                .Include(s => s.UserTwo)
-                .Where(s =>
-                    friendIds.Contains(s.UserOneId) ||
-                    friendIds.Contains(s.UserTwoId))
+                .Include(streak => streak.UserOne)
+                .Include(streak => streak.UserTwo)
+                .Include(streak => streak.Members)
+                    .ThenInclude(member => member.User)
+                .Where(streak =>
+                    streak.Members.Any(member =>
+                        friendIds.Contains(member.UserId)
+                    ) ||
+                    friendIds.Contains(streak.UserOneId) ||
+                    friendIds.Contains(streak.UserTwoId)
+                )
                 .ToListAsync();
 
-            var streakIds = streaks.Select(s => s.Id).ToList();
+            if (streaks.Count == 0)
+            {
+                return Ok(Array.Empty<object>());
+            }
 
-            var reactions = await _context.StreakReactions
-                .Include(r => r.User)
-                .Where(r => streakIds.Contains(r.StreakId))
-                .ToListAsync();
-
-            var result = streaks
-                            .SelectMany(s =>
-                {
-                    var feedItems = new List<object>();
-
-                    var completedToday =
-                        s.IsActive &&
-                        s.LastFullyCompletedAt.HasValue &&
-                        ToPacificDate(s.LastFullyCompletedAt.Value) == todayPacific;
-
-                    var failedToday =
-                        !s.IsActive &&
-                        s.FailedAt.HasValue &&
-                        ToPacificDate(s.FailedAt.Value) == todayPacific;
-
-                    if (!completedToday && !failedToday)
-                    {
-                        return feedItems;
-                    }
-
-                    var userOneVisibleToMe = friendIds.Contains(s.UserOneId) && s.UserOneVisibilityPublic;
-                    var userTwoVisibleToMe = friendIds.Contains(s.UserTwoId) && s.UserTwoVisibilityPublic;
-
-                    if (userOneVisibleToMe || userTwoVisibleToMe)
-                    {
-                        var displayFriendIsUserOne = userOneVisibleToMe;
-
-                        feedItems.Add(new
-                        {
-                            s.Id,
-                            s.HabitName,
-                            s.HabitIcon,
-                            s.Color,
-                            s.CurrentCount,
-                            s.IsActive,
-                            FriendName = displayFriendIsUserOne ? s.UserOne.UserName : s.UserTwo.UserName,
-                            PartnerName = displayFriendIsUserOne ? s.UserTwo.UserName : s.UserOne.UserName,
-                            CompletedToday = completedToday,
-                            FailedToday = failedToday,
-                            s.LastFullyCompletedAt,
-                            s.FailedAt,
-                            KilledBy = failedToday
-                                ? GetStreakKillerName(s, displayFriendIsUserOne ? s.UserOneId : s.UserTwoId)
-                                : null,
-                            ReactionType = failedToday ? "HeartBreak" : "FistBump",
-                            ReactionEmoji = failedToday ? "💔" : "👊",
-                            ReactionCount = reactions.Count(r =>
-                                r.StreakId == s.Id &&
-                                r.ReactionType == (failedToday ? "HeartBreak" : "FistBump")),
-                            CurrentUserReacted = reactions.Any(r =>
-                                r.StreakId == s.Id &&
-                                r.UserId == currentUserId &&
-                                r.ReactionType == (failedToday ? "HeartBreak" : "FistBump"))
-                        });
-                    }
-
-                    return feedItems;
-                })
-                .OrderByDescending(item => item.GetType().GetProperty("LastFullyCompletedAt")?.GetValue(item)
-                    ?? item.GetType().GetProperty("FailedAt")?.GetValue(item))
+            var streakIds = streaks
+                .Select(streak => streak.Id)
                 .ToList();
 
-            return Ok(result);
+            var reactions = await _context.StreakReactions
+                .Where(reaction =>
+                    streakIds.Contains(reaction.StreakId)
+                )
+                .ToListAsync();
+
+            /*
+             * Check-in history is required to determine exactly which members
+             * failed the final cycle of a dead group streak.
+             */
+            var checkIns = await _context.StreakCheckIns
+                .Where(checkIn =>
+                    streakIds.Contains(checkIn.StreakId)
+                )
+                .ToListAsync();
+
+            var feedItems = new List<object>();
+
+            foreach (var streak in streaks)
+            {
+                var completedToday =
+                    streak.IsActive &&
+                    streak.LastFullyCompletedAt.HasValue &&
+                    ToPacificDate(
+                        streak.LastFullyCompletedAt.Value
+                    ) == todayPacific;
+
+                var failedToday =
+                    !streak.IsActive &&
+                    streak.FailedAt.HasValue &&
+                    streak.FailedAt.Value != default &&
+                    ToPacificDate(
+                        streak.FailedAt.Value
+                    ) == todayPacific;
+
+                /*
+                 * The public feed represents today's activity rather than every
+                 * public streak in the database.
+                 */
+                if (!completedToday && !failedToday)
+                {
+                    continue;
+                }
+
+                var memberModels = streak.Members
+                    .OrderByDescending(member =>
+                        member.IsCreator
+                    )
+                    .ThenBy(member =>
+                        member.JoinedAt
+                    )
+                    .ToList();
+
+                /*
+                 * Compatibility fallback for old two-person streaks that may not
+                 * have StreakMember rows.
+                 */
+                if (memberModels.Count == 0)
+                {
+                    memberModels = new List<StreakMember>
+            {
+                new StreakMember
+                {
+                    StreakId = streak.Id,
+                    UserId = streak.UserOneId,
+                    User = streak.UserOne,
+                    IsCreator = true,
+                    VisibilityPublic =
+                        streak.UserOneVisibilityPublic
+                },
+                new StreakMember
+                {
+                    StreakId = streak.Id,
+                    UserId = streak.UserTwoId,
+                    User = streak.UserTwo,
+                    IsCreator = false,
+                    VisibilityPublic =
+                        streak.UserTwoVisibilityPublic
+                }
+            };
+                }
+
+                /*
+                 * The viewer may see the streak when at least one friend who
+                 * belongs to it has enabled public visibility.
+                 */
+                var visibleFriendMembers = memberModels
+                    .Where(member =>
+                        friendIds.Contains(member.UserId) &&
+                        member.VisibilityPublic
+                    )
+                    .ToList();
+
+                if (visibleFriendMembers.Count == 0)
+                {
+                    continue;
+                }
+
+                var participantData = memberModels
+                    .Select(member => new
+                    {
+                        UserId = member.UserId,
+
+                        UserName =
+                            member.User?.UserName ??
+                            "Unknown user",
+
+                        IsCreator =
+                            member.IsCreator,
+
+                        IsFriend =
+                            friendIds.Contains(member.UserId),
+
+                        VisibilityPublic =
+                            member.VisibilityPublic
+                    })
+                    .ToList();
+
+                var participantNames = participantData
+                    .Select(member => member.UserName)
+                    .ToList();
+
+                var visibleFriendNames = participantData
+                    .Where(member =>
+                        member.IsFriend &&
+                        member.VisibilityPublic
+                    )
+                    .Select(member =>
+                        member.UserName
+                    )
+                    .ToList();
+
+                var requiredCheckIns = Math.Max(
+                    1,
+                    streak.RequiredCheckIns
+                );
+
+                var cycleLength = Math.Max(
+                    1,
+                    streak.CycleLength
+                );
+
+                var cycleUnit =
+                    streak.CycleUnit?
+                        .Trim()
+                        .ToLowerInvariant() switch
+                    {
+                        "week" => "Week",
+                        "month" => "Month",
+                        _ => "Day"
+                    };
+
+                var failedMembers = new List<object>();
+                var failedMemberNames = new List<string>();
+
+                if (
+                    failedToday &&
+                    streak.FailedAt.HasValue
+                )
+                {
+                    /*
+                     * AddTicks(-1) keeps the failed timestamp inside the cycle
+                     * that just expired instead of accidentally selecting the
+                     * newly started cycle.
+                     */
+                    var failedCycle =
+                        StreakCycleCalculator.GetCurrentCycle(
+                            streak.StartedAt,
+                            streak.FailedAt.Value.AddTicks(-1),
+                            cycleLength,
+                            cycleUnit,
+                            pacificTimeZone
+                        );
+
+                    var failedMemberData = memberModels
+                        .Select(member =>
+                        {
+                            var memberCheckInCount =
+                                checkIns.Count(checkIn =>
+                                    checkIn.StreakId ==
+                                        streak.Id &&
+                                    checkIn.UserId ==
+                                        member.UserId &&
+                                    checkIn.CheckedInAt >=
+                                        failedCycle.StartUtc &&
+                                    checkIn.CheckedInAt <
+                                        failedCycle.EndUtc
+                                );
+
+                            /*
+                             * Preserve check-ins recorded before StreakCheckIn
+                             * became the source of truth.
+                             */
+                            if (
+                                memberCheckInCount == 0 &&
+                                member.UserId ==
+                                    streak.UserOneId &&
+                                streak.UserOneLastCheckedInAt
+                                    .HasValue &&
+                                streak.UserOneLastCheckedInAt
+                                    .Value >=
+                                    failedCycle.StartUtc &&
+                                streak.UserOneLastCheckedInAt
+                                    .Value <
+                                    failedCycle.EndUtc
+                            )
+                            {
+                                memberCheckInCount = 1;
+                            }
+
+                            if (
+                                memberCheckInCount == 0 &&
+                                member.UserId ==
+                                    streak.UserTwoId &&
+                                streak.UserTwoLastCheckedInAt
+                                    .HasValue &&
+                                streak.UserTwoLastCheckedInAt
+                                    .Value >=
+                                    failedCycle.StartUtc &&
+                                streak.UserTwoLastCheckedInAt
+                                    .Value <
+                                    failedCycle.EndUtc
+                            )
+                            {
+                                memberCheckInCount = 1;
+                            }
+
+                            return new
+                            {
+                                UserId = member.UserId,
+
+                                UserName =
+                                    member.User?.UserName ??
+                                    "Unknown user",
+
+                                CheckInCount =
+                                    memberCheckInCount
+                            };
+                        })
+                        .Where(member =>
+                            member.CheckInCount <
+                            requiredCheckIns
+                        )
+                        .ToList();
+
+                    failedMembers.AddRange(
+                        failedMemberData.Select(member =>
+                            (object)new
+                            {
+                                member.UserId,
+                                member.UserName,
+                                member.CheckInCount,
+
+                                RequiredCheckIns =
+                                    requiredCheckIns
+                            }
+                        )
+                    );
+
+                    failedMemberNames.AddRange(
+                        failedMemberData.Select(member =>
+                            member.UserName
+                        )
+                    );
+                }
+
+                string? killedBy = null;
+
+                if (failedToday)
+                {
+                    killedBy = failedMemberNames.Count switch
+                    {
+                        0 =>
+                            "Unknown",
+
+                        1 =>
+                            failedMemberNames[0],
+
+                        2 =>
+                            $"{failedMemberNames[0]} and " +
+                            $"{failedMemberNames[1]}",
+
+                        _ =>
+                            $"{string.Join(
+                                ", ",
+                                failedMemberNames.Take(
+                                    failedMemberNames.Count - 1
+                                )
+                            )}, and {failedMemberNames.Last()}"
+                    };
+                }
+
+                var primaryVisibleFriend =
+                    visibleFriendMembers.First();
+
+                var primaryVisibleFriendName =
+                    primaryVisibleFriend.User?.UserName ??
+                    "Friend";
+
+                var legacyPartnerName = participantData
+                    .FirstOrDefault(member =>
+                        member.UserId !=
+                        primaryVisibleFriend.UserId
+                    )
+                    ?.UserName ?? "Partner";
+
+                var reactionType =
+                    failedToday
+                        ? "HeartBreak"
+                        : "FistBump";
+
+                var reactionEmoji =
+                    failedToday
+                        ? "💔"
+                        : "👊";
+
+                var eventAt =
+                    failedToday
+                        ? streak.FailedAt
+                        : streak.LastFullyCompletedAt;
+
+                feedItems.Add(new
+                {
+                    streak.Id,
+                    streak.HabitName,
+                    streak.HabitIcon,
+                    streak.Color,
+                    streak.CurrentCount,
+                    streak.IsActive,
+
+                    IsGroupStreak =
+                        streak.IsGroupStreak ||
+                        memberModels.Count > 2,
+
+                    MemberCount =
+                        memberModels.Count,
+
+                    Members =
+                        participantData,
+
+                    ParticipantNames =
+                        participantNames,
+
+                    VisibleFriendNames =
+                        visibleFriendNames,
+
+                    FailedMembers =
+                        failedMembers,
+
+                    FailedMemberNames =
+                        failedMemberNames,
+
+                    CompletedToday =
+                        completedToday,
+
+                    FailedToday =
+                        failedToday,
+
+                    streak.LastFullyCompletedAt,
+                    streak.FailedAt,
+
+                    EventAt =
+                        eventAt,
+
+                    KilledBy =
+                        killedBy,
+
+                    RequiredCheckIns =
+                        requiredCheckIns,
+
+                    CycleLength =
+                        cycleLength,
+
+                    CycleUnit =
+                        cycleUnit,
+
+                    /*
+                     * Keep these legacy properties temporarily so older frontend
+                     * builds do not immediately break during deployment.
+                     */
+                    FriendName =
+                        primaryVisibleFriendName,
+
+                    PartnerName =
+                        legacyPartnerName,
+
+                    ReactionType =
+                        reactionType,
+
+                    ReactionEmoji =
+                        reactionEmoji,
+
+                    ReactionCount =
+                        reactions.Count(reaction =>
+                            reaction.StreakId ==
+                                streak.Id &&
+                            reaction.ReactionType ==
+                                reactionType
+                        ),
+
+                    CurrentUserReacted =
+                        reactions.Any(reaction =>
+                            reaction.StreakId ==
+                                streak.Id &&
+                            reaction.UserId ==
+                                currentUserId &&
+                            reaction.ReactionType ==
+                                reactionType
+                        )
+                });
+            }
+
+            var orderedFeedItems = feedItems
+    .OrderByDescending(item =>
+    {
+        var eventAt =
+            item.GetType()
+                .GetProperty("EventAt")
+                ?.GetValue(item);
+
+        return eventAt is DateTime date
+            ? date
+            : DateTime.MinValue;
+    })
+    .ToList();
+
+            return Ok(orderedFeedItems);
         }
 
         [HttpPost("{id}/react")]
@@ -968,13 +1359,16 @@ namespace Picability.Controllers
         {
             var currentUserId = GetCurrentUserId();
 
-            if (string.IsNullOrEmpty(currentUserId))
+            if (string.IsNullOrWhiteSpace(currentUserId))
             {
                 return Unauthorized();
             }
 
             var streak = await _context.Streaks
-                .FirstOrDefaultAsync(s => s.Id == id);
+                .Include(streak => streak.Members)
+                .FirstOrDefaultAsync(streak =>
+                    streak.Id == id
+                );
 
             if (streak == null)
             {
@@ -982,47 +1376,93 @@ namespace Picability.Controllers
             }
 
             var friendIds = await _context.FriendRequests
-                .Where(fr =>
-                    fr.Status == "Accepted" &&
-                    (fr.SenderId == currentUserId || fr.ReceiverId == currentUserId))
-                .Select(fr => fr.SenderId == currentUserId ? fr.ReceiverId : fr.SenderId)
+                .Where(friendRequest =>
+                    friendRequest.Status == "Accepted" &&
+                    (
+                        friendRequest.SenderId == currentUserId ||
+                        friendRequest.ReceiverId == currentUserId
+                    )
+                )
+                .Select(friendRequest =>
+                    friendRequest.SenderId == currentUserId
+                        ? friendRequest.ReceiverId
+                        : friendRequest.SenderId
+                )
                 .Distinct()
                 .ToListAsync();
 
             var isParticipant =
+                streak.Members.Any(member =>
+                    member.UserId == currentUserId
+                ) ||
                 streak.UserOneId == currentUserId ||
                 streak.UserTwoId == currentUserId;
 
-            var canSeePublicStreak =
-                (friendIds.Contains(streak.UserOneId) && streak.UserOneVisibilityPublic) ||
-                (friendIds.Contains(streak.UserTwoId) && streak.UserTwoVisibilityPublic);
+            var canSeeModernPublicStreak =
+                streak.Members.Any(member =>
+                    friendIds.Contains(member.UserId) &&
+                    member.VisibilityPublic
+                );
 
-            if (!isParticipant && !canSeePublicStreak)
+            var canSeeLegacyPublicStreak =
+                (
+                    friendIds.Contains(streak.UserOneId) &&
+                    streak.UserOneVisibilityPublic
+                ) ||
+                (
+                    friendIds.Contains(streak.UserTwoId) &&
+                    streak.UserTwoVisibilityPublic
+                );
+
+            if (
+                !isParticipant &&
+                !canSeeModernPublicStreak &&
+                !canSeeLegacyPublicStreak
+            )
             {
                 return Forbid();
             }
 
-            var reactionType = streak.IsActive ? "FistBump" : "HeartBreak";
+            var reactionType =
+                streak.IsActive
+                    ? "FistBump"
+                    : "HeartBreak";
 
-            var existingReaction = await _context.StreakReactions
-                .FirstOrDefaultAsync(r =>
-                    r.StreakId == id &&
-                    r.UserId == currentUserId);
+            var existingReaction =
+                await _context.StreakReactions
+                    .FirstOrDefaultAsync(reaction =>
+                        reaction.StreakId == id &&
+                        reaction.UserId == currentUserId
+                    );
 
             if (existingReaction != null)
             {
-                _context.StreakReactions.Remove(existingReaction);
+                _context.StreakReactions.Remove(
+                    existingReaction
+                );
+
                 await _context.SaveChangesAsync();
 
-                var newCount = await _context.StreakReactions
-                    .CountAsync(r => r.StreakId == id && r.ReactionType == reactionType);
+                var newCount =
+                    await _context.StreakReactions
+                        .CountAsync(reaction =>
+                            reaction.StreakId == id &&
+                            reaction.ReactionType ==
+                                reactionType
+                        );
 
                 return Ok(new
                 {
                     reacted = false,
                     reactionType,
-                    reactionEmoji = reactionType == "HeartBreak" ? "💔" : "👊",
-                    reactionCount = newCount
+
+                    reactionEmoji =
+                        reactionType == "HeartBreak"
+                            ? "💔"
+                            : "👊",
+
+                    reactionCount =
+                        newCount
                 });
             }
 
@@ -1037,15 +1477,25 @@ namespace Picability.Controllers
             _context.StreakReactions.Add(reaction);
             await _context.SaveChangesAsync();
 
-            var count = await _context.StreakReactions
-                .CountAsync(r => r.StreakId == id && r.ReactionType == reactionType);
+            var reactionCount =
+                await _context.StreakReactions
+                    .CountAsync(existing =>
+                        existing.StreakId == id &&
+                        existing.ReactionType ==
+                            reactionType
+                    );
 
             return Ok(new
             {
                 reacted = true,
                 reactionType,
-                reactionEmoji = reactionType == "HeartBreak" ? "💔" : "👊",
-                reactionCount = count
+
+                reactionEmoji =
+                    reactionType == "HeartBreak"
+                        ? "💔"
+                        : "👊",
+
+                reactionCount
             });
         }
 
