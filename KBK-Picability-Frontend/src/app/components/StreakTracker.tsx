@@ -1949,7 +1949,11 @@ export function StreakTracker({
                                                                                             : 'text-slate-500'
                                                                                     }`}
                                                                             >
-                                                                                {memberCheckIns}/{requiredCheckIns}
+                                                                                {customFrequency
+                                                                                    ? `${memberCheckIns}/${requiredCheckIns}`
+                                                                                    : member.completedCycle
+                                                                                        ? 'Done'
+                                                                                        : 'Waiting'}
                                                                             </span>
                                                                         </div>
 

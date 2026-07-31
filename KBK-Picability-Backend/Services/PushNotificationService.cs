@@ -63,6 +63,11 @@ namespace Picability.Services
                     _ => "day"
                 };
 
+            var isDefaultDailyStreak =
+    normalizedRequiredCheckIns == 1 &&
+    normalizedCycleLength == 1 &&
+    normalizedCycleUnit == "day";
+
             var cycleDescription =
                 normalizedCycleLength == 1
                     ? normalizedCycleUnit switch
@@ -73,11 +78,6 @@ namespace Picability.Services
                     }
                     : $"this {normalizedCycleLength}-{normalizedCycleUnit} cycle";
 
-            var progressLine =
-                $"{normalizedCheckInNumber} of " +
-                $"{normalizedRequiredCheckIns} check-ins completed " +
-                $"{cycleDescription}.";
-
             var contentLine =
                 sentMessage && sentPhoto
                     ? "\n💬📷 Sent you a message and photo."
@@ -87,14 +87,24 @@ namespace Picability.Services
                             ? "\n📷 Sent you a photo."
                             : string.Empty;
 
+            var title =
+                isDefaultDailyStreak
+                    ? "🔥 Streak completed!"
+                    : "🔥 Streak progress";
+
             var body =
-                $"{partnerName} checked in for \"{streakName}\".\n" +
-                $"{progressLine}" +
-                $"{contentLine}";
+                isDefaultDailyStreak
+                    ? $"{partnerName} completed their \"{streakName}\" streak today." +
+                      contentLine
+                    : $"{partnerName} completed check-in " +
+                      $"{normalizedCheckInNumber} of " +
+                      $"{normalizedRequiredCheckIns} for " +
+                      $"\"{streakName}\" {cycleDescription}." +
+                      contentLine;
 
             return await SendPushAsync(
                 receiverId,
-                "🔥 Your partner checked in!",
+                title,
                 body,
                 "/"
             );
