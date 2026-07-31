@@ -1201,44 +1201,6 @@ namespace Picability.Controllers
                                         failedCycle.EndUtc
                                 );
 
-                            /*
-                             * Preserve check-ins recorded before StreakCheckIn
-                             * became the source of truth.
-                             */
-                            if (
-                                memberCheckInCount == 0 &&
-                                member.UserId ==
-                                    streak.UserOneId &&
-                                streak.UserOneLastCheckedInAt
-                                    .HasValue &&
-                                streak.UserOneLastCheckedInAt
-                                    .Value >=
-                                    failedCycle.StartUtc &&
-                                streak.UserOneLastCheckedInAt
-                                    .Value <
-                                    failedCycle.EndUtc
-                            )
-                            {
-                                memberCheckInCount = 1;
-                            }
-
-                            if (
-                                memberCheckInCount == 0 &&
-                                member.UserId ==
-                                    streak.UserTwoId &&
-                                streak.UserTwoLastCheckedInAt
-                                    .HasValue &&
-                                streak.UserTwoLastCheckedInAt
-                                    .Value >=
-                                    failedCycle.StartUtc &&
-                                streak.UserTwoLastCheckedInAt
-                                    .Value <
-                                    failedCycle.EndUtc
-                            )
-                            {
-                                memberCheckInCount = 1;
-                            }
-
                             return new
                             {
                                 UserId = member.UserId,
