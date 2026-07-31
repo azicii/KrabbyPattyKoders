@@ -1189,36 +1189,154 @@ export default function App() {
         }
     };
 
-    const handleRestartStreak = async (streak: Streak) => {
-        if (!user || !streak.partnerId) return;
+    const handleRestartStreak = async (
+        streak: Streak
+    ) => {
+        if (!user) {
+            return;
+        }
+
+        const groupReceiverIds =
+            (streak.members ?? [])
+                .filter(member =>
+                    !member.isCurrentUser &&
+                    member.userId !== user.id
+                )
+                .map(member =>
+                    member.userId
+                )
+                .filter(
+                    (
+                        memberId,
+                        index,
+                        memberIds
+                    ) =>
+                        Boolean(memberId) &&
+                        memberIds.indexOf(
+                            memberId
+                        ) === index
+                );
+
+        const isGroupRestart =
+            streak.isGroupStreak === true ||
+            groupReceiverIds.length > 1;
+
+        if (
+            isGroupRestart &&
+            groupReceiverIds.length < 2
+        ) {
+            alert(
+                'The original group members could not be loaded. Refresh the page and try again.'
+            );
+
+            return;
+        }
+
+        if (
+            !isGroupRestart &&
+            !streak.partnerId
+        ) {
+            alert(
+                'The original streak partner could not be loaded.'
+            );
+
+            return;
+        }
 
         try {
-            const response = await fetch(`${BASE_URL}/api/StreakRequests`, {
-                method: 'POST',
-                headers: getAuthHeaders(user.token),
-                body: JSON.stringify({
-                    senderId: user.id,
-                    receiverId: streak.partnerId,
-                    habitName: streak.habitName,
-                    habitIcon: streak.habitIcon,
-                    color: streak.color,
+            const response = await fetch(
+                `${BASE_URL}/api/StreakRequests`,
+                {
+                    method: 'POST',
+                    headers:
+                        getAuthHeaders(
+                            user.token
+                        ),
 
-                    requiredCheckIns: streak.requiredCheckIns ?? 1,
-                    cycleLength: streak.cycleLength ?? 1,
-                    cycleUnit: streak.cycleUnit ?? 'Day'
-                })
-            });
+                    body: JSON.stringify({
+                        senderId:
+                            user.id,
 
-            if (response.ok) {
-                await fetchStreaks();
-                await fetchSentStreakRequests();
-                alert("Streak request sent!");
-            } else {
-                const errorText = await response.text();
-                alert(errorText || "Failed to restart streak.");
+                        receiverId:
+                            isGroupRestart
+                                ? ''
+                                : streak.partnerId,
+
+                        receiverIds:
+                            isGroupRestart
+                                ? groupReceiverIds
+                                : [],
+
+                        isGroupRequest:
+                            isGroupRestart,
+
+                        habitName:
+                            streak.habitName,
+
+                        habitIcon:
+                            streak.habitIcon,
+
+                        color:
+                            streak.color,
+
+                        requiredCheckIns:
+                            streak.requiredCheckIns ??
+                            1,
+
+                        cycleLength:
+                            streak.cycleLength ??
+                            1,
+
+                        cycleUnit:
+                            streak.cycleUnit ??
+                            'Day'
+                    })
+                }
+            );
+
+            const contentType =
+                response.headers.get(
+                    'content-type'
+                );
+
+            const result =
+                contentType?.includes(
+                    'application/json'
+                )
+                    ? await response.json()
+                    : await response.text();
+
+            if (!response.ok) {
+                const message =
+                    typeof result === 'string'
+                        ? result
+                        : result.message ??
+                        result.title ??
+                        'Failed to restart streak.';
+
+                alert(message);
+                return;
             }
-        } catch (err) {
-            console.error("Restart streak error:", err);
+
+            await Promise.all([
+                fetchStreaks(),
+                fetchSentStreakRequests()
+            ]);
+
+            alert(
+                isGroupRestart
+                    ? 'Group streak request sent!'
+                    : 'Streak request sent!'
+            );
+        } catch (error) {
+            console.error(
+                'Restart streak error:',
+                error
+            );
+
+            alert(
+                'Network error while restarting the streak.'
+            );
         }
     };
 
