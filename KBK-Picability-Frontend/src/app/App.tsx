@@ -106,7 +106,13 @@ export default function App() {
     const [preSelectedFriend, setPreSelectedFriend] = useState<User | null>(null);
     const [selectedGroupFriends, setSelectedGroupFriends] = useState<User[]>([]);
     const [isSelectingGroupFriends, setIsSelectingGroupFriends] = useState(false);
-    const [lastRequestConfig, setLastRequestConfig] = useState<{ user: User; habitName: string } | null>(null);
+    const [
+        lastRequestConfig,
+        setLastRequestConfig
+    ] = useState<{
+        recipients: User[];
+        habitName: string;
+    } | null>(null);
     const [streakInvites, setStreakInvites] = useState<any[]>([]);
     const [sentStreakRequests, setSentStreakRequests] = useState<any[]>([]);
     const [pendingFriendRequestCount, setPendingFriendRequestCount] = useState(0);
@@ -1623,17 +1629,25 @@ export default function App() {
             });
 
             if (response.ok) {
+                const recipients =
+                    config.IsGroupRequest
+                        ? selectedGroupFriends
+                        : preSelectedFriend
+                            ? [preSelectedFriend]
+                            : [];
+
                 setLastRequestConfig({
-                    user: preSelectedFriend || {
-                        id: config.friendId,
-                        name: config.friendName || 'Friend',
-                        avatar: config.friendAvatar || '??',
-                        username: ''
-                    },
-                    habitName: config.HabitName
+                    recipients,
+                    habitName:
+                        config.HabitName
                 });
-                fetchSentStreakRequests();
-                setCurrentScreen('confirmation');
+
+                await fetchSentStreakRequests();
+
+                setCurrentScreen(
+                    'confirmation'
+                );
+
                 setDraftHabitConfig(null);
             } else {
                 const contentType = response.headers.get("content-type");
@@ -1972,11 +1986,17 @@ export default function App() {
     currentScreen === 'confirmation' && lastRequestConfig && (
         <RequestConfirmation
             isDark={isDark}
-            selectedUser={lastRequestConfig.user}
-            habitName={lastRequestConfig.habitName}
+            recipients={
+                lastRequestConfig.recipients
+            }
+            habitName={
+                lastRequestConfig.habitName
+            }
             onComplete={() => {
                 setLastRequestConfig(null);
                 setPreSelectedFriend(null);
+                setSelectedGroupFriends([]);
+                setIsSelectingGroupFriends(false);
                 setCurrentScreen('tracker');
             }}
         />
