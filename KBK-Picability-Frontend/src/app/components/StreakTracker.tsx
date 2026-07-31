@@ -617,17 +617,36 @@ export function StreakTracker({
             return 'Once daily';
         }
 
-        const checkInLabel =
-            normalizedRequired === 1
-                ? 'check-in'
-                : 'check-ins';
-
-        const cycleLabel =
+        const periodLabel =
             normalizedLength === 1
                 ? normalizedUnit
                 : `${normalizedUnit}s`;
 
-        return `${normalizedRequired} ${checkInLabel} every ${normalizedLength} ${cycleLabel}`;
+        if (normalizedRequired === 1) {
+            if (
+                normalizedLength === 1 &&
+                normalizedUnit === 'week'
+            ) {
+                return 'Weekly';
+            }
+
+            if (
+                normalizedLength === 1 &&
+                normalizedUnit === 'month'
+            ) {
+                return 'Monthly';
+            }
+
+            return (
+                `Once every ${normalizedLength} ` +
+                `${periodLabel}`
+            );
+        }
+
+        return (
+            `${normalizedRequired} check-ins every ` +
+            `${normalizedLength} ${periodLabel}`
+        );
     };
 
     const isDefaultDailySchedule = (streak: Streak) => {
@@ -640,7 +659,7 @@ export function StreakTracker({
 
     const getCycleEndLabel = (cycleEndsAt?: string) => {
         if (!cycleEndsAt) {
-            return 'the end of this cycle';
+            return 'the current deadline';
         }
 
         const endDate = new Date(cycleEndsAt);
@@ -673,11 +692,13 @@ export function StreakTracker({
         }
 
         return count === 1
-            ? `${cycleLength}-${singularUnit} cycle`
-            : `${cycleLength}-${singularUnit} cycles`;
+            ? `${cycleLength}-${singularUnit} streak`
+            : `${cycleLength}-${singularUnit} streaks`;
     };
 
-    const getStreakVisualState = (streak: Streak) => {
+    const getStreakVisualState = (
+        streak: Streak
+    ) => {
         const userDone =
             streak.userCompletedCycle ??
             streak.userCheckedInToday ??
@@ -685,12 +706,14 @@ export function StreakTracker({
 
         const otherMembers =
             streak.members?.filter(
-                member => !member.isCurrentUser
+                member =>
+                    !member.isCurrentUser
             ) ?? [];
 
         const partnerDone =
             streak.isGroupStreak
-                ? streak.allMembersCompletedCycle === true
+                ? streak.allMembersCompletedCycle ===
+                true
                 : streak.partnerCompletedCycle ??
                 streak.partnerCheckedInToday ??
                 false;
@@ -699,58 +722,77 @@ export function StreakTracker({
             streak.isGroupStreak
                 ? otherMembers.length > 0 &&
                 otherMembers.every(
-                    member => member.completedCycle
+                    member =>
+                        member.completedCycle
                 )
                 : partnerDone;
 
-        const canCheckInNow =
-            streak.canCheckInCurrentCycle ??
-            streak.canCheckInToday ??
-            false;
+        const requiredCheckIns =
+            Math.max(
+                1,
+                streak.requiredCheckIns ?? 1
+            );
+
+        const usesMultipleCheckIns =
+            requiredCheckIns > 1;
 
         if (
             userDone &&
             (
                 streak.isGroupStreak
-                    ? streak.allMembersCompletedCycle === true
+                    ? streak.allMembersCompletedCycle ===
+                    true
                     : partnerDone
             )
         ) {
             return {
                 priority: 4,
-                label: 'Completed',
-                detail: 'Everyone completed the required check-ins.',
+                label:
+                    streak.cycleUnit === 'Week'
+                        ? 'Completed this week'
+                        : streak.cycleUnit === 'Month'
+                            ? 'Completed this month'
+                            : 'Completed today',
+
+                detail:
+                    usesMultipleCheckIns
+                        ? 'All required check-ins are complete.'
+                        : 'Everyone completed the streak.',
+
                 emoji: '🟢',
+
                 cardClass:
                     'shadow-[0_0_18px_rgba(16,185,129,0.16)]',
+
                 chipClass:
                     'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
+
                 pulseStyle: undefined
             };
         }
 
-        if (
-            userDone &&
-            (
-                streak.isGroupStreak
-                    ? streak.allMembersCompletedCycle !== true
-                    : !partnerDone
-            )
-        ) {
+        if (userDone) {
             return {
                 priority: 3,
-                label: streak.isGroupStreak
-                    ? 'Waiting on group'
-                    : 'Waiting on partner',
 
-                detail: streak.isGroupStreak
-                    ? 'Your required check-ins are complete.'
-                    : 'You completed your part.',
+                label:
+                    streak.isGroupStreak
+                        ? 'Waiting on group'
+                        : 'Waiting on partner',
+
+                detail:
+                    usesMultipleCheckIns
+                        ? 'Your required check-ins are complete.'
+                        : 'Your streak is complete.',
+
                 emoji: '🔵',
+
                 cardClass:
                     'shadow-[0_0_18px_rgba(59,130,246,0.20)]',
+
                 chipClass:
                     'bg-blue-500/15 text-blue-400 border-blue-500/25',
+
                 pulseStyle: {
                     animation:
                         'picabilityBluePulse 4s ease-in-out infinite'
@@ -758,16 +800,24 @@ export function StreakTracker({
             };
         }
 
-        if (!userDone && !partnerDone) {
+        if (!partnerDone) {
             return {
                 priority: 2,
                 label: 'In progress',
-                detail: 'Keep building this cycle.',
+
+                detail:
+                    usesMultipleCheckIns
+                        ? 'Required check-ins are still open.'
+                        : 'Streak not completed yet.',
+
                 emoji: '🟡',
+
                 cardClass:
                     'shadow-[0_0_24px_rgba(245,158,11,0.30)]',
+
                 chipClass:
                     'bg-amber-500/15 text-amber-400 border-amber-500/25',
+
                 pulseStyle: {
                     animation:
                         'picabilityAmberPulse 3s ease-in-out infinite'
@@ -777,17 +827,23 @@ export function StreakTracker({
 
         return {
             priority: 1,
-            label: "Don't leave them hanging!",
-            detail: streak.isGroupStreak
-                ? allOtherMembersDone
-                    ? 'Everyone else completed their part.'
-                    : 'Other group members are checking in.'
-                : 'Your partner completed their part.',
+            label: 'Your turn',
+
+            detail:
+                streak.isGroupStreak
+                    ? allOtherMembersDone
+                        ? 'Everyone else is done.'
+                        : 'Other members are making progress.'
+                    : 'Your partner is done.',
+
             emoji: '🔥',
+
             cardClass:
                 'shadow-[0_0_30px_rgba(249,115,22,0.38)] scale-[1.005]',
+
             chipClass:
                 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+
             pulseStyle: {
                 animation:
                     'picabilityFirePulse 2.4s ease-in-out infinite'
@@ -1670,6 +1726,9 @@ export function StreakTracker({
                         const customFrequency =
                             !isDefaultDailySchedule(streak);
 
+                        const usesMultipleCheckIns =
+                            requiredCheckIns > 1;
+
                         const userProgressPercent =
                             Math.min(
                                 100,
@@ -2154,11 +2213,16 @@ export function StreakTracker({
                                                                     : bothCompletedCycle
                                                                         ? 'Completed'
                                                                         : userCompletedCycle
-                                                                            ? `Your part is complete. Waiting on ${streak.userName}.`
-                                                                            : `${requiredCheckIns - userCycleCheckIns} ${requiredCheckIns - userCycleCheckIns === 1
-                                                                                ? 'check-in'
-                                                                                : 'check-ins'
-                                                                            } left for you`}
+                                                                            ? `Waiting on ${streak.userName}`
+                                                                            : usesMultipleCheckIns
+                                                                                ? `${requiredCheckIns -
+                                                                                userCycleCheckIns} ${requiredCheckIns -
+                                                                                    userCycleCheckIns ===
+                                                                                    1
+                                                                                    ? 'check-in'
+                                                                                    : 'check-ins'
+                                                                                } remaining`
+                                                                                : 'Not completed yet'}
                                                             </p>
 
                                                             <p
@@ -2196,19 +2260,23 @@ export function StreakTracker({
                                                             <>
                                                                 <CheckCircle2 className="w-6 h-6 text-white animate-bounce" />
                                                                     <span className="font-bold text-white text-lg">
-                                                                        {customFrequency
+                                                                        {usesMultipleCheckIns
                                                                             ? `Check In · ${userCycleCheckIns}/${requiredCheckIns}`
-                                                                            : 'Complete Today'}
+                                                                            : streak.cycleUnit === 'Week'
+                                                                                ? 'Complete This Week'
+                                                                                : streak.cycleUnit === 'Month'
+                                                                                    ? 'Complete This Month'
+                                                                                    : 'Complete Today'}
                                                                     </span>
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <Clock className="w-6 h-6 text-slate-400" />
                                                                         <span className="font-bold text-slate-400 text-lg">
-                                                                            {customFrequency
-                                                                                ? userCompletedCycle
-                                                                                    ? 'Your cycle is complete'
-                                                                                    : streak.timeMessage
+                                                                            {userCompletedCycle
+                                                                                ? usesMultipleCheckIns
+                                                                                    ? 'Required check-ins complete'
+                                                                                    : 'Streak complete'
                                                                                 : streak.timeMessage}
                                                                         </span>
 
@@ -2254,14 +2322,14 @@ export function StreakTracker({
                                                     }`}
                                             >
                                                 {isBroken
-                                                    ? "This streak was broken. Tap dismiss to remove it."
-                                                    : customFrequency
-                                                        ? userCompletedCycle
-                                                            ? `Next cycle begins after ${getCycleEndLabel(
-                                                                streak.cycleEndsAt
-                                                            )}`
-                                                            : `${userCycleCheckIns} of ${requiredCheckIns} check-ins complete this cycle`
-                                                        : streak.timeMessage}
+                                                    ? 'This streak ended. Tap dismiss to remove it.'
+                                                    : userCompletedCycle
+                                                        ? `Next completion opens after ${getCycleEndLabel(
+                                                            streak.cycleEndsAt
+                                                        )}`
+                                                        : usesMultipleCheckIns
+                                                            ? `${userCycleCheckIns} of ${requiredCheckIns} check-ins completed`
+                                                            : streak.timeMessage}
                                             </p>
 
                                             <div className="flex items-end justify-between mt-3 gap-4">

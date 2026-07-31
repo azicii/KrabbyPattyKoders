@@ -87,20 +87,31 @@ namespace Picability.Services
                             ? "\n📷 Sent you a photo."
                             : string.Empty;
 
+            var usesMultipleCheckIns =
+                normalizedRequiredCheckIns > 1;
+
             var title =
                 isDefaultDailyStreak
-                    ? "🔥 Streak completed!"
-                    : "🔥 Streak progress";
+                    ? "Streak completed"
+                    : usesMultipleCheckIns
+                        ? "Streak progress"
+                        : "Streak completed";
 
             var body =
                 isDefaultDailyStreak
-                    ? $"{partnerName} completed their \"{streakName}\" streak today." +
+                    ? $"{partnerName} completed their " +
+                      $"\"{streakName}\" streak today." +
                       contentLine
-                    : $"{partnerName} completed check-in " +
-                      $"{normalizedCheckInNumber} of " +
-                      $"{normalizedRequiredCheckIns} for " +
-                      $"\"{streakName}\" {cycleDescription}." +
-                      contentLine;
+                    : usesMultipleCheckIns
+                        ? $"{partnerName} completed check-in " +
+                          $"{normalizedCheckInNumber} of " +
+                          $"{normalizedRequiredCheckIns} for " +
+                          $"\"{streakName}\" {cycleDescription}." +
+                          contentLine
+                        : $"{partnerName} completed their " +
+                          $"\"{streakName}\" streak " +
+                          $"{cycleDescription}." +
+                          contentLine;
 
             return await SendPushAsync(
                 receiverId,
@@ -142,8 +153,9 @@ namespace Picability.Services
         {
             return await SendPushAsync(
                 receiverId,
-                "Streak reminder 🔔",
-                $"{senderName} is reminding you to check in for \"{streakName}\".",
+                "Streak reminder",
+                $"{senderName} sent a reminder about your " +
+                $"\"{streakName}\" streak.",
                 "/"
             );
         }

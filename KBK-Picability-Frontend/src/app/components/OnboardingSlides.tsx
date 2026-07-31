@@ -19,13 +19,13 @@ const slides = [
         bgPosition: 'right top'
     },
     {
-        title: 'Check in daily',
-        text: 'Check in every day to keep your streak alive.',
+        title: 'Build your streak',
+        text: 'Complete your habit on schedule and keep your streak growing.',
         bgPosition: 'left bottom'
     },
     {
-        title: 'Support your friends',
-        text: 'React to streaks and celebrate progress together!',
+        title: 'Follow your friends',
+        text: 'See public streak activity and react to your friends’ progress.',
         bgPosition: 'right bottom'
     }
 ];

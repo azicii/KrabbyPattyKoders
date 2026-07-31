@@ -403,25 +403,36 @@ namespace Picability.Controllers
                     )
                 );
 
-                var cycleUnitDisplay = cycleUnit switch
-                {
-                    "Week" => cycleLength == 1
-                        ? "week"
-                        : $"{cycleLength}-week cycle",
+                var periodLabel =
+                    cycleUnit switch
+                    {
+                        "Week" =>
+                            cycleLength == 1
+                                ? "this week"
+                                : $"this {cycleLength}-week period",
 
-                    "Month" => cycleLength == 1
-                        ? "month"
-                        : $"{cycleLength}-month cycle",
+                        "Month" =>
+                            cycleLength == 1
+                                ? "this month"
+                                : $"this {cycleLength}-month period",
 
-                    _ => cycleLength == 1
-                        ? "day"
-                        : $"{cycleLength}-day cycle"
-                };
+                        _ =>
+                            cycleLength == 1
+                                ? "today"
+                                : $"this {cycleLength}-day period"
+                    };
+
+                var usesMultipleCheckIns =
+                    requiredCheckIns > 1;
 
                 var cycleProgressMessage =
-                    $"{currentMember.CycleCheckInCount} of " +
-                    $"{requiredCheckIns} check-ins this " +
-                    $"{cycleUnitDisplay}";
+                    usesMultipleCheckIns
+                        ? $"{currentMember.CycleCheckInCount} of " +
+                          $"{requiredCheckIns} check-ins completed " +
+                          $"{periodLabel}"
+                        : currentMember.CompletedCycle
+                            ? $"Completed {periodLabel}"
+                            : $"Not completed {periodLabel}";
 
                 string? brokenMessage = null;
                 var failedMembers = new List<object>();
@@ -491,14 +502,28 @@ namespace Picability.Controllers
                         )
                         .ToList();
 
-                    brokenMessage = failedNames.Count switch
-                    {
-                        0 => "The streak ended.",
-                        1 => $"{failedNames[0]} killed the streak.",
-                        2 => $"{failedNames[0]} and {failedNames[1]} killed the streak.",
-                        _ =>
-                            $"{string.Join(", ", failedNames.Take(failedNames.Count - 1))}, and {failedNames.Last()} killed the streak."
-                    };
+                    brokenMessage =
+                        failedNames.Count switch
+                        {
+                            0 =>
+                                "The streak ended.",
+
+                            1 =>
+                                $"{failedNames[0]} ended the streak.",
+
+                            2 =>
+                                $"{failedNames[0]} and " +
+                                $"{failedNames[1]} ended the streak.",
+
+                            _ =>
+                                $"{string.Join(
+                                    ", ",
+                                    failedNames.Take(
+                                        failedNames.Count - 1
+                                    )
+                                )}, and {failedNames.Last()} " +
+                                "ended the streak."
+                        };
                 }
 
                 var currentUserCheckedInToday =
@@ -632,9 +657,17 @@ namespace Picability.Controllers
                     TimeMessage =
                         currentMember.CompletedCycle
                             ? allMembersCompletedCycle
-                                ? "Completed"
-                                : "Your part is complete. Waiting on the remaining members."
-                            : $"{currentMember.CycleCheckInCount} of {requiredCheckIns} check-ins complete this cycle."
+                                ? $"Completed {periodLabel}"
+                                : usesMultipleCheckIns
+                                    ? "Your required check-ins are complete. " +
+                                      "Waiting on the remaining members."
+                                    : $"Your streak is complete {periodLabel}. " +
+                                      "Waiting on the remaining members."
+                            : usesMultipleCheckIns
+                                ? $"{currentMember.CycleCheckInCount} of " +
+                                  $"{requiredCheckIns} check-ins completed " +
+                                  $"{periodLabel}."
+                                : $"Not completed {periodLabel}."
                 };
             });
 
@@ -792,31 +825,81 @@ namespace Picability.Controllers
         }
 
         [HttpPut("{id}/visibility")]
-        public async Task<IActionResult> UpdateVisibility(int id, UpdateStreakVisibilityDto dto)
+        public async Task<IActionResult> UpdateVisibility(
+    int id,
+    UpdateStreakVisibilityDto dto)
         {
-            var currentUserId = GetCurrentUserId();
+            var currentUserId =
+                GetCurrentUserId();
 
-            if (string.IsNullOrEmpty(currentUserId))
+            if (
+                string.IsNullOrEmpty(
+                    currentUserId
+                )
+            )
             {
                 return Unauthorized();
             }
 
-            var streak = await _context.Streaks.FirstOrDefaultAsync(s =>
-                s.Id == id &&
-                (s.UserOneId == currentUserId || s.UserTwoId == currentUserId));
+            var streak =
+                await _context.Streaks
+                    .Include(streak =>
+                        streak.Members
+                    )
+                    .FirstOrDefaultAsync(streak =>
+                        streak.Id == id &&
+                        (
+                            streak.Members.Any(member =>
+                                member.UserId ==
+                                    currentUserId
+                            ) ||
+                            streak.UserOneId ==
+                                currentUserId ||
+                            streak.UserTwoId ==
+                                currentUserId
+                        )
+                    );
 
             if (streak == null)
             {
-                return NotFound("Streak not found.");
+                return NotFound(
+                    "Streak not found."
+                );
             }
 
-            if (streak.UserOneId == currentUserId)
+            var currentMember =
+                streak.Members
+                    .FirstOrDefault(member =>
+                        member.UserId ==
+                            currentUserId
+                    );
+
+            if (currentMember != null)
             {
-                streak.UserOneVisibilityPublic = dto.IsPublic;
+                currentMember.VisibilityPublic =
+                    dto.IsPublic;
             }
-            else if (streak.UserTwoId == currentUserId)
+
+            /*
+             * Keep the original fields synchronized while old
+             * two-person streaks still depend on them.
+             */
+            if (
+                streak.UserOneId ==
+                currentUserId
+            )
             {
-                streak.UserTwoVisibilityPublic = dto.IsPublic;
+                streak.UserOneVisibilityPublic =
+                    dto.IsPublic;
+            }
+
+            if (
+                streak.UserTwoId ==
+                currentUserId
+            )
+            {
+                streak.UserTwoVisibilityPublic =
+                    dto.IsPublic;
             }
 
             await _context.SaveChangesAsync();
@@ -824,10 +907,14 @@ namespace Picability.Controllers
             return Ok(new
             {
                 streak.Id,
-                IsPublic = dto.IsPublic,
-                message = dto.IsPublic
-                    ? "Streak is now public."
-                    : "Streak is now private."
+
+                IsPublic =
+                    dto.IsPublic,
+
+                message =
+                    dto.IsPublic
+                        ? "Your streak is now visible to your friends."
+                        : "Your streak is now hidden from your friends."
             });
         }
 

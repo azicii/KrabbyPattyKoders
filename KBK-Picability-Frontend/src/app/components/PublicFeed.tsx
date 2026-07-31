@@ -1,7 +1,6 @@
 ﻿import {
     ArrowLeft,
     CalendarDays,
-    CheckCircle2,
     Users,
     X
 } from 'lucide-react';
@@ -218,12 +217,106 @@ const getScheduleLabel = (
             ? cycleUnit.toLowerCase()
             : `${cycleUnit.toLowerCase()}s`;
 
+    if (requiredCheckIns === 1) {
+        if (
+            cycleLength === 1 &&
+            cycleUnit === 'Week'
+        ) {
+            return 'Weekly';
+        }
+
+        if (
+            cycleLength === 1 &&
+            cycleUnit === 'Month'
+        ) {
+            return 'Monthly';
+        }
+
+        return (
+            `Once every ${cycleLength} ` +
+            `${pluralCycleUnit}`
+        );
+    }
+
     return (
-        `${requiredCheckIns} ` +
-        `${requiredCheckIns === 1
-            ? 'check-in'
-            : 'check-ins'} every ` +
+        `${requiredCheckIns} check-ins every ` +
         `${cycleLength} ${pluralCycleUnit}`
+    );
+};
+
+const getPeriodLabel = (
+    item: PublicFeedItem
+) => {
+    const cycleLength = Math.max(
+        1,
+        item.cycleLength ?? 1
+    );
+
+    const cycleUnit =
+        item.cycleUnit ?? 'Day';
+
+    if (
+        cycleLength === 1 &&
+        cycleUnit === 'Day'
+    ) {
+        return 'today';
+    }
+
+    if (
+        cycleLength === 1 &&
+        cycleUnit === 'Week'
+    ) {
+        return 'this week';
+    }
+
+    if (
+        cycleLength === 1 &&
+        cycleUnit === 'Month'
+    ) {
+        return 'this month';
+    }
+
+    return (
+        `this ${cycleLength}-` +
+        `${cycleUnit.toLowerCase()} period`
+    );
+};
+
+const getStreakWindowLabel = (
+    item: PublicFeedItem
+) => {
+    const cycleLength = Math.max(
+        1,
+        item.cycleLength ?? 1
+    );
+
+    const cycleUnit =
+        item.cycleUnit ?? 'Day';
+
+    if (
+        cycleLength === 1 &&
+        cycleUnit === 'Day'
+    ) {
+        return "today's streak";
+    }
+
+    if (
+        cycleLength === 1 &&
+        cycleUnit === 'Week'
+    ) {
+        return "this week's streak";
+    }
+
+    if (
+        cycleLength === 1 &&
+        cycleUnit === 'Month'
+    ) {
+        return "this month's streak";
+    }
+
+    return (
+        `this ${cycleLength}-` +
+        `${cycleUnit.toLowerCase()} streak period`
     );
 };
 
@@ -501,6 +594,18 @@ export function PublicFeed({
                             failedMemberNames
                         );
 
+                    const usesMultipleCheckIns =
+                        Math.max(
+                            1,
+                            item.requiredCheckIns ?? 1
+                        ) > 1;
+
+                    const periodLabel =
+                        getPeriodLabel(item);
+
+                    const streakWindowLabel =
+                        getStreakWindowLabel(item);
+
                     return (
                         <article
                             key={item.id}
@@ -544,28 +649,20 @@ export function PublicFeed({
                                         </div>
 
                                         <div className="flex flex-wrap items-center gap-2 mt-2">
-                                            <span
-                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isGroupStreak
-                                                        ? isDark
+                                            {isGroupStreak && (
+                                                <span
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isDark
                                                             ? 'bg-violet-500/15 text-violet-300'
                                                             : 'bg-violet-100 text-violet-700'
-                                                        : isDark
-                                                            ? 'bg-slate-700 text-slate-300'
-                                                            : 'bg-slate-100 text-slate-600'
-                                                    }`}
-                                            >
-                                                {isGroupStreak ? (
+                                                        }`}
+                                                >
                                                     <Users className="w-3.5 h-3.5" />
-                                                ) : (
-                                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                                )}
 
-                                                {isGroupStreak
-                                                    ? `${item.memberCount ??
-                                                    participantNames.length
-                                                    } members`
-                                                    : 'Partner streak'}
-                                            </span>
+                                                    {item.memberCount ??
+                                                        participantNames.length}{' '}
+                                                    members
+                                                </span>
+                                            )}
 
                                             <span
                                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isDark
@@ -596,8 +693,7 @@ export function PublicFeed({
                                                         : 'text-slate-500'
                                                     }`}
                                             >
-                                                Shown because you’re friends
-                                                with{' '}
+                                                Shared by{' '}
                                                 {formatNameList(
                                                     visibleFriendNames
                                                 )}
@@ -605,55 +701,36 @@ export function PublicFeed({
                                         )}
 
                                         <div
-                                            className={`mt-3 rounded-2xl px-3 py-2.5 border ${item.failedToday
-                                                    ? isDark
-                                                        ? 'bg-rose-500/10 border-rose-500/20'
-                                                        : 'bg-rose-50 border-rose-100'
-                                                    : isDark
-                                                        ? 'bg-emerald-500/10 border-emerald-500/20'
-                                                        : 'bg-emerald-50 border-emerald-100'
+                                            className={`mt-3 rounded-xl px-3 py-2 border ${isDark
+                                                    ? 'bg-slate-900/30 border-slate-700/70'
+                                                    : 'bg-slate-50 border-slate-200'
                                                 }`}
                                         >
-                                            {item.failedToday ? (
-                                                <>
-                                                    <p className="text-sm font-bold text-rose-500">
-                                                        Streak broken 💔
-                                                    </p>
-
-                                                    <p
-                                                        className={`text-sm mt-0.5 ${isDark
-                                                                ? 'text-rose-200'
-                                                                : 'text-rose-700'
-                                                            }`}
-                                                    >
-                                                        {failedMemberNames.length >
-                                                            0
-                                                            ? `${failedLabel} ${failedMemberNames.length ===
-                                                                1
-                                                                ? 'did not complete'
-                                                                : 'did not complete'
-                                                            } the final cycle.`
-                                                            : 'The final cycle was not completed.'}
-                                                    </p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <p className="text-sm font-bold text-emerald-500">
-                                                        Cycle completed 🎉
-                                                    </p>
-
-                                                    <p
-                                                        className={`text-sm mt-0.5 ${isDark
-                                                                ? 'text-emerald-200'
-                                                                : 'text-emerald-700'
-                                                            }`}
-                                                    >
-                                                        Everyone completed
-                                                        their required
-                                                        check-ins.
-                                                    </p>
-                                                </>
-                                            )}
+                                            <p
+                                                className={`text-sm ${item.failedToday
+                                                        ? isDark
+                                                            ? 'text-rose-300'
+                                                            : 'text-rose-700'
+                                                        : isDark
+                                                            ? 'text-slate-300'
+                                                            : 'text-slate-700'
+                                                    }`}
+                                            >
+                                                {item.failedToday
+                                                    ? failedMemberNames.length > 0
+                                                        ? usesMultipleCheckIns
+                                                            ? `${failedLabel} did not complete the required check-ins ${periodLabel}.`
+                                                            : `${failedLabel} missed ${streakWindowLabel}.`
+                                                        : usesMultipleCheckIns
+                                                            ? `The required check-ins were not completed ${periodLabel}.`
+                                                            : `${streakWindowLabel
+                                                                .charAt(0)
+                                                                .toUpperCase()}${streakWindowLabel
+                                                                    .slice(1)} was missed.`
+                                                    : usesMultipleCheckIns
+                                                        ? `All required check-ins completed ${periodLabel}.`
+                                                        : `Completed ${periodLabel}.`}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>

@@ -419,21 +419,27 @@ export function HabitConfig({
                                 className={`block text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'
                                     }`}
                             >
-                                Check-In Frequency
+                                Streak Schedule
                             </label>
 
                             <p
                                 className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'
                                     }`}
                             >
-                                {requiredCheckIns === 1 &&
-                                    cycleLength === 1 &&
-                                    cycleUnit === 'Day'
-                                    ? 'Once daily'
-                                    : `${requiredCheckIns} ${requiredCheckIns === 1
-                                        ? 'check-in'
-                                        : 'check-ins'
-                                    } every ${cycleLength} ${cycleUnit.toLowerCase()}${cycleLength === 1 ? '' : 's'
+                                {requiredCheckIns === 1
+                                    ? cycleLength === 1 &&
+                                        cycleUnit === 'Day'
+                                        ? 'Daily'
+                                        : cycleLength === 1 &&
+                                            cycleUnit === 'Week'
+                                            ? 'Weekly'
+                                            : cycleLength === 1 &&
+                                                cycleUnit === 'Month'
+                                                ? 'Monthly'
+                                                : `Once every ${cycleLength} ${cycleUnit.toLowerCase()}s`
+                                    : `${requiredCheckIns} check-ins every ${cycleLength} ${cycleUnit.toLowerCase()}${cycleLength === 1
+                                        ? ''
+                                        : 's'
                                     }`}
                             </p>
                         </div>
@@ -554,7 +560,9 @@ export function HabitConfig({
                                         : 'text-slate-400'
                                     }`}
                             >
-                                The streak advances when both partners complete the selected check-ins.
+                                {requiredCheckIns > 1
+                                    ? 'The streak grows when every participant completes the required check-ins.'
+                                    : 'The streak grows when every participant completes it within the selected period.'}
                             </p>
 
                             {!(
