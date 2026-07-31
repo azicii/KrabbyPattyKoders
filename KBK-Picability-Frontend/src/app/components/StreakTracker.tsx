@@ -1,4 +1,4 @@
-import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed, Bell, BellRing, FlipHorizontal2 } from 'lucide-react';
+import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed, Bell, BellRing, FlipHorizontal2, CircleHelp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -160,6 +160,10 @@ export function StreakTracker({
     const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
     const [reminderSentId, setReminderSentId] = useState<number | null>(null);
     const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
+    const [
+        visibilityHelpStreakId,
+        setVisibilityHelpStreakId
+    ] = useState<number | null>(null);
 
     const [pushEnabled, setPushEnabled] = useState(
         localStorage.getItem(pushStorageKey) === 'true'
@@ -2389,43 +2393,144 @@ export function StreakTracker({
                                                         )}
                                                 </div>
 
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        onToggleVisibility?.(
-                                                            streak.id,
-                                                            !(streak.isPublic ?? true)
-                                                        );
-                                                    }}
-                                                    className="flex items-center gap-2"
-                                                    title={streak.isPublic ?? true ? 'Public' : 'Private'}
-                                                >
-                                                    <span className={`text-xs font-bold ${streak.isPublic ?? true
-                                                            ? 'text-orange-400'
-                                                            : isDark ? 'text-slate-400' : 'text-slate-600'
-                                                        }`}>
-                                                        {streak.isPublic ?? true ? 'Public' : 'Private'}
-                                                    </span>
+                                                <div className="relative flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
 
-                                                    <span
-                                                        className={`relative w-16 h-8 rounded-full transition-all duration-300 ${streak.isPublic ?? true
-                                                                ? 'bg-gradient-to-r from-sky-500 to-indigo-600'
-                                                                : isDark ? 'bg-slate-700' : 'bg-slate-300'
+                                                            setVisibilityHelpStreakId(
+                                                                current =>
+                                                                    current === streak.id
+                                                                        ? null
+                                                                        : streak.id
+                                                            );
+                                                        }}
+                                                        onMouseEnter={() =>
+                                                            setVisibilityHelpStreakId(
+                                                                streak.id
+                                                            )
+                                                        }
+                                                        onMouseLeave={() =>
+                                                            setVisibilityHelpStreakId(
+                                                                current =>
+                                                                    current === streak.id
+                                                                        ? null
+                                                                        : current
+                                                            )
+                                                        }
+                                                        className={`flex items-center justify-center w-5 h-5 rounded-full transition-colors ${isDark
+                                                                ? 'text-slate-500 hover:text-slate-300'
+                                                                : 'text-slate-400 hover:text-slate-600'
                                                             }`}
+                                                        aria-label="Explain streak visibility"
+                                                        aria-expanded={
+                                                            visibilityHelpStreakId ===
+                                                            streak.id
+                                                        }
+                                                    >
+                                                        <CircleHelp className="w-4 h-4" />
+                                                    </button>
+
+                                                    {visibilityHelpStreakId ===
+                                                        streak.id && (
+                                                            <div
+                                                                className={`absolute right-0 bottom-10 z-50 w-64 rounded-xl px-3 py-2.5 text-xs leading-relaxed shadow-xl border ${isDark
+                                                                        ? 'bg-slate-900 border-slate-700 text-slate-300'
+                                                                        : 'bg-white border-slate-200 text-slate-600'
+                                                                    }`}
+                                                                onClick={event =>
+                                                                    event.stopPropagation()
+                                                                }
+                                                            >
+                                                                <p>
+                                                                    <span className="font-bold">
+                                                                        Public:
+                                                                    </span>{' '}
+                                                                    your friends can see this
+                                                                    streak in their feed.
+                                                                </p>
+
+                                                                <p className="mt-1.5">
+                                                                    <span className="font-bold">
+                                                                        Private:
+                                                                    </span>{' '}
+                                                                    this streak stays hidden
+                                                                    from your friends.
+                                                                </p>
+
+                                                                {streak.isGroupStreak && (
+                                                                    <p
+                                                                        className={`mt-2 pt-2 border-t ${isDark
+                                                                                ? 'border-slate-700 text-slate-400'
+                                                                                : 'border-slate-200 text-slate-500'
+                                                                            }`}
+                                                                    >
+                                                                        Each group member controls
+                                                                        visibility for their own
+                                                                        friends.
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+
+                                                            setVisibilityHelpStreakId(
+                                                                null
+                                                            );
+
+                                                            onToggleVisibility?.(
+                                                                streak.id,
+                                                                !(streak.isPublic ?? true)
+                                                            );
+                                                        }}
+                                                        className="flex items-center gap-2"
+                                                        title={
+                                                            streak.isPublic ?? true
+                                                                ? 'Public'
+                                                                : 'Private'
+                                                        }
                                                     >
                                                         <span
-                                                            className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-sky-500 shadow-lg flex items-center justify-center transition-all duration-300 ${streak.isPublic ?? true ? 'translate-x-8' : 'translate-x-0'
+                                                            className={`text-xs font-bold ${streak.isPublic ?? true
+                                                                    ? 'text-orange-400'
+                                                                    : isDark
+                                                                        ? 'text-slate-400'
+                                                                        : 'text-slate-600'
                                                                 }`}
                                                         >
-                                                            {streak.isPublic ?? true ? (
-                                                                <Eye className="w-4 h-4 text-white" />
-                                                            ) : (
-                                                                <EyeClosed className="w-4 h-4 text-white" />
-                                                            )}
+                                                            {streak.isPublic ?? true
+                                                                ? 'Public'
+                                                                : 'Private'}
                                                         </span>
-                                                    </span>
-                                                </button>
+
+                                                        <span
+                                                            className={`relative w-16 h-8 rounded-full transition-all duration-300 ${streak.isPublic ?? true
+                                                                    ? 'bg-gradient-to-r from-sky-500 to-indigo-600'
+                                                                    : isDark
+                                                                        ? 'bg-slate-700'
+                                                                        : 'bg-slate-300'
+                                                                }`}
+                                                        >
+                                                            <span
+                                                                className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-sky-500 shadow-lg flex items-center justify-center transition-all duration-300 ${streak.isPublic ?? true
+                                                                        ? 'translate-x-8'
+                                                                        : 'translate-x-0'
+                                                                    }`}
+                                                            >
+                                                                {streak.isPublic ?? true ? (
+                                                                    <Eye className="w-4 h-4 text-white" />
+                                                                ) : (
+                                                                    <EyeClosed className="w-4 h-4 text-white" />
+                                                                )}
+                                                            </span>
+                                                        </span>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
