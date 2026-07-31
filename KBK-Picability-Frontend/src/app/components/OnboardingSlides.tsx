@@ -24,8 +24,8 @@ const slides = [
         bgPosition: 'left bottom'
     },
     {
-        title: 'Follow your friends',
-        text: 'See public streak activity and react to your friends’ progress.',
+        title: 'Support your friends',
+        text: "See your friends' public streaks and react to their progress.",
         bgPosition: 'right bottom'
     }
 ];
