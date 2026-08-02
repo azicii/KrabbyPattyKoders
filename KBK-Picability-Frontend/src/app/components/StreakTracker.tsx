@@ -677,6 +677,48 @@ export function StreakTracker({
         });
     };
 
+    const getTimeRemainingLabel = (
+        cycleEndsAt?: string
+    ) => {
+        if (!cycleEndsAt) {
+            return 'soon';
+        }
+
+        const millisecondsRemaining =
+            new Date(cycleEndsAt).getTime() -
+            Date.now();
+
+        if (millisecondsRemaining <= 0) {
+            return 'now';
+        }
+
+        const totalMinutes = Math.ceil(
+            millisecondsRemaining /
+            60000
+        );
+
+        const days = Math.floor(
+            totalMinutes / 1440
+        );
+
+        const hours = Math.floor(
+            (totalMinutes % 1440) / 60
+        );
+
+        const minutes =
+            totalMinutes % 60;
+
+        if (days > 0) {
+            return `${days}d ${hours}h`;
+        }
+
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        }
+
+        return `${minutes}m`;
+    };
+
     const getStreakCountUnitLabel = (streak: Streak) => {
         const count = streak.streakCount;
         const cycleLength = Math.max(1, streak.cycleLength ?? 1);
@@ -1853,7 +1895,7 @@ export function StreakTracker({
                                                             </span>
                                                         </div>
                                                     ) : (
-                                                        <>
+                                                        <div className="inline-flex items-center gap-2">
                                                             <div
                                                                 className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${isDark
                                                                         ? 'bg-slate-700 text-slate-300'
@@ -1871,8 +1913,24 @@ export function StreakTracker({
                                                             >
                                                                 with {streak.userName}
                                                             </span>
-                                                        </>
+                                                        </div>
                                                     )}
+
+                                                    {isExpanded && !isBroken && (
+                                                        <div
+                                                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${isDark
+                                                                    ? 'bg-slate-700/70 text-slate-300'
+                                                                    : 'bg-slate-100 text-slate-600'
+                                                                }`}
+                                                        >
+                                                            {getScheduleLabel(
+                                                                streak.requiredCheckIns,
+                                                                streak.cycleLength,
+                                                                streak.cycleUnit
+                                                            )}
+                                                        </div>
+                                                    )}
+
                                                     {!isBroken && (
                                                         <div className={`inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full border text-[11px] sm:text-xs font-bold whitespace-nowrap ${visualState.chipClass}`}>
                                                             <span>{visualState.emoji}</span>
@@ -2235,7 +2293,9 @@ export function StreakTracker({
                                                                         : 'text-slate-400'
                                                                     }`}
                                                             >
-                                                                Cycle ends {getCycleEndLabel(streak.cycleEndsAt)}
+                                                                Ends in {getTimeRemainingLabel(
+                                                                    streak.cycleEndsAt
+                                                                )}
                                                             </p>
                                                         </div>
                                                     )}
