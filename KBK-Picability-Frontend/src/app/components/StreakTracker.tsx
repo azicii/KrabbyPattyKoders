@@ -365,6 +365,8 @@ export function StreakTracker({
     const openCheckInModal = (streak: Streak, e: React.MouseEvent) => {
         e.stopPropagation();
         setCheckInModalStreak(streak);
+        const isStreaky =
+            streak.partnerId === STREAKY_USER_ID;
         setCheckInMode('options');
         setCheckInMessage('');
         setSelectedPhotoName('');
@@ -512,6 +514,24 @@ export function StreakTracker({
                 setIsSubmittingCheckIn(false);
             }
         };
+
+    const isStreakyStreak = (
+        streak?: Streak | null
+    ) => {
+        if (!streak) {
+            return false;
+        }
+
+        return (
+            streak.partnerId ===
+            STREAKY_USER_ID ||
+            streak.members?.some(
+                member =>
+                    member.userId ===
+                    STREAKY_USER_ID
+            ) === true
+        );
+    };
 
     const getContentStreak = (content: any) => {
         return streaks.find(
@@ -2673,8 +2693,17 @@ export function StreakTracker({
                                         {checkInModalStreak.habitName}
                                     </h2>
 
-                                    <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                        How do you want to check in?
+                                    <p
+                                        className={`text-sm mt-1 ${isDark
+                                                ? 'text-slate-400'
+                                                : 'text-slate-500'
+                                            }`}
+                                    >
+                                        {isStreakyStreak(
+                                            checkInModalStreak
+                                        )
+                                            ? 'Complete your streak with Streaky.'
+                                            : 'How do you want to check in?'}
                                     </p>
                                 </div>
 
@@ -2684,29 +2713,60 @@ export function StreakTracker({
                                             onClick={confirmSimpleCheckIn}
                                             className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all bg-gradient-to-r ${checkInModalStreak.color} text-white hover:brightness-110`}
                                         >
-                                            <span>Check in</span>
+                                            <span>
+                                                {isStreakyStreak(
+                                                    checkInModalStreak
+                                                )
+                                                    ? 'Complete streak'
+                                                    : 'Check in'}
+                                            </span>
+
                                             <CheckCircle2 className="w-5 h-5" />
                                         </button>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => setCheckInMode('message')}
-                                            className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all ${isDark ? 'bg-slate-800 text-slate-100 hover:bg-slate-700' : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
-                                                }`}
-                                        >
-                                            <span>Add message</span>
-                                            <span className="text-xs font-semibold text-teal-400">Optional</span>
-                                        </button>
+                                        {!isStreakyStreak(
+                                            checkInModalStreak
+                                        ) && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setCheckInMode(
+                                                                'message'
+                                                            )
+                                                        }
+                                                        className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all ${isDark
+                                                                ? 'bg-slate-800 text-slate-100 hover:bg-slate-700'
+                                                                : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                                                            }`}
+                                                    >
+                                                        <span>Add message</span>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => setCheckInMode('photo')}
-                                            className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all ${isDark ? 'bg-slate-800 text-slate-100 hover:bg-slate-700' : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
-                                                }`}
-                                        >
-                                            <span>Add picture</span>
-                                            <span className="text-xs font-semibold text-teal-400">Optional</span>
-                                        </button>
+                                                        <span className="text-xs font-semibold text-teal-400">
+                                                            Optional
+                                                        </span>
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setCheckInMode(
+                                                                'photo'
+                                                            )
+                                                        }
+                                                        className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl font-bold transition-all ${isDark
+                                                                ? 'bg-slate-800 text-slate-100 hover:bg-slate-700'
+                                                                : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                                                            }`}
+                                                    >
+                                                        <span>Add picture</span>
+
+                                                        <span className="text-xs font-semibold text-teal-400">
+                                                            Optional
+                                                        </span>
+                                                    </button>
+                                                </>
+                                            )}
                                     </div>
                                 )}
 

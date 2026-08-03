@@ -242,6 +242,30 @@ namespace Picability.Controllers
                     });
                 }
 
+                var isStreakyStreak =
+                    streak.Members.Any(member =>
+                        StreakyIdentity.IsStreaky(
+                            member.UserId
+                        )
+                    ) ||
+                    StreakyIdentity.IsStreaky(
+                        streak.UserOneId
+                    ) ||
+                    StreakyIdentity.IsStreaky(
+                        streak.UserTwoId
+                    );
+
+                if (isStreakyStreak)
+                {
+                    await transaction.RollbackAsync();
+
+                    return BadRequest(new
+                    {
+                        message =
+                            "Messages and photos are not available for Streaky streaks."
+                    });
+                }
+
                 var recipientIds =
                     GetRecipientIds(
                         streak,
