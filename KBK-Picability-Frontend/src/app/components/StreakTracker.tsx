@@ -1286,7 +1286,7 @@ export function StreakTracker({
                                                     )}
 
                                                     <div
-                                                        className={`inline-flex items-center mt-2 px-2.5 py-1 rounded-full text-xs font-semibold ${isDark
+                                                        className={`inline-flex max-w-full items-center mt-2 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-normal leading-snug ${isDark
                                                                 ? 'bg-slate-700/70 text-slate-300'
                                                                 : 'bg-slate-100 text-slate-600'
                                                             }`}
@@ -1377,13 +1377,13 @@ export function StreakTracker({
                                 return (
                                     <div
                                         key={`accepted-group-${invite.id}`}
-                                        className={`relative w-full rounded-3xl p-6 shadow-sm border transition-all ${isDark
+                                        className={`relative w-full rounded-3xl p-5 sm:p-6 shadow-sm border transition-all ${isDark
                                                 ? 'bg-slate-800/40 border-slate-700/70'
                                                 : 'bg-white border-slate-200'
                                             }`}
                                     >
-                                        <div className="relative min-h-[158px] sm:min-h-[92px]">
-                                            <div className="flex items-start gap-4 pr-0 sm:pr-32 min-w-0">
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-start gap-4 min-w-0">
                                                 <div
                                                     className={`flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br ${invite.color ||
                                                         'from-teal-500 to-cyan-600'
@@ -1513,7 +1513,12 @@ export function StreakTracker({
                                                 </div>
                                             </div>
 
-                                            <div className="absolute right-0 bottom-0 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 flex items-center justify-end gap-2">
+                                            <div
+                                                className={`flex items-center justify-end pt-4 border-t ${isDark
+                                                        ? 'border-slate-700/70'
+                                                        : 'border-slate-200'
+                                                    }`}
+                                            >
                                                 <div
                                                     className={`px-4 py-2 rounded-2xl text-sm font-bold ${isDark
                                                             ? 'bg-slate-700 text-slate-300'
@@ -1534,13 +1539,13 @@ export function StreakTracker({
                                 return (
                                     <div
                                         key={`sent-${request.id}`}
-                                        className={`relative w-full rounded-3xl p-6 shadow-sm border transition-all ${isDark
-                                            ? 'bg-slate-800/40 border-slate-700/70'
-                                            : 'bg-white border-slate-200'
+                                        className={`relative w-full rounded-3xl p-5 sm:p-6 shadow-sm border transition-all ${isDark
+                                                ? 'bg-slate-800/40 border-slate-700/70'
+                                                : 'bg-white border-slate-200'
                                             }`}
                                     >
-                                        <div className="relative min-h-[158px] sm:min-h-[92px]">
-                                            <div className="flex items-start gap-4 pr-0 sm:pr-40 min-w-0">
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-start gap-4 min-w-0">
                                                 <div className={`flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br ${request.color || 'from-slate-500 to-slate-600'} shadow-lg opacity-80`}>
                                                     <IconComponent className="w-8 h-8 text-white" />
                                                 </div>
@@ -1623,7 +1628,7 @@ export function StreakTracker({
                                                     )}
 
                                                     <div
-                                                        className={`inline-flex items-center mt-2 px-2.5 py-1 rounded-full text-xs font-semibold ${isDark
+                                                        className={`inline-flex max-w-full items-center mt-2 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-normal leading-snug ${isDark
                                                                 ? 'bg-slate-700/70 text-slate-300'
                                                                 : 'bg-slate-100 text-slate-600'
                                                             }`}
@@ -1647,17 +1652,31 @@ export function StreakTracker({
                                                 </div>
                                             </div>
 
-                                            <div className="absolute right-0 bottom-0 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 flex items-center justify-end gap-2">
-                                                <div className={`px-4 py-2 rounded-2xl text-sm font-bold ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'
-                                                    }`}>
+                                            <div
+                                                className={`flex items-center justify-between gap-3 pt-4 border-t ${isDark
+                                                        ? 'border-slate-700/70'
+                                                        : 'border-slate-200'
+                                                    }`}
+                                            >
+                                                <div
+                                                    className={`px-4 py-2 rounded-2xl text-sm font-bold ${isDark
+                                                            ? 'bg-slate-700 text-slate-300'
+                                                            : 'bg-slate-100 text-slate-600'
+                                                        }`}
+                                                >
                                                     Pending
                                                 </div>
 
                                                 <button
                                                     type="button"
-                                                    onClick={() => setCancelPendingRequest(request)}
-                                                    className="w-9 h-9 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-sm shrink-0"
+                                                    onClick={() =>
+                                                        setCancelPendingRequest(
+                                                            request
+                                                        )
+                                                    }
+                                                    className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-sm shrink-0"
                                                     title="Cancel pending streak request"
+                                                    aria-label="Cancel pending streak request"
                                                 >
                                                     <X className="w-4 h-4" />
                                                 </button>
