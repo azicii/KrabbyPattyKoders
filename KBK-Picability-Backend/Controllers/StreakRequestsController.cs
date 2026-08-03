@@ -105,17 +105,296 @@ namespace Picability.Controllers
             }
 
             var normalizedHabitNameLower =
-                normalizedHabitName.ToLower();
+    normalizedHabitName.ToLower();
+
+            if (
+                dto.IsGroupRequest &&
+                dto.IsStreakyRequest
+            )
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "A streak cannot be both a group streak and a Streaky streak."
+                });
+            }
+
+            if (dto.IsStreakyRequest)
+            {
+                var streakyExists =
+                    await _context.Users.AnyAsync(user =>
+                        user.Id ==
+                            StreakyIdentity.UserId
+                    );
+
+                if (!streakyExists)
+                {
+                    return StatusCode(
+                        StatusCodes.Status503ServiceUnavailable,
+                        new
+                        {
+                            message =
+                                "Streaky is not available right now."
+                        }
+                    );
+                }
+
+                var duplicateStreak =
+                    await _context.Streaks.AnyAsync(streak =>
+                        streak.IsActive &&
+                        !streak.IsGroupStreak &&
+                        streak.HabitName
+                            .Trim()
+                            .ToLower() ==
+                            normalizedHabitNameLower &&
+                        (
+                            (
+                                streak.UserOneId ==
+                                    currentUserId &&
+                                streak.UserTwoId ==
+                                    StreakyIdentity.UserId
+                            ) ||
+                            (
+                                streak.UserOneId ==
+                                    StreakyIdentity.UserId &&
+                                streak.UserTwoId ==
+                                    currentUserId
+                            )
+                        )
+                    );
+
+                if (duplicateStreak)
+                {
+                    return Conflict(new
+                    {
+                        message =
+                            "You already have an active Streaky streak for this habit."
+                    });
+                }
+
+                await using var transaction =
+                    await _context.Database
+                        .BeginTransactionAsync();
+
+                try
+                {
+                    var nowUtc =
+                        DateTime.UtcNow;
+
+                    var defaultDate =
+                        new DateTime(
+                            1900,
+                            1,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                    var streakyRequest =
+                        new StreakRequest
+                        {
+                            SenderId =
+                                currentUserId,
+
+                            ReceiverId =
+                                StreakyIdentity.UserId,
+
+                            HabitName =
+                                normalizedHabitName,
+
+                            HabitIcon =
+                                dto.HabitIcon,
+
+                            Color =
+                                dto.Color,
+
+                            RequiredCheckIns =
+                                dto.RequiredCheckIns,
+
+                            CycleLength =
+                                dto.CycleLength,
+
+                            CycleUnit =
+                                normalizedCycleUnit,
+
+                            IsGroupRequest =
+                                false,
+
+                            Status =
+                                "Accepted",
+
+                            CreatedAt =
+                                nowUtc
+                        };
+
+                    _context.StreakRequests.Add(
+                        streakyRequest
+                    );
+
+                    await _context.SaveChangesAsync();
+
+                    var requestMember =
+                        new StreakRequestMember
+                        {
+                            StreakRequestId =
+                                streakyRequest.Id,
+
+                            UserId =
+                                StreakyIdentity.UserId,
+
+                            Status =
+                                "Accepted",
+
+                            RespondedAt =
+                                nowUtc
+                        };
+
+                    _context.StreakRequestMembers.Add(
+                        requestMember
+                    );
+
+                    var streak =
+                        new Streak
+                        {
+                            UserOneId =
+                                currentUserId,
+
+                            UserTwoId =
+                                StreakyIdentity.UserId,
+
+                            CreatedByUserId =
+                                currentUserId,
+
+                            IsGroupStreak =
+                                false,
+
+                            HabitName =
+                                normalizedHabitName,
+
+                            HabitIcon =
+                                dto.HabitIcon,
+
+                            Color =
+                                dto.Color,
+
+                            RequiredCheckIns =
+                                dto.RequiredCheckIns,
+
+                            CycleLength =
+                                dto.CycleLength,
+
+                            CycleUnit =
+                                normalizedCycleUnit,
+
+                            CurrentCount =
+                                0,
+
+                            IsActive =
+                                true,
+
+                            StreakRequestId =
+                                streakyRequest.Id,
+
+                            StartedAt =
+                                nowUtc,
+
+                            CycleTrackingStartedAt =
+                                nowUtc,
+
+                            LastCompletedAt =
+                                defaultDate,
+
+                            FailedAt =
+                                defaultDate,
+
+                            IntervalHours =
+                                24
+                        };
+
+                    _context.Streaks.Add(
+                        streak
+                    );
+
+                    await _context.SaveChangesAsync();
+
+                    var streakMembers =
+                        new[]
+                        {
+                new StreakMember
+                {
+                    StreakId =
+                        streak.Id,
+
+                    UserId =
+                        currentUserId,
+
+                    IsCreator =
+                        true,
+
+                    VisibilityPublic =
+                        true,
+
+                    JoinedAt =
+                        nowUtc
+                },
+
+                new StreakMember
+                {
+                    StreakId =
+                        streak.Id,
+
+                    UserId =
+                        StreakyIdentity.UserId,
+
+                    IsCreator =
+                        false,
+
+                    VisibilityPublic =
+                        false,
+
+                    JoinedAt =
+                        nowUtc
+                }
+                        };
+
+                    _context.StreakMembers.AddRange(
+                        streakMembers
+                    );
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+
+                    return Ok(new
+                    {
+                        message =
+                            "Streaky streak started.",
+
+                        streakId =
+                            streak.Id,
+
+                        requestId =
+                             streakyRequest.Id
+                    });
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
 
             /*
              * Determine which users are being invited.
-             *
-             * Standard streak:
-             *     ReceiverId
-             *
-             * Group streak:
-             *     ReceiverIds
-             */
+                         *
+                         * Standard streak:
+                         *     ReceiverId
+                         *
+                         * Group streak:
+                         *     ReceiverIds
+                         */
             List<string> receiverIds;
 
             if (dto.IsGroupRequest)
