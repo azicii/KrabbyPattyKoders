@@ -75,6 +75,9 @@ interface PublicFeedProps {
 const BASE_URL =
     'https://kbk-picability-backend.onrender.com';
 
+const STREAKY_USER_ID =
+    'picability-system-streaky';
+
 const getStreakReward = (
     count: number
 ) => {
@@ -568,6 +571,13 @@ export function PublicFeed({
                     const participantNames =
                         getParticipantNames(item);
 
+                    const includesStreaky =
+                        item.members?.some(
+                            member =>
+                                member.userId ===
+                                STREAKY_USER_ID
+                        ) === true;
+
                     const failedMemberNames =
                         getFailedMemberNames(item);
 
@@ -675,8 +685,8 @@ export function PublicFeed({
                                             </span>
                                         </div>
 
-                                        <p
-                                            className={`text-sm mt-3 leading-relaxed ${isDark
+                                        <div
+                                            className={`flex items-center gap-1.5 text-sm mt-3 leading-relaxed ${isDark
                                                     ? 'text-slate-300'
                                                     : 'text-slate-700'
                                                 }`}
@@ -684,7 +694,16 @@ export function PublicFeed({
                                             <span className="font-semibold">
                                                 {participantLabel}
                                             </span>
-                                        </p>
+
+                                            {includesStreaky && (
+                                                <img
+                                                    src="/streaky.png"
+                                                    alt="Streaky"
+                                                    title="Streaky"
+                                                    className="w-6 h-6 rounded-full object-cover shrink-0"
+                                                />
+                                            )}
+                                        </div>
 
                                         {visibleFriendNames.length > 0 && (
                                             <p

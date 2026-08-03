@@ -2458,7 +2458,7 @@ export function StreakTracker({
                                                 {isBroken
                                                     ? 'This streak ended. Tap dismiss to remove it.'
                                                     : userCompletedCycle
-                                                        ? `Next completion opens after ${getCycleEndLabel(
+                                                        ? `Next check in available after ${getCycleEndLabel(
                                                             streak.cycleEndsAt
                                                         )}`
                                                         : usesMultipleCheckIns
