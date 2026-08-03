@@ -1696,6 +1696,7 @@ export default function App() {
         }
 
         if (
+            !config.IsStreakyRequest &&
             !config.IsGroupRequest &&
             !config.friendId
         ) {
@@ -1714,7 +1715,8 @@ export default function App() {
                     senderId: user.id,
 
                     receiverId:
-                        config.IsGroupRequest
+                        config.IsGroupRequest ||
+                            config.IsStreakyRequest
                             ? ''
                             : config.friendId,
 
@@ -1725,6 +1727,9 @@ export default function App() {
 
                     isGroupRequest:
                         config.IsGroupRequest === true,
+
+                    isStreakyRequest:
+                        config.IsStreakyRequest === true,
 
                     habitName:
                         config.HabitName,
@@ -1747,6 +1752,22 @@ export default function App() {
             });
 
             if (response.ok) {
+                if (config.IsStreakyRequest) {
+                    await Promise.all([
+                        fetchStreaks(),
+                        fetchSentStreakRequests()
+                    ]);
+
+                    setDraftHabitConfig(null);
+                    setPreSelectedFriend(null);
+                    setSelectedGroupFriends([]);
+                    setIsSelectingGroupFriends(false);
+                    setCurrentScreen('tracker');
+                    setMobileTab('tracker');
+
+                    return;
+                }
+
                 const recipients =
                     config.IsGroupRequest
                         ? selectedGroupFriends

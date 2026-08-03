@@ -39,6 +39,9 @@ export interface HabitConfiguration {
     // Group streak.
     IsGroupRequest?: boolean;
     participantIds?: string[];
+
+    // Solo streak with the Streaky system account.
+    IsStreakyRequest?: boolean;
 }
 
 const iconOptions = [
@@ -118,6 +121,11 @@ export function HabitConfig({
     const [isGroupRequest, setIsGroupRequest] = useState(
         draftConfig?.IsGroupRequest ?? false
     );
+
+    const [isStreakyRequest, setIsStreakyRequest] = useState(
+        draftConfig?.IsStreakyRequest ?? false
+    );
+
     const [selectedColorIndex, setSelectedColorIndex] = useState(() => {
         const initialColor =
             draftConfig?.Color ||
@@ -161,9 +169,12 @@ export function HabitConfig({
         (name) => name.toLowerCase() === habitName.trim().toLowerCase()
     );
     const hasValidParticipants =
-        isGroupRequest
-            ? selectedGroupFriends.length >= 2
-            : preSelectedFriend !== null;
+        isStreakyRequest ||
+        (
+            isGroupRequest
+                ? selectedGroupFriends.length >= 2
+                : preSelectedFriend !== null
+        );
 
     const canSubmit =
         habitName.trim().length > 0 &&
@@ -215,7 +226,11 @@ export function HabitConfig({
     const handleConfirm = () => {
         if (!canSubmit) return;
 
-        if (!isGroupRequest && !preSelectedFriend) {
+        if (
+            !isStreakyRequest &&
+            !isGroupRequest &&
+            !preSelectedFriend
+        ) {
             return;
         }
 
@@ -243,6 +258,9 @@ export function HabitConfig({
             IsGroupRequest:
                 isGroupRequest,
 
+            IsStreakyRequest:
+                isStreakyRequest,
+
             participantIds:
                 isGroupRequest
                     ? selectedGroupFriends.map(
@@ -251,19 +269,24 @@ export function HabitConfig({
                     : undefined,
 
             friendId:
-                !isGroupRequest
+                !isGroupRequest &&
+                    !isStreakyRequest
                     ? preSelectedFriend?.id
                     : undefined,
 
             friendName:
-                !isGroupRequest
-                    ? preSelectedFriend?.name
-                    : undefined,
+                isStreakyRequest
+                    ? 'Streaky'
+                    : !isGroupRequest
+                        ? preSelectedFriend?.name
+                        : undefined,
 
             friendAvatar:
-                !isGroupRequest
-                    ? preSelectedFriend?.avatar
-                    : undefined
+                isStreakyRequest
+                    ? 'ST'
+                    : !isGroupRequest
+                        ? preSelectedFriend?.avatar
+                        : undefined
         };
 
         onConfirm?.(config);
@@ -322,7 +345,8 @@ export function HabitConfig({
             CycleLength: cycleLength,
             CycleUnit: cycleUnit,
 
-            IsGroupRequest: isGroupRequest
+            IsGroupRequest: isGroupRequest,
+            IsStreakyRequest: isStreakyRequest
         });
     }, [
         habitName,
@@ -331,6 +355,7 @@ export function HabitConfig({
         requiredCheckIns,
         cycleLength,
         isGroupRequest,
+        isStreakyRequest,
         cycleUnit
     ]);
 
@@ -597,13 +622,16 @@ export function HabitConfig({
                         }`}
                 >
                     <label className="block text-sm font-medium mb-4 text-slate-400">
-                        {isGroupRequest
-                            ? 'Streak Participants'
-                            : 'Accountability Partner'}
+                        {isStreakyRequest
+                            ? 'Streak Partner'
+                            : isGroupRequest
+                                ? 'Streak Participants'
+                                : 'Accountability Partner'}
                     </label>
 
-                    {!isGroupRequest && (
-                        <>
+                    {!isGroupRequest &&
+                        !isStreakyRequest && (
+                            <>
                             {preSelectedFriend ? (
                                 <div className="flex items-center justify-between p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20">
                                     <div className="flex items-center gap-4">
@@ -655,6 +683,38 @@ export function HabitConfig({
                                 </button>
                             )}
                         </>
+                    )}
+
+                    {isStreakyRequest && (
+                        <div
+                            className={`flex items-center gap-4 p-4 rounded-2xl border ${isDark
+                                    ? 'bg-cyan-500/10 border-cyan-500/20'
+                                    : 'bg-cyan-50 border-cyan-200'
+                                }`}
+                        >
+                            <div className="w-12 h-12 rounded-full overflow-hidden bg-cyan-500 shrink-0">
+                                <img
+                                    src="/streaky.png"
+                                    alt="Streaky"
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+
+                            <div className="min-w-0">
+                                <p
+                                    className={`font-semibold ${isDark
+                                            ? 'text-white'
+                                            : 'text-slate-900'
+                                        }`}
+                                >
+                                    Streaky
+                                </p>
+
+                                <p className="text-xs text-cyan-500">
+                                    Solo streak partner
+                                </p>
+                            </div>
+                        </div>
                     )}
 
                     {isGroupRequest && (
@@ -752,9 +812,18 @@ export function HabitConfig({
 
                         <button
                             type="button"
-                            onClick={() =>
-                                setIsGroupRequest(current => !current)
-                            }
+                            onClick={() => {
+                                setIsGroupRequest(current => {
+                                    const nextValue =
+                                        !current;
+
+                                    if (nextValue) {
+                                        setIsStreakyRequest(false);
+                                    }
+
+                                    return nextValue;
+                                });
+                            }}
                             className={`relative w-14 h-8 rounded-full transition-colors shrink-0 ${isGroupRequest
                                     ? 'bg-teal-500'
                                     : isDark
@@ -803,6 +872,76 @@ export function HabitConfig({
                             </p>
                         </div>
                     )}
+
+                    <div
+                        className={`mt-5 pt-5 border-t ${isDark
+                                ? 'border-slate-700'
+                                : 'border-slate-200'
+                            }`}
+                    >
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-full overflow-hidden bg-cyan-500 shrink-0">
+                                    <img
+                                        src="/streaky.png"
+                                        alt=""
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+
+                                <div className="min-w-0">
+                                    <h3
+                                        className={`text-sm font-semibold ${isDark
+                                                ? 'text-slate-100'
+                                                : 'text-slate-800'
+                                            }`}
+                                    >
+                                        Solo with Streaky
+                                    </h3>
+
+                                    <p
+                                        className={`text-xs mt-0.5 ${isDark
+                                                ? 'text-slate-400'
+                                                : 'text-slate-600'
+                                            }`}
+                                    >
+                                        Build this streak by yourself with Streaky as your partner.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsStreakyRequest(current => {
+                                        const nextValue =
+                                            !current;
+
+                                        if (nextValue) {
+                                            setIsGroupRequest(false);
+                                        }
+
+                                        return nextValue;
+                                    });
+                                }}
+                                className={`relative w-14 h-8 rounded-full transition-colors shrink-0 ${isStreakyRequest
+                                        ? 'bg-cyan-500'
+                                        : isDark
+                                            ? 'bg-slate-700'
+                                            : 'bg-slate-300'
+                                    }`}
+                                aria-pressed={isStreakyRequest}
+                                aria-label="Toggle solo streak with Streaky"
+                            >
+                                <span
+                                    className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-white shadow transition-transform ${isStreakyRequest
+                                            ? 'translate-x-6'
+                                            : 'translate-x-0'
+                                        }`}
+                                />
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <button
