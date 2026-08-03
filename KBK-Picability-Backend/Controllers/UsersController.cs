@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Picability.Data;
+using Picability.Services;
 using System.Security.Claims;
 
 namespace Picability.Controllers
@@ -57,12 +58,16 @@ namespace Picability.Controllers
                 return Unauthorized();
 
             var users = await _context.Users
-                .Where(u => u.Id != currentUserId)
-                .Select(u => new
+                .Where(user =>
+                    user.Id != currentUserId &&
+                    user.Id !=
+                        StreakyIdentity.UserId
+                )
+                .Select(user => new
                 {
-                    u.Id,
-                    u.UserName,
-                    u.Email
+                    user.Id,
+                    user.UserName,
+                    user.Email
                 })
                 .ToListAsync();
 

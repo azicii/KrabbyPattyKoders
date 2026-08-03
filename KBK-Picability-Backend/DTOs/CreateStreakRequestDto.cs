@@ -14,6 +14,10 @@
 
         public bool IsGroupRequest { get; set; } = false;
 
+        // Creates a solo streak with the Streaky system account.
+        // This cannot be combined with a group request.
+        public bool IsStreakyRequest { get; set; } = false;
+
         public string HabitName { get; set; } = string.Empty;
         public string HabitIcon { get; set; } = string.Empty;
         public string Color { get; set; } = string.Empty;

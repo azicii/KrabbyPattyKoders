@@ -99,6 +99,71 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+using (var scope =
+    app.Services.CreateScope())
+{
+    var userManager =
+        scope.ServiceProvider
+            .GetRequiredService<
+                UserManager<ApplicationUser>
+            >();
+
+    var streaky =
+        await userManager.FindByIdAsync(
+            StreakyIdentity.UserId
+        );
+
+    if (streaky == null)
+    {
+        streaky = new ApplicationUser
+        {
+            Id =
+                StreakyIdentity.UserId,
+
+            UserName =
+                StreakyIdentity.UserName,
+
+            NormalizedUserName =
+                StreakyIdentity.UserName
+                    .ToUpperInvariant(),
+
+            UserNameDisplay =
+                StreakyIdentity.UserName,
+
+            Email =
+                StreakyIdentity.Email,
+
+            NormalizedEmail =
+                StreakyIdentity.Email
+                    .ToUpperInvariant(),
+
+            EmailConfirmed =
+                true
+        };
+
+        var result =
+            await userManager.CreateAsync(
+                streaky
+            );
+
+        if (!result.Succeeded)
+        {
+            var errors =
+                string.Join(
+                    "; ",
+                    result.Errors.Select(
+                        error =>
+                            error.Description
+                    )
+                );
+
+            throw new InvalidOperationException(
+                $"Could not create the Streaky system account: {errors}"
+            );
+        }
+    }
+}
+
 //if (app.Environment.IsDevelopment())
 //{
 //    app.UseSwagger();
