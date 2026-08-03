@@ -2267,8 +2267,8 @@ export function StreakTracker({
                                                                                 }`}
                                                                         >
                                                                             {userCompletedCycle
-                                                                                ? 'Streak completed with you ✅'
-                                                                                : 'Streaky is waiting for you'}
+                                                                                ? 'Streaky is so proud of you! :) ✅'
+                                                                                : 'Streaky believes in you!'}
                                                                         </p>
                                                                     ) : customFrequency ? (
                                                                         <div
