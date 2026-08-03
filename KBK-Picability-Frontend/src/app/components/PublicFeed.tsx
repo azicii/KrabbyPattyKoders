@@ -720,9 +720,13 @@ export function PublicFeed({
                                         )}
 
                                         <div
-                                            className={`mt-3 rounded-xl px-3 py-2 border ${isDark
-                                                    ? 'bg-slate-900/30 border-slate-700/70'
-                                                    : 'bg-slate-50 border-slate-200'
+                                            className={`mt-3 rounded-xl px-3 py-2 border ${item.failedToday
+                                                    ? isDark
+                                                        ? 'bg-slate-900/30 border-slate-700/70'
+                                                        : 'bg-slate-50 border-slate-200'
+                                                    : isDark
+                                                        ? 'bg-emerald-500/10 border-emerald-500/20'
+                                                        : 'bg-emerald-50 border-emerald-200'
                                                 }`}
                                         >
                                             <p
@@ -731,8 +735,8 @@ export function PublicFeed({
                                                             ? 'text-rose-300'
                                                             : 'text-rose-700'
                                                         : isDark
-                                                            ? 'text-slate-300'
-                                                            : 'text-slate-700'
+                                                            ? 'text-emerald-400'
+                                                            : 'text-emerald-700'
                                                     }`}
                                             >
                                                 {item.failedToday
