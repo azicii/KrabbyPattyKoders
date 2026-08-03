@@ -4,6 +4,9 @@ import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { canUsePushNotifications, enablePushNotifications } from '../utils/pushNotifications';
 
+const STREAKY_USER_ID =
+    'picability-system-streaky';
+
 interface StreakMemberProgress {
     userId: string;
     userName: string;
@@ -1707,6 +1710,18 @@ export function StreakTracker({
                                 member => member.isCurrentUser
                             );
 
+                        const streakyMember =
+                            streakMembers.find(
+                                member =>
+                                    member.userId ===
+                                    STREAKY_USER_ID
+                            );
+
+                        const isStreakyStreak =
+                            streakyMember !== undefined ||
+                            streak.partnerId ===
+                            STREAKY_USER_ID;
+
                         const groupWaitingNames =
                             (streak.waitingOnMembers ?? [])
                                 .map(member =>
@@ -1895,25 +1910,33 @@ export function StreakTracker({
                                                             </span>
                                                         </div>
                                                     ) : (
-                                                        <div className="inline-flex items-center gap-2">
-                                                            <div
-                                                                className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${isDark
-                                                                        ? 'bg-slate-700 text-slate-300'
-                                                                        : 'bg-slate-200 text-slate-700'
-                                                                    }`}
-                                                            >
-                                                                {streak.userAvatar}
-                                                            </div>
+                                                            <div className="inline-flex items-center gap-2">
+                                                                {isStreakyStreak ? (
+                                                                    <img
+                                                                        src="/streaky.png"
+                                                                        alt="Streaky"
+                                                                        className="w-6 h-6 rounded-full object-cover shrink-0"
+                                                                    />
+                                                                ) : (
+                                                                    <div
+                                                                        className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${isDark
+                                                                                ? 'bg-slate-700 text-slate-300'
+                                                                                : 'bg-slate-200 text-slate-700'
+                                                                            }`}
+                                                                    >
+                                                                        {streak.userAvatar}
+                                                                    </div>
+                                                                )}
 
-                                                            <span
-                                                                className={`text-sm ${isDark
-                                                                        ? 'text-slate-400'
-                                                                        : 'text-slate-600'
-                                                                    }`}
-                                                            >
-                                                                with {streak.userName}
-                                                            </span>
-                                                        </div>
+                                                                <span
+                                                                    className={`text-sm ${isDark
+                                                                            ? 'text-slate-400'
+                                                                            : 'text-slate-600'
+                                                                        }`}
+                                                                >
+                                                                    with {streak.userName}
+                                                                </span>
+                                                            </div>
                                                     )}
 
                                                     {isExpanded && !isBroken && (
@@ -2184,74 +2207,101 @@ export function StreakTracker({
                                                                 )}
                                                             </div>
 
-                                                            <div
-                                                                className={`p-3 rounded-2xl ${partnerCompletedCycle
-                                                                        ? 'bg-emerald-500/15'
-                                                                        : isDark
-                                                                            ? 'bg-slate-700/50'
-                                                                            : 'bg-slate-100'
-                                                                    }`}
-                                                            >
-                                                                <div className="flex items-center justify-between gap-2">
-                                                                    <span
-                                                                        className={`text-sm font-bold ${partnerCompletedCycle
-                                                                                ? 'text-emerald-500'
-                                                                                : isDark
-                                                                                    ? 'text-slate-200'
-                                                                                    : 'text-slate-700'
-                                                                            }`}
-                                                                    >
-                                                                        {streak.userName}
-                                                                    </span>
+                                                                <div
+                                                                    className={`p-3 rounded-2xl ${partnerCompletedCycle
+                                                                            ? 'bg-emerald-500/15'
+                                                                            : isDark
+                                                                                ? 'bg-slate-700/50'
+                                                                                : 'bg-slate-100'
+                                                                        }`}
+                                                                >
+                                                                    <div className="flex items-center justify-between gap-2">
+                                                                        <div className="flex items-center gap-2 min-w-0">
+                                                                            {isStreakyStreak && (
+                                                                                <img
+                                                                                    src="/streaky.png"
+                                                                                    alt=""
+                                                                                    className="w-7 h-7 rounded-full object-cover shrink-0"
+                                                                                />
+                                                                            )}
 
-                                                                    <span
-                                                                        className={`text-xs font-bold ${partnerCompletedCycle
-                                                                                ? 'text-emerald-500'
-                                                                                : isDark
-                                                                                    ? 'text-slate-400'
-                                                                                    : 'text-slate-500'
-                                                                            }`}
-                                                                    >
-                                                                        {customFrequency
-                                                                            ? `${partnerCycleCheckIns}/${requiredCheckIns}`
-                                                                            : partnerCompletedCycle
-                                                                                ? 'Done'
-                                                                                : 'Waiting'}
-                                                                    </span>
-                                                                </div>
+                                                                            <span
+                                                                                className={`text-sm font-bold truncate ${partnerCompletedCycle
+                                                                                        ? 'text-emerald-500'
+                                                                                        : isDark
+                                                                                            ? 'text-slate-200'
+                                                                                            : 'text-slate-700'
+                                                                                    }`}
+                                                                            >
+                                                                                {streak.userName}
+                                                                            </span>
+                                                                        </div>
 
-                                                                {customFrequency ? (
-                                                                    <div
-                                                                        className={`mt-3 h-2 rounded-full overflow-hidden ${isDark
-                                                                                ? 'bg-slate-800'
-                                                                                : 'bg-slate-200'
-                                                                            }`}
-                                                                    >
-                                                                        <div
-                                                                            className={`h-full rounded-full transition-all duration-500 ${partnerCompletedCycle
-                                                                                    ? 'bg-emerald-500'
-                                                                                    : 'bg-violet-500'
+                                                                        <span
+                                                                            className={`text-xs font-bold shrink-0 ${partnerCompletedCycle
+                                                                                    ? 'text-emerald-500'
+                                                                                    : isDark
+                                                                                        ? 'text-slate-400'
+                                                                                        : 'text-slate-500'
                                                                                 }`}
-                                                                            style={{
-                                                                                width: `${partnerProgressPercent}%`
-                                                                            }}
-                                                                        />
+                                                                        >
+                                                                            {isStreakyStreak
+                                                                                ? userCompletedCycle
+                                                                                    ? 'Done'
+                                                                                    : 'Ready'
+                                                                                : customFrequency
+                                                                                    ? `${partnerCycleCheckIns}/${requiredCheckIns}`
+                                                                                    : partnerCompletedCycle
+                                                                                        ? 'Done'
+                                                                                        : 'Waiting'}
+                                                                        </span>
                                                                     </div>
-                                                                ) : (
-                                                                    <div
-                                                                        className={`mt-1 text-xs ${partnerCompletedCycle
-                                                                                ? 'text-emerald-500'
-                                                                                : isDark
-                                                                                    ? 'text-slate-400'
-                                                                                    : 'text-slate-500'
-                                                                            }`}
-                                                                    >
-                                                                        {partnerCompletedCycle
-                                                                            ? 'Checked in ✅'
-                                                                            : 'Waiting ⏳'}
-                                                                    </div>
-                                                                )}
-                                                            </div>
+
+                                                                    {isStreakyStreak ? (
+                                                                        <p
+                                                                            className={`mt-2 text-xs ${userCompletedCycle
+                                                                                    ? 'text-emerald-500'
+                                                                                    : isDark
+                                                                                        ? 'text-slate-400'
+                                                                                        : 'text-slate-500'
+                                                                                }`}
+                                                                        >
+                                                                            {userCompletedCycle
+                                                                                ? 'Streak completed with you ✅'
+                                                                                : 'Streaky is waiting for you'}
+                                                                        </p>
+                                                                    ) : customFrequency ? (
+                                                                        <div
+                                                                            className={`mt-3 h-2 rounded-full overflow-hidden ${isDark
+                                                                                    ? 'bg-slate-800'
+                                                                                    : 'bg-slate-200'
+                                                                                }`}
+                                                                        >
+                                                                            <div
+                                                                                className={`h-full rounded-full transition-all duration-500 ${partnerCompletedCycle
+                                                                                        ? 'bg-emerald-500'
+                                                                                        : 'bg-violet-500'
+                                                                                    }`}
+                                                                                style={{
+                                                                                    width: `${partnerProgressPercent}%`
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div
+                                                                            className={`mt-1 text-xs ${partnerCompletedCycle
+                                                                                    ? 'text-emerald-500'
+                                                                                    : isDark
+                                                                                        ? 'text-slate-400'
+                                                                                        : 'text-slate-500'
+                                                                                }`}
+                                                                        >
+                                                                            {partnerCompletedCycle
+                                                                                ? 'Checked in ✅'
+                                                                                : 'Waiting ⏳'}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                         </div>
                                                     )}
 
@@ -2399,6 +2449,7 @@ export function StreakTracker({
                                             <div className="flex items-end justify-between mt-3 gap-4">
                                                 <div className="min-w-[44px]">
                                                     {!isBroken &&
+                                                        !isStreakyStreak &&
                                                         userCompletedCycle &&
                                                         (
                                                             streak.isGroupStreak

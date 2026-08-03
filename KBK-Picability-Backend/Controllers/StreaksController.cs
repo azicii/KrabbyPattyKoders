@@ -62,6 +62,16 @@ namespace Picability.Controllers
             return Math.Max(0, (int)Math.Ceiling((nextMidnightPacific - nowPacific).TotalHours));
         }
 
+        private static int GetEffectiveCheckInCount(
+            string userId,
+            int recordedCheckInCount,
+            int requiredCheckIns)
+        {
+            return StreakyIdentity.IsStreaky(userId)
+                ? requiredCheckIns
+                : recordedCheckInCount;
+        }
+
         [HttpGet("mine")]
         public async Task<IActionResult> GetMyStreaks()
         {
@@ -228,7 +238,11 @@ namespace Picability.Controllers
                             count = 1;
                         }
 
-                        return count >= requiredCheckIns;
+                        return GetEffectiveCheckInCount(
+                            memberId,
+                            count,
+                            requiredCheckIns
+                        ) >= requiredCheckIns;
                     });
 
                 if (!allMembersCompletedPreviousCycle)
@@ -340,6 +354,12 @@ namespace Picability.Controllers
                         {
                             count = 1;
                         }
+
+                        count = GetEffectiveCheckInCount(
+                            member.UserId,
+                            count,
+                            requiredCheckIns
+                        );
 
                         return new
                         {
@@ -462,6 +482,12 @@ namespace Picability.Controllers
                                     failedCycle.StartUtc &&
                                 checkIn.CheckedInAt <
                                     failedCycle.EndUtc
+                            );
+
+                            count = GetEffectiveCheckInCount(
+                                member.UserId,
+                                count,
+                                requiredCheckIns
                             );
 
                             return new
@@ -1763,6 +1789,12 @@ namespace Picability.Controllers
                         checkInCount = 1;
                     }
 
+                    checkInCount = GetEffectiveCheckInCount(
+                        member.UserId,
+                        checkInCount,
+                        requiredCheckIns
+                    );
+
                     return new
                     {
                         member.UserId,
@@ -2038,8 +2070,18 @@ namespace Picability.Controllers
                 memberCounts[streak.UserTwoId] = 1;
             }
 
+            foreach (var memberId in memberIds)
+            {
+                memberCounts[memberId] =
+                    GetEffectiveCheckInCount(
+                        memberId,
+                        memberCounts[memberId],
+                        requiredCheckIns
+                    );
+            }
+
             var currentUserCheckInCount =
-                memberCounts[currentUserId];
+                            memberCounts[currentUserId];
 
             if (currentUserCheckInCount >= requiredCheckIns)
             {
@@ -2133,7 +2175,8 @@ namespace Picability.Controllers
              */
             foreach (
                 var receiverId in memberIds.Where(memberId =>
-                    memberId != currentUserId
+                    memberId != currentUserId &&
+                    !StreakyIdentity.IsStreaky(memberId)
                 )
             )
             {
