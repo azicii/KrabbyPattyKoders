@@ -751,7 +751,7 @@ export function PublicFeed({
                                                                 .toUpperCase()}${streakWindowLabel
                                                                     .slice(1)} was missed.`
                                                     : usesMultipleCheckIns
-                                                        ? `All required check-ins completed ${periodLabel}.`
+                                                        ? `Completed ${periodLabel}.`
                                                         : `Completed ${periodLabel}.`}
                                             </p>
                                         </div>

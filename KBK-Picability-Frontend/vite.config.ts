@@ -29,7 +29,16 @@ export default defineConfig({
         strategies: 'injectManifest',
         srcDir: 'src',
         filename: 'sw.ts',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+        includeAssets: [
+            'favicon.ico',
+            'favicon-16x16.png',
+            'favicon-32x32.png',
+            'favicon-48x48.png',
+            'apple-touch-icon.png',
+            'pwa-192x192.png',
+            'pwa-512x512.png',
+            'pwa-maskable-512x512.png'
+        ],
         manifest: {
             name: 'Picability',
             short_name: 'Picability',
@@ -44,18 +53,20 @@ export default defineConfig({
                 {
                     src: '/pwa-192x192.png',
                     sizes: '192x192',
-                    type: 'image/png'
-                },
-                {
-                    src: '/pwa-512x512.png',
-                    sizes: '512x512',
-                    type: 'image/png'
+                    type: 'image/png',
+                    purpose: 'any'
                 },
                 {
                     src: '/pwa-512x512.png',
                     sizes: '512x512',
                     type: 'image/png',
-                    purpose: 'any maskable'
+                    purpose: 'any'
+                },
+                {
+                    src: '/pwa-maskable-512x512.png',
+                    sizes: '512x512',
+                    type: 'image/png',
+                    purpose: 'maskable'
                 }
             ]
         },
