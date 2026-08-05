@@ -177,49 +177,7 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
                     value={formData.username}
                     onChange={(e) => setFormData({...formData, username: e.target.value})}
                   />
-                              </div>
-
-                              {!isLogin && (
-                                  <div
-                                      className={`mt-3 rounded-2xl px-4 py-3 ${isDark
-                                              ? 'bg-slate-900/60'
-                                              : 'bg-slate-50'
-                                          }`}
-                                  >
-                                      <p
-                                          className={`text-xs font-semibold mb-2 ${isDark
-                                                  ? 'text-slate-300'
-                                                  : 'text-slate-600'
-                                              }`}
-                                      >
-                                          Password must include:
-                                      </p>
-
-                                      <div className="space-y-1.5">
-                                          {passwordRequirements.map(
-                                              requirement => (
-                                                  <div
-                                                      key={
-                                                          requirement.label
-                                                      }
-                                                      className={`flex items-center gap-2 text-xs ${requirement.met
-                                                              ? 'text-emerald-500'
-                                                              : isDark
-                                                                  ? 'text-slate-500'
-                                                                  : 'text-slate-500'
-                                                          }`}
-                                                  >
-                                                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-
-                                                      <span>
-                                                          {requirement.label}
-                                                      </span>
-                                                  </div>
-                                              )
-                                          )}
-                                      </div>
-                                  </div>
-                              )}
+                 </div>
               </div>
             )}
 
@@ -252,15 +210,72 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                 />
-                <button 
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-3.5 text-slate-400 hover:text-teal-500"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
+                              <button
+                                  type="button"
+                                  onClick={() =>
+                                      setShowPassword(
+                                          !showPassword
+                                      )
+                                  }
+                                  className="absolute right-4 top-3.5 text-slate-400 hover:text-teal-500"
+                              >
+                                  {showPassword ? (
+                                      <EyeOff className="w-5 h-5" />
+                                  ) : (
+                                      <Eye className="w-5 h-5" />
+                                  )}
+                              </button>
+                          </div>
+
+                          {!isLogin && (
+                              <div
+                                  className={`mt-3 rounded-2xl px-4 py-3 border ${isDark
+                                          ? 'bg-slate-900/45 border-slate-700/60'
+                                          : 'bg-slate-50 border-slate-200'
+                                      }`}
+                              >
+                                  <p
+                                      className={`text-xs font-semibold mb-2.5 ${isDark
+                                              ? 'text-slate-300'
+                                              : 'text-slate-600'
+                                          }`}
+                                  >
+                                      Password must include:
+                                  </p>
+
+                                  <div className="space-y-1.5">
+                                      {passwordRequirements.map(
+                                          requirement => (
+                                              <div
+                                                  key={
+                                                      requirement.label
+                                                  }
+                                                  className={`flex items-center gap-2 text-xs transition-colors ${requirement.met
+                                                          ? 'text-emerald-500'
+                                                          : isDark
+                                                              ? 'text-slate-500'
+                                                              : 'text-slate-500'
+                                                      }`}
+                                              >
+                                                  <CheckCircle2
+                                                      className={`w-3.5 h-3.5 shrink-0 ${requirement.met
+                                                              ? 'opacity-100'
+                                                              : 'opacity-60'
+                                                          }`}
+                                                  />
+
+                                                  <span>
+                                                      {
+                                                          requirement.label
+                                                      }
+                                                  </span>
+                                              </div>
+                                          )
+                                      )}
+                                  </div>
+                              </div>
+                          )}
+                      </div>
 
             {error && (
               <div className="flex items-center gap-2 p-4 rounded-2xl bg-rose-500/10 text-rose-500 text-sm border border-rose-500/20">
