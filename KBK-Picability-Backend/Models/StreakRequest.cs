@@ -4,6 +4,7 @@
     public class StreakRequest
     {
         public int Id { get; set; }
+        public string ClientRequestId { get; set; } = string.Empty;
 
         public string SenderId { get; set; } = string.Empty;
         public ApplicationUser Sender { get; set; } = null!;

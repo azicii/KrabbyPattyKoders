@@ -7,7 +7,10 @@ interface HabitConfigProps {
     onToggleDark: () => void;
     onBack?: () => void;
     onFriends?: () => void;
-    onConfirm?: (config: HabitConfiguration) => void;
+    onConfirm?: (
+        config: HabitConfiguration
+    ) => void;
+    isSubmitting?: boolean;
     habitType?: number | 'create';
     presetHabitName?: string;
     presetHabitColor?: string;
@@ -23,6 +26,7 @@ interface HabitConfigProps {
 }
 
 export interface HabitConfiguration {
+    ClientRequestId: string;
     HabitName: string;
     HabitIcon: string;
     Color: string;
@@ -99,6 +103,7 @@ export function HabitConfig({
     onBack,
     onFriends,
     onConfirm,
+    isSubmitting = false,
     habitType,
     presetHabitName = '',
     presetHabitColor = '',
@@ -110,6 +115,11 @@ export function HabitConfig({
     onDraftChange
 }: HabitConfigProps) {
     const isCustomHabit = habitType === 'create';
+    const [
+        clientRequestId
+    ] = useState(() =>
+        crypto.randomUUID()
+    );
     const [habitName, setHabitName] = useState(draftConfig?.HabitName || presetHabitName);
     const [selectedIconIndex, setSelectedIconIndex] = useState(() => {
         if (draftConfig?.HabitIcon) {
@@ -224,7 +234,12 @@ export function HabitConfig({
         }
     };
     const handleConfirm = () => {
-        if (!canSubmit) return;
+        if (
+            !canSubmit ||
+            isSubmitting
+        ) {
+            return;
+        }
 
         if (
             !isStreakyRequest &&
@@ -235,6 +250,9 @@ export function HabitConfig({
         }
 
         const config: HabitConfiguration = {
+            ClientRequestId:
+                clientRequestId,
+
             HabitName:
                 habitName || presetHabitName,
 
@@ -957,16 +975,30 @@ export function HabitConfig({
 
                 {/* Action Button */}
                 <button
+                    type="button"
                     onClick={handleConfirm}
-                    disabled={!canSubmit}
-                className={`w-full py-5 rounded-3xl font-bold text-lg shadow-xl transition-all ${!canSubmit
+                    disabled={
+                        !canSubmit ||
+                        isSubmitting
+                    }
+                    className={`w-full py-5 rounded-3xl font-bold text-lg shadow-xl transition-all ${!canSubmit ||
+                            isSubmitting
                             ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
                             : 'bg-gradient-to-r from-teal-600 to-cyan-700 text-white hover:shadow-teal-500/20 hover:scale-[1.02] active:scale-95'
                         }`}
                 >
                     <div className="flex items-center justify-center gap-3">
-                        <SelectedIcon className="w-6 h-6" />
-                        <span>Start Habit Streak</span>
+                        {isSubmitting ? (
+                            <div className="w-6 h-6 rounded-full border-2 border-slate-400/40 border-t-slate-200 animate-spin" />
+                        ) : (
+                            <SelectedIcon className="w-6 h-6" />
+                        )}
+
+                        <span>
+                            {isSubmitting
+                                ? 'Creating Streak...'
+                                : 'Start Habit Streak'}
+                        </span>
                     </div>
                 </button>
             </div>

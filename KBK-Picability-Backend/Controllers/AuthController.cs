@@ -56,28 +56,72 @@ namespace Picability.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterDto model)
+        public async Task<IActionResult> Register(
+    RegisterDto model)
         {
+            var username =
+                model.Username?.Trim();
+
+            var email =
+                model.Email?.Trim();
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Username is required."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Email is required."
+                });
+            }
+
             var user = new ApplicationUser
             {
-                UserName = model.Username,
-                Email = model.Email,
-                UserNameDisplay = model.Username
+                UserName = username,
+                Email = email,
+                UserNameDisplay = username
             };
 
-            var result = await _userManager.CreateAsync(user, model.Password);
+            var result =
+                await _userManager.CreateAsync(
+                    user,
+                    model.Password
+                );
 
             if (!result.Succeeded)
             {
-                return BadRequest(result.Errors);
+                return BadRequest(
+                    result.Errors
+                );
             }
 
             return Ok(new
             {
-                message = "User registered successfully",
-                user.Id,
-                user.UserName,
-                user.Email
+                message =
+                    "User registered successfully",
+
+                id =
+                    user.Id,
+
+                userName =
+                    user.UserName,
+
+                email =
+                    user.Email,
+
+                token =
+                    GenerateJwtToken(user),
+
+                isNewAccount =
+                    true
             });
         }
 

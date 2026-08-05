@@ -56,6 +56,20 @@ namespace Picability.Data
                 .IsUnique();
 
             builder.Entity<StreakRequest>()
+                .HasIndex(request => new
+                {
+                    request.SenderId,
+                    request.ClientRequestId
+                })
+                .IsUnique();
+
+            builder.Entity<StreakRequest>()
+                .Property(request =>
+                    request.ClientRequestId
+                )
+                .IsRequired();
+
+            builder.Entity<StreakRequest>()
                 .HasOne(sr => sr.Sender)
                 .WithMany()
                 .HasForeignKey(sr => sr.SenderId)

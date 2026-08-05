@@ -30,6 +30,76 @@ namespace Picability.Controllers
             return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
 
+        private async Task<IActionResult?>
+    GetExistingRequestResponseAsync(
+        string senderId,
+        string clientRequestId)
+        {
+            var existingRequest =
+                await _context.StreakRequests
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(request =>
+                        request.SenderId ==
+                            senderId &&
+                        request.ClientRequestId ==
+                            clientRequestId
+                    );
+
+            if (existingRequest == null)
+            {
+                return null;
+            }
+
+            var existingStreakId =
+                await _context.Streaks
+                    .AsNoTracking()
+                    .Where(streak =>
+                        streak.StreakRequestId ==
+                            existingRequest.Id
+                    )
+                    .Select(streak =>
+                        (int?)streak.Id
+                    )
+                    .FirstOrDefaultAsync();
+
+            var receiverIds =
+                await _context
+                    .StreakRequestMembers
+                    .AsNoTracking()
+                    .Where(member =>
+                        member.StreakRequestId ==
+                            existingRequest.Id
+                    )
+                    .Select(member =>
+                        member.UserId
+                    )
+                    .ToListAsync();
+
+            return Ok(new
+            {
+                existingRequest.Id,
+                existingRequest.SenderId,
+                existingRequest.HabitName,
+                existingRequest.HabitIcon,
+                existingRequest.Color,
+                existingRequest.RequiredCheckIns,
+                existingRequest.CycleLength,
+                existingRequest.CycleUnit,
+                existingRequest.IsGroupRequest,
+                existingRequest.Status,
+                existingRequest.CreatedAt,
+
+                ReceiverIds =
+                    receiverIds,
+
+                streakId =
+                    existingStreakId,
+
+                alreadyProcessed =
+                    true
+            });
+        }
+
         [HttpPost]
         public async Task<IActionResult> SendStreakRequest(
       CreateStreakRequestDto dto)
@@ -37,7 +107,40 @@ namespace Picability.Controllers
             var currentUserId = GetCurrentUserId();
 
             if (currentUserId == null)
+            {
                 return Unauthorized();
+            }
+
+            var clientRequestId =
+                dto.ClientRequestId?.Trim();
+
+            if (
+                string.IsNullOrWhiteSpace(
+                    clientRequestId
+                ) ||
+                !Guid.TryParse(
+                    clientRequestId,
+                    out _
+                )
+            )
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "A valid client request ID is required."
+                });
+            }
+
+            var existingResponse =
+                await GetExistingRequestResponseAsync(
+                    currentUserId,
+                    clientRequestId
+                );
+
+            if (existingResponse != null)
+            {
+                return existingResponse;
+            }
 
             var normalizedCycleUnit =
                 dto.CycleUnit?.Trim().ToLowerInvariant() switch
@@ -195,6 +298,9 @@ namespace Picability.Controllers
                     var streakyRequest =
                         new StreakRequest
                         {
+                            ClientRequestId =
+                                clientRequestId,
+
                             SenderId =
                                 currentUserId,
 
@@ -378,6 +484,25 @@ namespace Picability.Controllers
                         requestId =
                              streakyRequest.Id
                     });
+                }
+                catch (DbUpdateException)
+                {
+                    await transaction.RollbackAsync();
+
+                    _context.ChangeTracker.Clear();
+
+                    var duplicateResponse =
+                        await GetExistingRequestResponseAsync(
+                            currentUserId,
+                            clientRequestId
+                        );
+
+                    if (duplicateResponse != null)
+                    {
+                        return duplicateResponse;
+                    }
+
+                    throw;
                 }
                 catch
                 {
@@ -589,8 +714,14 @@ namespace Picability.Controllers
              */
             var request = new StreakRequest
             {
-                SenderId = currentUserId,
-                ReceiverId = receiverIds[0],
+                        ClientRequestId =
+                clientRequestId,
+
+                        SenderId =
+                currentUserId,
+
+                        ReceiverId =
+                receiverIds[0],
 
                 HabitName = normalizedHabitName,
                 HabitIcon = dto.HabitIcon,
@@ -608,10 +739,32 @@ namespace Picability.Controllers
 
             _context.StreakRequests.Add(request);
 
-            /*
+                        /*
              * Save first so request.Id is generated.
+             * The unique request ID protects against simultaneous
+             * duplicate submissions.
              */
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                _context.ChangeTracker.Clear();
+
+                var duplicateResponse =
+                    await GetExistingRequestResponseAsync(
+                        currentUserId,
+                        clientRequestId
+                    );
+
+                if (duplicateResponse != null)
+                {
+                    return duplicateResponse;
+                }
+
+                throw;
+            }
 
             /*
              * Every request now gets member records.

@@ -20,7 +20,36 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
     password: ''
   });
 
-  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    const passwordRequirements = [
+        {
+            label: 'At least 8 characters',
+            met: formData.password.length >= 8
+        },
+        {
+            label: 'One uppercase letter',
+            met: /[A-Z]/.test(formData.password)
+        },
+        {
+            label: 'One lowercase letter',
+            met: /[a-z]/.test(formData.password)
+        },
+        {
+            label: 'One number',
+            met: /\d/.test(formData.password)
+        },
+        {
+            label: 'One special character',
+            met: /[^A-Za-z0-9]/.test(formData.password)
+        }
+    ];
+
+    const passwordIsValid =
+        passwordRequirements.every(
+            requirement =>
+                requirement.met
+        );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,10 +60,27 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
           setError('Please enter a valid email address.');
           return; 
       }
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
+      if (
+          !isLogin &&
+          !passwordIsValid
+      ) {
+          setError(
+              'Please complete every password requirement.'
+          );
+
+          return;
+      }
+
+      if (
+          isLogin &&
+          !formData.password
+      ) {
+          setError(
+              'Password is required.'
+          );
+
+          return;
+      }
 
     setLoading(true);
 
@@ -64,33 +110,20 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
 
       const result = await response.json();
 
-      if (response.ok) {
-        if (isLogin) {
-          setSuccess('Welcome back!');
-          // Passes the C# result (id, userName, email) back to App.tsx
-          setTimeout(() => {
-              const pendingOnboardingEmail = localStorage.getItem('picabilityPendingOnboardingEmail');
-              const shouldShowOnboarding =
-                  pendingOnboardingEmail &&
-                  pendingOnboardingEmail.toLowerCase() === result.email?.toLowerCase();
+        if (response.ok) {
+            setSuccess(
+                isLogin
+                    ? 'Welcome back!'
+                    : 'Account created!'
+            );
 
-              if (shouldShowOnboarding) {
-                  localStorage.removeItem('picabilityPendingOnboardingEmail');
-              }
-
-              onSuccess(result, !!shouldShowOnboarding);
-          }, 1000);
+            window.setTimeout(() => {
+                onSuccess(
+                    result,
+                    !isLogin
+                );
+            }, 600);
         } else {
-          setSuccess('Account created! Please sign in.');
-          localStorage.setItem('picabilityPendingOnboardingEmail', formData.email);
-          setFormData({ username: '', email: formData.email, password: '' });
-
-          setTimeout(() => {
-            setIsLogin(true); 
-            setSuccess('');   
-          }, 2500);
-        }
-      } else {
         // Identity sometimes returns an array of error objects
         const errorMsg = Array.isArray(result) 
           ? result[0].description 
@@ -144,7 +177,49 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
                     value={formData.username}
                     onChange={(e) => setFormData({...formData, username: e.target.value})}
                   />
-                </div>
+                              </div>
+
+                              {!isLogin && (
+                                  <div
+                                      className={`mt-3 rounded-2xl px-4 py-3 ${isDark
+                                              ? 'bg-slate-900/60'
+                                              : 'bg-slate-50'
+                                          }`}
+                                  >
+                                      <p
+                                          className={`text-xs font-semibold mb-2 ${isDark
+                                                  ? 'text-slate-300'
+                                                  : 'text-slate-600'
+                                              }`}
+                                      >
+                                          Password must include:
+                                      </p>
+
+                                      <div className="space-y-1.5">
+                                          {passwordRequirements.map(
+                                              requirement => (
+                                                  <div
+                                                      key={
+                                                          requirement.label
+                                                      }
+                                                      className={`flex items-center gap-2 text-xs ${requirement.met
+                                                              ? 'text-emerald-500'
+                                                              : isDark
+                                                                  ? 'text-slate-500'
+                                                                  : 'text-slate-500'
+                                                          }`}
+                                                  >
+                                                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+
+                                                      <span>
+                                                          {requirement.label}
+                                                      </span>
+                                                  </div>
+                                              )
+                                          )}
+                                      </div>
+                                  </div>
+                              )}
               </div>
             )}
 

@@ -132,6 +132,10 @@ export default function App() {
     const [friendsRefreshKey, setFriendsRefreshKey] = useState(0);
     const submittingContentStreakIds = useRef<Set<number>>(new Set());
     const processingStreakRequestIds = useRef<Set<number>>(new Set());
+    const [
+        isCreatingStreakRequest,
+        setIsCreatingStreakRequest
+    ] = useState(false);
 
     const fetchStreaks = async () => {
         if (!user) return;
@@ -1678,18 +1682,25 @@ export default function App() {
         }
     };
 
-    const handleConfirmConfig = async (config: HabitConfiguration) => {
-        if (!user) {
+    const handleConfirmConfig = async (
+        config: HabitConfiguration
+    ) => {
+        if (
+            !user ||
+            isCreatingStreakRequest
+        ) {
             return;
         }
 
         if (
             config.IsGroupRequest &&
-            (!config.participantIds ||
-                config.participantIds.length < 2)
+            (
+                !config.participantIds ||
+                config.participantIds.length < 2
+            )
         ) {
             alert(
-                "Please select at least two friends for the group streak."
+                'Please select at least two friends for the group streak.'
             );
 
             return;
@@ -1701,108 +1712,148 @@ export default function App() {
             !config.friendId
         ) {
             alert(
-                "Please select a friend before starting the streak."
+                'Please select a friend before starting the streak.'
             );
 
             return;
         }
 
+        setIsCreatingStreakRequest(
+            true
+        );
+
         try {
-            const response = await fetch(`${BASE_URL}/api/StreakRequests`, {
-                method: 'POST',
-                headers: getAuthHeaders(user.token),
-                body: JSON.stringify({
-                    senderId: user.id,
+            const response = await fetch(
+                `${BASE_URL}/api/StreakRequests`,
+                {
+                    method: 'POST',
 
-                    receiverId:
-                        config.IsGroupRequest ||
-                            config.IsStreakyRequest
-                            ? ''
-                            : config.friendId,
+                    headers:
+                        getAuthHeaders(
+                            user.token
+                        ),
 
-                    receiverIds:
-                        config.IsGroupRequest
-                            ? config.participantIds
-                            : [],
+                    body: JSON.stringify({
+                        clientRequestId:
+                            config.ClientRequestId,
 
-                    isGroupRequest:
-                        config.IsGroupRequest === true,
+                        senderId:
+                            user.id,
 
-                    isStreakyRequest:
-                        config.IsStreakyRequest === true,
+                        receiverId:
+                            config.IsGroupRequest ||
+                                config.IsStreakyRequest
+                                ? ''
+                                : config.friendId,
 
-                    habitName:
-                        config.HabitName,
+                        receiverIds:
+                            config.IsGroupRequest
+                                ? config.participantIds
+                                : [],
 
-                    habitIcon:
-                        config.HabitIcon,
+                        isGroupRequest:
+                            config.IsGroupRequest ===
+                            true,
 
-                    color:
-                        config.Color,
+                        isStreakyRequest:
+                            config.IsStreakyRequest ===
+                            true,
 
-                    requiredCheckIns:
-                        config.RequiredCheckIns,
+                        habitName:
+                            config.HabitName,
 
-                    cycleLength:
-                        config.CycleLength,
+                        habitIcon:
+                            config.HabitIcon,
 
-                    cycleUnit:
-                        config.CycleUnit
-                })
-            });
+                        color:
+                            config.Color,
 
-            if (response.ok) {
-                if (config.IsStreakyRequest) {
-                    await Promise.all([
-                        fetchStreaks(),
-                        fetchSentStreakRequests()
-                    ]);
+                        requiredCheckIns:
+                            config.RequiredCheckIns,
 
-                    setDraftHabitConfig(null);
-                    setPreSelectedFriend(null);
-                    setSelectedGroupFriends([]);
-                    setIsSelectingGroupFriends(false);
-                    setCurrentScreen('tracker');
-                    setMobileTab('tracker');
+                        cycleLength:
+                            config.CycleLength,
 
-                    return;
+                        cycleUnit:
+                            config.CycleUnit
+                    })
                 }
+            );
 
-                const recipients =
-                    config.IsGroupRequest
-                        ? selectedGroupFriends
-                        : preSelectedFriend
-                            ? [preSelectedFriend]
-                            : [];
-
-                setLastRequestConfig({
-                    recipients,
-                    habitName:
-                        config.HabitName
-                });
-
-                await fetchSentStreakRequests();
-
-                setCurrentScreen(
-                    'confirmation'
+            const contentType =
+                response.headers.get(
+                    'content-type'
                 );
 
-                setDraftHabitConfig(null);
-            } else {
-                const contentType = response.headers.get("content-type");
-                let errorMessage = "Failed to send streak request";
+            const result =
+                contentType?.includes(
+                    'application/json'
+                )
+                    ? await response.json()
+                    : await response.text();
 
-                if (contentType && contentType.includes("application/json")) {
-                    const errData = await response.json();
-                    errorMessage = errData || "Failed to send streak request";
-                } else {
-                    errorMessage = await response.text();
-                }
-                alert(errorMessage);
+            if (!response.ok) {
+                const message =
+                    typeof result === 'string'
+                        ? result
+                        : result.message ??
+                        result.title ??
+                        'Failed to create the streak.';
+
+                alert(message);
+                return;
             }
-        } catch (err) {
-            console.error("Error sending streak request:", err);
-            alert("Network error. Please check if your backend is running and CORS is enabled.");
+
+            if (config.IsStreakyRequest) {
+                await Promise.all([
+                    fetchStreaks(),
+                    fetchSentStreakRequests()
+                ]);
+
+                setDraftHabitConfig(null);
+                setPreSelectedFriend(null);
+                setSelectedGroupFriends([]);
+                setIsSelectingGroupFriends(false);
+                setIsSelectingFriendForStreak(false);
+                setCurrentScreen('tracker');
+                setMobileTab('tracker');
+
+                return;
+            }
+
+            const recipients =
+                config.IsGroupRequest
+                    ? selectedGroupFriends
+                    : preSelectedFriend
+                        ? [preSelectedFriend]
+                        : [];
+
+            setLastRequestConfig({
+                recipients,
+                habitName:
+                    config.HabitName
+            });
+
+            await fetchSentStreakRequests();
+
+            setCurrentScreen(
+                'confirmation'
+            );
+
+            setDraftHabitConfig(null);
+        } catch (error) {
+            console.error(
+                'Error creating streak request:',
+                error
+            );
+
+            alert(
+                'Network error while creating the streak. Please try again.'
+            );
+        } finally {
+            setIsCreatingStreakRequest(
+                false
+            );
         }
     };
 
@@ -2068,6 +2119,9 @@ export default function App() {
                 setMobileTab('friends');
             }}
             onConfirm={handleConfirmConfig}
+            isSubmitting={
+                isCreatingStreakRequest
+            }
             habitType={
                 selectedHabitType ||
                 undefined

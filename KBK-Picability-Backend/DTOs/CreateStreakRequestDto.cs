@@ -4,6 +4,10 @@
     {
         public string SenderId { get; set; } = string.Empty;
 
+        // Stable identifier generated once by the creation form.
+        // Repeated submissions with this value return the original result.
+        public string ClientRequestId { get; set; } = string.Empty;
+
         // Existing standard 2-person streak flow.
         public string ReceiverId { get; set; } = string.Empty;
 
