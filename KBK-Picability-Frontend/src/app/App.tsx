@@ -1200,11 +1200,15 @@ export default function App() {
             return;
         }
 
+        const streakyUserId =
+            'picability-system-streaky';
+
         const groupReceiverIds =
             (streak.members ?? [])
                 .filter(member =>
                     !member.isCurrentUser &&
-                    member.userId !== user.id
+                    member.userId !== user.id &&
+                    member.userId !== streakyUserId
                 )
                 .map(member =>
                     member.userId
@@ -1221,9 +1225,21 @@ export default function App() {
                         ) === index
                 );
 
+        const isStreakyRestart =
+            streak.partnerId ===
+            streakyUserId ||
+            (streak.members ?? []).some(
+                member =>
+                    member.userId ===
+                    streakyUserId
+            );
+
         const isGroupRestart =
-            streak.isGroupStreak === true ||
-            groupReceiverIds.length > 1;
+            !isStreakyRestart &&
+            (
+                streak.isGroupStreak === true ||
+                groupReceiverIds.length > 1
+            );
 
         if (
             isGroupRestart &&
@@ -1237,6 +1253,7 @@ export default function App() {
         }
 
         if (
+            !isStreakyRestart &&
             !isGroupRestart &&
             !streak.partnerId
         ) {
@@ -1247,22 +1264,29 @@ export default function App() {
             return;
         }
 
+        const clientRequestId =
+            crypto.randomUUID();
+
         try {
             const response = await fetch(
                 `${BASE_URL}/api/StreakRequests`,
                 {
                     method: 'POST',
+
                     headers:
                         getAuthHeaders(
                             user.token
                         ),
 
                     body: JSON.stringify({
+                        clientRequestId,
+
                         senderId:
                             user.id,
 
                         receiverId:
-                            isGroupRestart
+                            isGroupRestart ||
+                                isStreakyRestart
                                 ? ''
                                 : streak.partnerId,
 
@@ -1273,6 +1297,9 @@ export default function App() {
 
                         isGroupRequest:
                             isGroupRestart,
+
+                        isStreakyRequest:
+                            isStreakyRestart,
 
                         habitName:
                             streak.habitName,
@@ -1326,6 +1353,14 @@ export default function App() {
                 fetchStreaks(),
                 fetchSentStreakRequests()
             ]);
+
+            if (isStreakyRestart) {
+                alert(
+                    'Your Streaky streak has restarted!'
+                );
+
+                return;
+            }
 
             alert(
                 isGroupRestart
