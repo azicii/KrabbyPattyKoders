@@ -8,6 +8,30 @@ import './styles/index.css';
 
 let updateInProgress = false;
 
+let serviceWorkerRegistration:
+    ServiceWorkerRegistration |
+    undefined;
+
+const requestServiceWorkerUpdate =
+    async () => {
+        if (
+            !serviceWorkerRegistration ||
+            !navigator.onLine
+        ) {
+            return;
+        }
+
+        try {
+            await serviceWorkerRegistration
+                .update();
+        } catch (error) {
+            console.error(
+                'Picability update check failed:',
+                error
+            );
+        }
+    };
+
 const updateServiceWorker = registerSW({
     immediate: true,
 
@@ -19,8 +43,8 @@ const updateServiceWorker = registerSW({
         updateInProgress = true;
 
         /*
-         * Activate the newly downloaded service worker.
-         * The reload happens after the worker takes control.
+         * Activate the downloaded version and reload the
+         * current page onto the new application bundle.
          */
         void updateServiceWorker(true);
     },
@@ -40,18 +64,25 @@ const updateServiceWorker = registerSW({
             serviceWorkerUrl
         );
 
+        serviceWorkerRegistration =
+            registration;
+
         if (!registration) {
             return;
         }
 
         /*
-         * Check periodically while the browser tab remains
-         * open so desktop users do not remain on an old
-         * JavaScript bundle indefinitely.
+         * Check as soon as registration is available.
+         */
+        void requestServiceWorkerUpdate();
+
+        /*
+         * Check every fifteen minutes while Picability
+         * remains open.
          */
         window.setInterval(() => {
-            void registration.update();
-        }, 60 * 60 * 1000);
+            void requestServiceWorkerUpdate();
+        }, 15 * 60 * 1000);
     },
 
     onRegisterError(error) {
@@ -61,6 +92,43 @@ const updateServiceWorker = registerSW({
         );
     }
 });
+
+/*
+ * Check whenever the user returns to Picability after
+ * using another application or browser tab.
+ */
+document.addEventListener(
+    'visibilitychange',
+    () => {
+        if (
+            document.visibilityState ===
+            'visible'
+        ) {
+            void requestServiceWorkerUpdate();
+        }
+    }
+);
+
+/*
+ * Desktop browsers commonly fire focus when a user
+ * returns to an existing Picability tab.
+ */
+window.addEventListener(
+    'focus',
+    () => {
+        void requestServiceWorkerUpdate();
+    }
+);
+
+/*
+ * Retry when the device regains an internet connection.
+ */
+window.addEventListener(
+    'online',
+    () => {
+        void requestServiceWorkerUpdate();
+    }
+);
 
 createRoot(
     document.getElementById('root')!

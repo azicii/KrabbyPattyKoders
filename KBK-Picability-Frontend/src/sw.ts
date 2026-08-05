@@ -1,11 +1,38 @@
 ﻿/// <reference lib="webworker" />
 
-import { precacheAndRoute } from 'workbox-precaching';
-import { markPushRefreshRequired } from './pushRefreshStore';
+import {
+    clientsClaim
+} from 'workbox-core';
+import {
+    cleanupOutdatedCaches,
+    precacheAndRoute
+} from 'workbox-precaching';
+import {
+    markPushRefreshRequired
+} from './pushRefreshStore';
 
 declare const self: ServiceWorkerGlobalScope;
 
-precacheAndRoute(self.__WB_MANIFEST);
+/*
+ * Activate new Picability versions immediately instead of
+ * waiting for every existing browser tab to close.
+ */
+self.skipWaiting();
+
+/*
+ * Allow the newly activated worker to control currently
+ * open Picability pages immediately.
+ */
+clientsClaim();
+
+/*
+ * Remove precache data left behind by older deployments.
+ */
+cleanupOutdatedCaches();
+
+precacheAndRoute(
+    self.__WB_MANIFEST
+);
 
 self.addEventListener('push', (event) => {
     const data = event.data?.json() ?? {};
