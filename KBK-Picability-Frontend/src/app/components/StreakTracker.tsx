@@ -1383,12 +1383,7 @@ export function StreakTracker({
                                             }`}
                                     >
                                         <div className="flex flex-col gap-4">
-                                            <div
-                                                className={`flex gap-4 min-w-0 ${request.isGroupRequest
-                                                        ? 'items-stretch'
-                                                        : 'items-start'
-                                                    }`}
-                                            >
+                                            <div className="flex items-start gap-4 min-w-0">
                                                 <div
                                                     className={`flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br ${invite.color ||
                                                         'from-teal-500 to-cyan-600'
@@ -1397,12 +1392,7 @@ export function StreakTracker({
                                                     <IconComponent className="w-8 h-8 text-white" />
                                                 </div>
 
-                                                <div
-                                                    className={`min-w-0 flex-1 ${request.isGroupRequest
-                                                            ? 'flex flex-col'
-                                                            : ''
-                                                        }`}
-                                                >
+                                                <div className="min-w-0 flex-1">
                                                     <h3
                                                         className={`text-lg font-semibold leading-tight whitespace-normal break-words ${isDark
                                                                 ? 'text-slate-100'
@@ -1554,7 +1544,7 @@ export function StreakTracker({
                                                 : 'bg-white border-slate-200'
                                             }`}
                                     >
-                                        <div className="flex items-start gap-4 min-w-0">
+                                        <div className="grid grid-cols-[4rem_minmax(0,1fr)] gap-x-4 gap-y-4 sm:grid-cols-[4rem_minmax(0,1fr)_auto] sm:items-stretch">
                                             <div
                                                 className={`flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br ${request.color ||
                                                     'from-slate-500 to-slate-600'
@@ -1665,11 +1655,10 @@ export function StreakTracker({
                                             </div>
 
                                             <div
-                                                className={
-                                                    request.isGroupRequest
-                                                        ? 'ml-auto flex shrink-0 items-center gap-3 self-end'
-                                                        : 'ml-auto flex shrink-0 items-center gap-3 self-center'
-                                                }
+                                                className={`col-span-2 flex items-center justify-end gap-3 sm:col-span-1 sm:col-start-3 sm:row-start-1 ${request.isGroupRequest
+                                                        ? 'sm:self-end'
+                                                        : 'sm:self-center'
+                                                    }`}
                                             >
                                                 <div
                                                     className={`inline-flex h-10 items-center justify-center px-5 rounded-2xl text-sm font-bold ${isDark
