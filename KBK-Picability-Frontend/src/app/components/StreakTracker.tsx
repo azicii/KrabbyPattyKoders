@@ -1544,13 +1544,16 @@ export function StreakTracker({
                                                 : 'bg-white border-slate-200'
                                             }`}
                                     >
-                                        <div className="flex flex-col gap-4">
-                                            <div className="flex items-start gap-4 min-w-0">
-                                                <div className={`flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br ${request.color || 'from-slate-500 to-slate-600'} shadow-lg opacity-80`}>
-                                                    <IconComponent className="w-8 h-8 text-white" />
-                                                </div>
+                                        <div className="flex items-start gap-4 min-w-0">
+                                            <div
+                                                className={`flex items-center justify-center w-16 h-16 min-w-[4rem] min-h-[4rem] shrink-0 rounded-2xl bg-gradient-to-br ${request.color ||
+                                                    'from-slate-500 to-slate-600'
+                                                    } shadow-lg opacity-80`}
+                                            >
+                                                <IconComponent className="w-8 h-8 text-white" />
+                                            </div>
 
-                                                <div className="min-w-0 flex-1">
+                                            <div className="min-w-0 flex-1">
                                                     <h3 className={`text-lg font-semibold leading-tight whitespace-normal break-words ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                                                         {request.habitName}
                                                     </h3>
@@ -1640,19 +1643,18 @@ export function StreakTracker({
                                                         )}
                                                     </div>
 
-                                                    <p className="text-xs text-amber-500 font-semibold mt-2">
-                                                        {request.isGroupRequest
-                                                            ? `${request.members?.filter(
-                                                                (member: any) =>
-                                                                    member.status === 'Pending'
-                                                            ).length ?? 0
-                                                            } awaiting response`
-                                                            : 'Pending response ⏳'}
-                                                    </p>
-                                                </div>
+                                                <p className="text-xs text-amber-500 font-semibold mt-2">
+                                                    {request.isGroupRequest
+                                                        ? `${request.members?.filter(
+                                                            (member: any) =>
+                                                                member.status === 'Pending'
+                                                        ).length ?? 0
+                                                        } awaiting response`
+                                                        : 'Pending response ⏳'}
+                                                </p>
                                             </div>
 
-                                            <div className="flex items-center justify-end gap-3">
+                                            <div className="ml-auto flex shrink-0 items-center gap-3 self-center">
                                                 <div
                                                     className={`inline-flex h-10 items-center justify-center px-5 rounded-2xl text-sm font-bold ${isDark
                                                             ? 'bg-slate-700 text-slate-300'
