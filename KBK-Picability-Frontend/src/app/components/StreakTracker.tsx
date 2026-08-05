@@ -3583,7 +3583,7 @@ export function StreakTracker({
                                 </button>
                             </div>
                         </div>
-                    </div>,g
+                    </div>,
                     document.body
                 )}
 
