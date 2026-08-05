@@ -1653,13 +1653,13 @@ export function StreakTracker({
                                             </div>
 
                                             <div
-                                                className={`flex items-center justify-between gap-3 pt-4 border-t ${isDark
+                                                className={`flex items-center justify-end gap-3 pt-4 border-t ${isDark
                                                         ? 'border-slate-700/70'
                                                         : 'border-slate-200'
                                                     }`}
                                             >
                                                 <div
-                                                    className={`px-4 py-2 rounded-2xl text-sm font-bold ${isDark
+                                                    className={`inline-flex h-10 items-center justify-center px-5 rounded-2xl text-sm font-bold ${isDark
                                                             ? 'bg-slate-700 text-slate-300'
                                                             : 'bg-slate-100 text-slate-600'
                                                         }`}
@@ -1674,7 +1674,7 @@ export function StreakTracker({
                                                             request
                                                         )
                                                     }
-                                                    className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-sm shrink-0"
+                                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-rose-500/20 bg-rose-500/10 text-rose-500 shadow-sm transition-all hover:bg-rose-500 hover:text-white"
                                                     title="Cancel pending streak request"
                                                     aria-label="Cancel pending streak request"
                                                 >
@@ -3583,7 +3583,7 @@ export function StreakTracker({
                                 </button>
                             </div>
                         </div>
-                    </div>,
+                    </div>,g
                     document.body
                 )}
 
