@@ -1652,12 +1652,7 @@ export function StreakTracker({
                                                 </div>
                                             </div>
 
-                                            <div
-                                                className={`flex items-center justify-end gap-3 pt-4 border-t ${isDark
-                                                        ? 'border-slate-700/70'
-                                                        : 'border-slate-200'
-                                                    }`}
-                                            >
+                                            <div className="flex items-center justify-end gap-3">
                                                 <div
                                                     className={`inline-flex h-10 items-center justify-center px-5 rounded-2xl text-sm font-bold ${isDark
                                                             ? 'bg-slate-700 text-slate-300'
