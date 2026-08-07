@@ -1,6 +1,8 @@
 ﻿import {
     ArrowLeft,
     CalendarDays,
+    MessageCircle,
+    Send,
     Users,
     X
 } from 'lucide-react';
@@ -24,6 +26,15 @@ interface FailedPublicFeedMember {
     userName: string;
     checkInCount?: number;
     requiredCheckIns?: number;
+}
+
+interface PublicFeedComment {
+    id: number;
+    streakId: number;
+    userId: string;
+    userName: string;
+    text: string;
+    createdAt: string;
 }
 
 export interface PublicFeedItem {
@@ -64,6 +75,9 @@ export interface PublicFeedItem {
     reactionEmoji?: string;
     reactionCount?: number;
     currentUserReacted?: boolean;
+
+    commentCount?: number;
+    previewComment?: PublicFeedComment | null;
 }
 
 interface PublicFeedProps {
@@ -363,6 +377,31 @@ export function PublicFeed({
         setReactionModal
     ] = useState<any | null>(null);
 
+    const [
+        expandedCommentsStreakId,
+        setExpandedCommentsStreakId
+    ] = useState<number | null>(null);
+
+    const [
+        comments,
+        setComments
+    ] = useState<PublicFeedComment[]>([]);
+
+    const [
+        commentDraft,
+        setCommentDraft
+    ] = useState('');
+
+    const [
+        loadingComments,
+        setLoadingComments
+    ] = useState(false);
+
+    const [
+        submittingComment,
+        setSubmittingComment
+    ] = useState(false);
+
     const getToken = () => {
         const savedUser =
             localStorage.getItem(
@@ -478,6 +517,208 @@ export function PublicFeed({
                 'Reaction list request failed:',
                 error
             );
+        }
+    };
+
+    const toggleComments = async (
+        item: PublicFeedItem
+    ) => {
+        if (
+            expandedCommentsStreakId ===
+            item.id
+        ) {
+            setExpandedCommentsStreakId(
+                null
+            );
+
+            setComments([]);
+            setCommentDraft('');
+            return;
+        }
+
+        setExpandedCommentsStreakId(
+            item.id
+        );
+
+        setCommentDraft('');
+
+        const commentCount =
+            item.commentCount ?? 0;
+
+        if (commentCount === 0) {
+            setComments([]);
+            return;
+        }
+
+        if (
+            commentCount === 1 &&
+            item.previewComment
+        ) {
+            setComments([
+                item.previewComment
+            ]);
+
+            return;
+        }
+
+        const token =
+            getToken();
+
+        if (!token) {
+            return;
+        }
+
+        try {
+            setLoadingComments(true);
+
+            const response =
+                await fetch(
+                    `${BASE_URL}/api/Streaks/${item.id}/comments`,
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+
+            if (!response.ok) {
+                console.error(
+                    'Could not load comments.',
+                    await response.text()
+                );
+
+                return;
+            }
+
+            const data =
+                await response.json();
+
+            setComments(data);
+        } catch (error) {
+            console.error(
+                'Comment loading failed:',
+                error
+            );
+        } finally {
+            setLoadingComments(false);
+        }
+    };
+
+    const submitComment = async (
+        streakId: number
+    ) => {
+        const text =
+            commentDraft.trim();
+
+        if (
+            !text ||
+            submittingComment
+        ) {
+            return;
+        }
+
+        const token =
+            getToken();
+
+        if (!token) {
+            return;
+        }
+
+        try {
+            setSubmittingComment(true);
+
+            const response =
+                await fetch(
+                    `${BASE_URL}/api/Streaks/${streakId}/comments`,
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json',
+
+                            Authorization:
+                                `Bearer ${token}`
+                        },
+
+                        body: JSON.stringify({
+                            text
+                        })
+                    }
+                );
+
+            const contentType =
+                response.headers.get(
+                    'content-type'
+                );
+
+            const result =
+                contentType?.includes(
+                    'application/json'
+                )
+                    ? await response.json()
+                    : await response.text();
+
+            if (!response.ok) {
+                const message =
+                    typeof result ===
+                        'string'
+                        ? result
+                        : result.message ??
+                        'Could not post comment.';
+
+                alert(message);
+                return;
+            }
+
+            const newComment =
+                result as PublicFeedComment;
+
+            setComments(current => [
+                ...current,
+                newComment
+            ]);
+
+            setCommentDraft('');
+
+            setFeedItems(currentItems =>
+                currentItems.map(item => {
+                    if (
+                        item.id !==
+                        streakId
+                    ) {
+                        return item;
+                    }
+
+                    const newCount =
+                        (item.commentCount ??
+                            0) + 1;
+
+                    return {
+                        ...item,
+
+                        commentCount:
+                            newCount,
+
+                        previewComment:
+                            newCount === 1
+                                ? newComment
+                                : null
+                    };
+                })
+            );
+        } catch (error) {
+            console.error(
+                'Comment submission failed:',
+                error
+            );
+
+            alert(
+                'Network error while posting comment.'
+            );
+        } finally {
+            setSubmittingComment(false);
         }
     };
 
@@ -824,7 +1065,199 @@ export function PublicFeed({
                                             {item.reactionCount}
                                         </button>
                                     )}
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        void toggleComments(
+                                            item
+                                        )
+                                    }
+                                    className={`ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold transition-all ${expandedCommentsStreakId ===
+                                            item.id
+                                            ? isDark
+                                                ? 'bg-slate-700 text-slate-100'
+                                                : 'bg-slate-200 text-slate-800'
+                                            : isDark
+                                                ? 'text-slate-400 hover:bg-slate-700/50'
+                                                : 'text-slate-500 hover:bg-slate-100'
+                                        }`}
+                                >
+                                    <MessageCircle className="w-4 h-4" />
+
+                                    {(item.commentCount ?? 0) === 0
+                                        ? 'Comment'
+                                        : (item.commentCount ?? 0) === 1
+                                            ? '1 comment'
+                                            : `${item.commentCount} comments`}
+                                </button>
                             </div>
+
+                            {(item.commentCount ?? 0) === 1 &&
+                                item.previewComment &&
+                                expandedCommentsStreakId !==
+                                item.id && (
+                                    <div
+                                        className={`mt-3 rounded-2xl px-4 py-3 ${isDark
+                                                ? 'bg-slate-900/35'
+                                                : 'bg-slate-50'
+                                            }`}
+                                    >
+                                        <div className="flex items-baseline gap-2 min-w-0">
+                                            <span
+                                                className={`text-sm font-semibold shrink-0 ${isDark
+                                                        ? 'text-slate-200'
+                                                        : 'text-slate-800'
+                                                    }`}
+                                            >
+                                                {
+                                                    item.previewComment
+                                                        .userName
+                                                }
+                                            </span>
+
+                                            <span
+                                                className={`text-sm break-words min-w-0 ${isDark
+                                                        ? 'text-slate-400'
+                                                        : 'text-slate-600'
+                                                    }`}
+                                            >
+                                                {
+                                                    item.previewComment
+                                                        .text
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                            {expandedCommentsStreakId ===
+                                item.id && (
+                                    <div
+                                        className={`mt-3 rounded-2xl border p-4 ${isDark
+                                                ? 'bg-slate-900/35 border-slate-700/60'
+                                                : 'bg-slate-50 border-slate-200'
+                                            }`}
+                                    >
+                                        {loadingComments ? (
+                                            <p className="text-sm text-slate-500">
+                                                Loading comments...
+                                            </p>
+                                        ) : comments.length > 0 ? (
+                                            <div className="space-y-3 mb-4">
+                                                {comments.map(
+                                                    comment => (
+                                                        <div
+                                                            key={
+                                                                comment.id
+                                                            }
+                                                            className="flex gap-3"
+                                                        >
+                                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 text-xs font-bold text-white">
+                                                                {comment.userName
+                                                                    .substring(
+                                                                        0,
+                                                                        2
+                                                                    )
+                                                                    .toUpperCase()}
+                                                            </div>
+
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex flex-wrap items-baseline gap-x-2">
+                                                                    <span
+                                                                        className={`text-sm font-semibold ${isDark
+                                                                                ? 'text-slate-200'
+                                                                                : 'text-slate-800'
+                                                                            }`}
+                                                                    >
+                                                                        {
+                                                                            comment.userName
+                                                                        }
+                                                                    </span>
+
+                                                                    <span className="text-xs text-slate-500">
+                                                                        {new Date(
+                                                                            comment.createdAt
+                                                                        ).toLocaleString(
+                                                                            undefined,
+                                                                            {
+                                                                                month:
+                                                                                    'short',
+
+                                                                                day:
+                                                                                    'numeric',
+
+                                                                                hour:
+                                                                                    'numeric',
+
+                                                                                minute:
+                                                                                    '2-digit'
+                                                                            }
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+
+                                                                <p
+                                                                    className={`text-sm mt-1 whitespace-pre-wrap break-words ${isDark
+                                                                            ? 'text-slate-400'
+                                                                            : 'text-slate-600'
+                                                                        }`}
+                                                                >
+                                                                    {
+                                                                        comment.text
+                                                                    }
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-slate-500 mb-4">
+                                                No comments yet.
+                                            </p>
+                                        )}
+
+                                        <div className="flex items-end gap-2">
+                                            <textarea
+                                                value={commentDraft}
+                                                onChange={event =>
+                                                    setCommentDraft(
+                                                        event.target.value
+                                                    )
+                                                }
+                                                maxLength={500}
+                                                rows={1}
+                                                placeholder="Add a comment..."
+                                                className={`min-h-11 max-h-32 flex-1 resize-y rounded-2xl px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-teal-500 ${isDark
+                                                        ? 'bg-slate-800 text-slate-100 placeholder:text-slate-500'
+                                                        : 'bg-white text-slate-800 placeholder:text-slate-400'
+                                                    }`}
+                                            />
+
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    void submitComment(
+                                                        item.id
+                                                    )
+                                                }
+                                                disabled={
+                                                    submittingComment ||
+                                                    !commentDraft.trim()
+                                                }
+                                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-teal-600 text-white transition-all hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40"
+                                                aria-label="Post comment"
+                                            >
+                                                <Send className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        <div className="mt-1 text-right text-[11px] text-slate-500">
+                                            {commentDraft.length}/500
+                                        </div>
+                                    </div>
+                                )}
                         </article>
                     );
                 })}

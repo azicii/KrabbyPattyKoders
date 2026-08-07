@@ -27,7 +27,74 @@ namespace Picability.Controllers
 
         private string? GetCurrentUserId()
         {
-            return User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return User.FindFirstValue(
+                ClaimTypes.NameIdentifier
+            );
+        }
+
+        private async Task<bool>
+            CanAccessStreakSocialActivityAsync(
+                Streak streak,
+                string currentUserId)
+        {
+            var isParticipant =
+                streak.Members.Any(member =>
+                    member.UserId == currentUserId
+                ) ||
+                streak.UserOneId == currentUserId ||
+                streak.UserTwoId == currentUserId;
+
+            if (isParticipant)
+            {
+                return true;
+            }
+
+            var friendIds =
+                await _context.FriendRequests
+                    .Where(friendRequest =>
+                        friendRequest.Status ==
+                            "Accepted" &&
+                        (
+                            friendRequest.SenderId ==
+                                currentUserId ||
+                            friendRequest.ReceiverId ==
+                                currentUserId
+                        )
+                    )
+                    .Select(friendRequest =>
+                        friendRequest.SenderId ==
+                            currentUserId
+                            ? friendRequest.ReceiverId
+                            : friendRequest.SenderId
+                    )
+                    .Distinct()
+                    .ToListAsync();
+
+            var canSeeModernPublicStreak =
+                streak.Members.Any(member =>
+                    friendIds.Contains(
+                        member.UserId
+                    ) &&
+                    member.VisibilityPublic
+                );
+
+            var canSeeLegacyPublicStreak =
+                (
+                    friendIds.Contains(
+                        streak.UserOneId
+                    ) &&
+                    streak.UserOneVisibilityPublic
+                ) ||
+                (
+                    friendIds.Contains(
+                        streak.UserTwoId
+                    ) &&
+                    streak.UserTwoVisibilityPublic
+                );
+
+            return
+                canSeeModernPublicStreak ||
+                canSeeLegacyPublicStreak;
         }
 
         private static TimeZoneInfo GetPacificTimeZone()
@@ -1039,10 +1106,80 @@ namespace Picability.Controllers
                 .ToList();
 
             var reactions = await _context.StreakReactions
-                .Where(reaction =>
-                    streakIds.Contains(reaction.StreakId)
-                )
-                .ToListAsync();
+    .Where(reaction =>
+        streakIds.Contains(
+            reaction.StreakId
+        )
+    )
+    .ToListAsync();
+
+            var commentCounts =
+                await _context.StreakComments
+                    .Where(comment =>
+                        streakIds.Contains(
+                            comment.StreakId
+                        )
+                    )
+                    .GroupBy(comment =>
+                        comment.StreakId
+                    )
+                    .Select(group =>
+                        new
+                        {
+                            StreakId =
+                                group.Key,
+
+                            Count =
+                                group.Count()
+                        }
+                    )
+                    .ToDictionaryAsync(
+                        item =>
+                            item.StreakId,
+                        item =>
+                            item.Count
+                    );
+
+            var singleCommentStreakIds =
+                commentCounts
+                    .Where(pair =>
+                        pair.Value == 1
+                    )
+                    .Select(pair =>
+                        pair.Key
+                    )
+                    .ToList();
+
+            var singleComments =
+                await _context.StreakComments
+                    .AsNoTracking()
+                    .Include(comment =>
+                        comment.User
+                    )
+                    .Where(comment =>
+                        singleCommentStreakIds.Contains(
+                            comment.StreakId
+                        )
+                    )
+                    .Select(comment =>
+                        new
+                        {
+                            comment.Id,
+                            comment.StreakId,
+                            comment.UserId,
+
+                            UserName =
+                                comment.User.UserName ??
+                                "Unknown user",
+
+                            comment.Text,
+                            comment.CreatedAt
+                        }
+                    )
+                    .ToDictionaryAsync(
+                        comment =>
+                            comment.StreakId
+                    );
 
             /*
              * Check-in history is required to determine exactly which members
@@ -1408,7 +1545,23 @@ namespace Picability.Controllers
                                 currentUserId &&
                             reaction.ReactionType ==
                                 reactionType
+                        ),
+
+                                        CommentCount =
+                        commentCounts.TryGetValue(
+                            streak.Id,
+                            out var commentCount
                         )
+                            ? commentCount
+                            : 0,
+
+                                        PreviewComment =
+                        singleComments.TryGetValue(
+                            streak.Id,
+                            out var singleComment
+                        )
+                            ? singleComment
+                            : null
                 });
             }
 
@@ -1427,6 +1580,205 @@ namespace Picability.Controllers
     .ToList();
 
             return Ok(orderedFeedItems);
+        }
+
+        public class CreateStreakCommentDto
+        {
+            public string Text { get; set; } =
+                string.Empty;
+        }
+
+        [HttpGet("{id}/comments")]
+        public async Task<IActionResult> GetComments(
+    int id)
+        {
+            var currentUserId =
+                GetCurrentUserId();
+
+            if (
+                string.IsNullOrWhiteSpace(
+                    currentUserId
+                )
+            )
+            {
+                return Unauthorized();
+            }
+
+            var streak =
+                await _context.Streaks
+                    .Include(streak =>
+                        streak.Members
+                    )
+                    .FirstOrDefaultAsync(streak =>
+                        streak.Id == id
+                    );
+
+            if (streak == null)
+            {
+                return NotFound(
+                    "Streak not found."
+                );
+            }
+
+            if (
+                !await CanAccessStreakSocialActivityAsync(
+                    streak,
+                    currentUserId
+                )
+            )
+            {
+                return Forbid();
+            }
+
+            var comments =
+                await _context.StreakComments
+                    .AsNoTracking()
+                    .Include(comment =>
+                        comment.User
+                    )
+                    .Where(comment =>
+                        comment.StreakId == id
+                    )
+                    .OrderBy(comment =>
+                        comment.CreatedAt
+                    )
+                    .Select(comment =>
+                        new
+                        {
+                            comment.Id,
+                            comment.StreakId,
+                            comment.UserId,
+
+                            UserName =
+                                comment.User.UserName ??
+                                "Unknown user",
+
+                            comment.Text,
+                            comment.CreatedAt
+                        }
+                    )
+                    .ToListAsync();
+
+            return Ok(comments);
+        }
+
+        [HttpPost("{id}/comments")]
+        public async Task<IActionResult> AddComment(
+            int id,
+            [FromBody]
+    CreateStreakCommentDto dto)
+        {
+            var currentUserId =
+                GetCurrentUserId();
+
+            if (
+                string.IsNullOrWhiteSpace(
+                    currentUserId
+                )
+            )
+            {
+                return Unauthorized();
+            }
+
+            var text =
+                dto.Text?.Trim();
+
+            if (
+                string.IsNullOrWhiteSpace(
+                    text
+                )
+            )
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Comment cannot be empty."
+                });
+            }
+
+            if (text.Length > 500)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Comments cannot exceed 500 characters."
+                });
+            }
+
+            var streak =
+                await _context.Streaks
+                    .Include(streak =>
+                        streak.Members
+                    )
+                    .FirstOrDefaultAsync(streak =>
+                        streak.Id == id
+                    );
+
+            if (streak == null)
+            {
+                return NotFound(
+                    "Streak not found."
+                );
+            }
+
+            if (
+                !await CanAccessStreakSocialActivityAsync(
+                    streak,
+                    currentUserId
+                )
+            )
+            {
+                return Forbid();
+            }
+
+            var currentUser =
+                await _context.Users
+                    .AsNoTracking()
+                    .Where(user =>
+                        user.Id == currentUserId
+                    )
+                    .Select(user =>
+                        new
+                        {
+                            user.Id,
+                            user.UserName
+                        }
+                    )
+                    .FirstOrDefaultAsync();
+
+            if (currentUser == null)
+            {
+                return Unauthorized();
+            }
+
+            var comment =
+                new StreakComment
+                {
+                    StreakId = id,
+                    UserId = currentUserId,
+                    Text = text,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+            _context.StreakComments.Add(
+                comment
+            );
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                comment.Id,
+                comment.StreakId,
+                comment.UserId,
+
+                UserName =
+                    currentUser.UserName ??
+                    "Unknown user",
+
+                comment.Text,
+                comment.CreatedAt
+            });
         }
 
         [HttpPost("{id}/react")]
@@ -1450,49 +1802,11 @@ namespace Picability.Controllers
                 return NotFound("Streak not found.");
             }
 
-            var friendIds = await _context.FriendRequests
-                .Where(friendRequest =>
-                    friendRequest.Status == "Accepted" &&
-                    (
-                        friendRequest.SenderId == currentUserId ||
-                        friendRequest.ReceiverId == currentUserId
-                    )
-                )
-                .Select(friendRequest =>
-                    friendRequest.SenderId == currentUserId
-                        ? friendRequest.ReceiverId
-                        : friendRequest.SenderId
-                )
-                .Distinct()
-                .ToListAsync();
-
-            var isParticipant =
-                streak.Members.Any(member =>
-                    member.UserId == currentUserId
-                ) ||
-                streak.UserOneId == currentUserId ||
-                streak.UserTwoId == currentUserId;
-
-            var canSeeModernPublicStreak =
-                streak.Members.Any(member =>
-                    friendIds.Contains(member.UserId) &&
-                    member.VisibilityPublic
-                );
-
-            var canSeeLegacyPublicStreak =
-                (
-                    friendIds.Contains(streak.UserOneId) &&
-                    streak.UserOneVisibilityPublic
-                ) ||
-                (
-                    friendIds.Contains(streak.UserTwoId) &&
-                    streak.UserTwoVisibilityPublic
-                );
-
             if (
-                !isParticipant &&
-                !canSeeModernPublicStreak &&
-                !canSeeLegacyPublicStreak
+                !await CanAccessStreakSocialActivityAsync(
+                    streak,
+                    currentUserId
+                )
             )
             {
                 return Forbid();
@@ -1585,14 +1899,32 @@ namespace Picability.Controllers
             }
 
             var streak = await _context.Streaks
-                .FirstOrDefaultAsync(s => s.Id == id);
+            .Include(streak => streak.Members)
+            .FirstOrDefaultAsync(streak =>
+                streak.Id == id
+            );
 
             if (streak == null)
             {
-                return NotFound("Streak not found.");
+                return NotFound(
+                    "Streak not found."
+                );
             }
 
-            var reactionType = streak.IsActive ? "FistBump" : "HeartBreak";
+            if (
+                !await CanAccessStreakSocialActivityAsync(
+                    streak,
+                    currentUserId
+                )
+            )
+            {
+                return Forbid();
+            }
+
+            var reactionType =
+                streak.IsActive
+                    ? "FistBump"
+                    : "HeartBreak";
 
             var reactions = await _context.StreakReactions
                 .Include(r => r.User)
