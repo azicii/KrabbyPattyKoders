@@ -162,6 +162,7 @@ export function StreakTracker({
     const [showPushPrompt, setShowPushPrompt] = useState(false);
     const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
     const [reminderSentId, setReminderSentId] = useState<number | null>(null);
+    const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
     const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
     const [
         visibilityHelpStreakId,
@@ -1167,11 +1168,59 @@ export function StreakTracker({
                             {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
                         </button>
 
-                        <button onClick={onLogout} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all border border-transparent hover:border-rose-500/30 ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
+                        <button
+                            onClick={() => setShowLogoutPrompt(true)} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all border border-transparent hover:border-rose-500/30 ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
                             <LogOut className="w-5 h-5 text-rose-500" />
                         </button>
                     </div>
                 </div>
+
+                {showLogoutPrompt && createPortal(
+                    <div className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div
+                            className={`w-full max-w-sm rounded-3xl p-6 shadow-2xl border ${isDark
+                                    ? 'bg-slate-900 border-slate-700 text-slate-100'
+                                    : 'bg-white border-slate-200 text-slate-800'
+                                }`}
+                        >
+                            <h2 className="text-xl font-bold mb-2">
+                                Log out?
+                            </h2>
+
+                            <p
+                                className={`text-sm mb-6 ${isDark
+                                        ? 'text-slate-400'
+                                        : 'text-slate-500'
+                                    }`}
+                            >
+                                Are you sure you want to log out?
+                            </p>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowLogoutPrompt(false)}
+                                    className={`flex-1 py-3 rounded-2xl font-semibold transition-all ${isDark
+                                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                        }`}
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        setShowLogoutPrompt(false);
+                                        onLogout();
+                                    }}
+                                    className="flex-1 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all"
+                                >
+                                    Log Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
 
                 {/* Streaks List */}
                 <div className="w-full max-w-2xl mx-auto space-y-4 mb-6 px-0 sm:px-0">
