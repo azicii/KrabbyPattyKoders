@@ -92,27 +92,91 @@ export function FriendsList({
         avatar: u.userName.substring(0, 2).toUpperCase()
       })));
 
-        const usersRes = await fetch(`${BASE_URL}/api/Users`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-      const allUsers: any[] = await usersRes.json();
+        const pendingRequests =
+            requestsData.filter(
+                (request: any) =>
+                    request.status ===
+                    'Pending' &&
+                    request.receiverId ===
+                    currentUserId
+            );
 
-      const incoming = requestsData
-        .filter((r: any) => r.status === 'Pending' && r.receiverId === currentUserId)
-        .map((r: any) => {
-          const sender = allUsers.find(u => u.id === r.senderId);
-          return {
-            id: sender?.id || '',
-            requestId: r.id,
-            name: sender?.userName || 'Unknown',
-            username: `@${sender?.userName.toLowerCase() || 'user'}`,
-            avatar: sender?.userName.substring(0, 2).toUpperCase() || '??'
-          };
-        });
+        const incoming =
+            await Promise.all(
+                pendingRequests.map(
+                    async (
+                        request: any
+                    ) => {
+                        const senderResponse =
+                            await fetch(
+                                `${BASE_URL}/api/Users/${encodeURIComponent(
+                                    request.senderId
+                                )}`,
+                                {
+                                    headers: {
+                                        Authorization:
+                                            `Bearer ${token}`
+                                    }
+                                }
+                            );
 
-      setIncomingRequests(incoming);
+                        if (
+                            !senderResponse.ok
+                        ) {
+                            return {
+                                id:
+                                    request.senderId,
+
+                                requestId:
+                                    request.id,
+
+                                name:
+                                    'Unknown',
+
+                                username:
+                                    '@user',
+
+                                avatar:
+                                    '??'
+                            };
+                        }
+
+                        const sender =
+                            await senderResponse.json();
+
+                        return {
+                            id:
+                                sender.id,
+
+                            requestId:
+                                request.id,
+
+                            name:
+                                sender.userName,
+
+                            username:
+                                `@${sender.userName
+                                    .toLowerCase()
+                                    .replace(
+                                        /\s+/g,
+                                        ''
+                                    )}`,
+
+                            avatar:
+                                sender.userName
+                                    .substring(
+                                        0,
+                                        2
+                                    )
+                                    .toUpperCase()
+                        };
+                    }
+                )
+            );
+
+        setIncomingRequests(
+            incoming
+        );
     } catch (err) {
       console.error("Error loading friends:", err);
     } finally {

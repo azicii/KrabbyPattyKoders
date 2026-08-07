@@ -25,9 +25,11 @@ export function UserSearch({
   selectedUserId = null,
   currentUserId
 }: UserSearchProps) {
-  const [users, setUsers] = useState<User[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+    const [users, setUsers] = useState<User[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [involvedUserIds, setInvolvedUserIds] =
+        useState<Set<string>>(new Set());
   const [sendingRequest, setSendingRequest] = useState<string | null>(null);
   const [showCheckmarkId, setShowCheckmarkId] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -44,56 +46,210 @@ export function UserSearch({
     
 
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-          const token = getToken();
+    useEffect(() => {
+        const loadFriendRelationships =
+            async () => {
+                try {
+                    const token = getToken();
 
-          const [usersRes, requestsRes] = await Promise.all([
-              fetch(`${BASE_URL}/api/Users`, {
-                  headers: {
-                      Authorization: `Bearer ${token}`
-                  }
-              }),
-              fetch(`${BASE_URL}/api/FriendRequests`, {
-                  headers: {
-                      Authorization: `Bearer ${token}`
-                  }
-              })
-          ]);
+                    const response = await fetch(
+                        `${BASE_URL}/api/FriendRequests`,
+                        {
+                            headers: {
+                                Authorization:
+                                    `Bearer ${token}`
+                            }
+                        }
+                    );
 
-        if (!usersRes.ok || !requestsRes.ok) throw new Error('Failed to fetch data');
-        
-        const usersData = await usersRes.json();
-        const requestsData = await requestsRes.json();
+                    if (!response.ok) {
+                        throw new Error(
+                            'Failed to load friend requests.'
+                        );
+                    }
 
-        const involvedUserIds = new Set<string>();
-        requestsData.forEach((req: any) => {
-          if (req.status !== 'Rejected') {
-            if (req.senderId === currentUserId) involvedUserIds.add(req.receiverId);
-            if (req.receiverId === currentUserId) involvedUserIds.add(req.senderId);
-          }
-        });
-        
-        const mappedUsers = usersData
-          .filter((u: any) => u.id !== currentUserId && !involvedUserIds.has(u.id))
-          .map((u: any) => ({
-            id: u.id,
-            name: u.userName,
-            username: `@${u.userName.toLowerCase().replace(/\s+/g, '')}`,
-            avatar: u.userName.substring(0, 2).toUpperCase(),
-          }));
-          
-        setUsers(mappedUsers);
-      } catch (err) {
-        setError('Could not load search results.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [currentUserId]);
+                    const requestsData =
+                        await response.json();
+
+                    const relatedIds =
+                        new Set<string>();
+
+                    requestsData.forEach(
+                        (request: any) => {
+                            if (
+                                request.status ===
+                                'Rejected'
+                            ) {
+                                return;
+                            }
+
+                            if (
+                                request.senderId ===
+                                currentUserId
+                            ) {
+                                relatedIds.add(
+                                    request.receiverId
+                                );
+                            }
+
+                            if (
+                                request.receiverId ===
+                                currentUserId
+                            ) {
+                                relatedIds.add(
+                                    request.senderId
+                                );
+                            }
+                        }
+                    );
+
+                    setInvolvedUserIds(
+                        relatedIds
+                    );
+                } catch (err) {
+                    console.error(
+                        'Could not load friend relationships:',
+                        err
+                    );
+
+                    setError(
+                        'Could not load friend search.'
+                    );
+                }
+            };
+
+        void loadFriendRelationships();
+    }, [currentUserId]);
+
+    useEffect(() => {
+        const normalizedQuery =
+            searchQuery.trim();
+
+        if (
+            normalizedQuery.length < 2
+        ) {
+            setUsers([]);
+            setLoading(false);
+            return;
+        }
+
+        const controller =
+            new AbortController();
+
+        const timeoutId =
+            window.setTimeout(
+                async () => {
+                    try {
+                        setLoading(true);
+                        setError(null);
+
+                        const token =
+                            getToken();
+
+                        const response =
+                            await fetch(
+                                `${BASE_URL}/api/Users/search?query=${encodeURIComponent(
+                                    normalizedQuery
+                                )}`,
+                                {
+                                    headers: {
+                                        Authorization:
+                                            `Bearer ${token}`
+                                    },
+
+                                    signal:
+                                        controller.signal
+                                }
+                            );
+
+                        if (!response.ok) {
+                            throw new Error(
+                                'Failed to search users.'
+                            );
+                        }
+
+                        const usersData =
+                            await response.json();
+
+                        const mappedUsers =
+                            usersData
+                                .filter(
+                                    (user: any) =>
+                                        user.id !==
+                                        currentUserId &&
+                                        !involvedUserIds.has(
+                                            user.id
+                                        )
+                                )
+                                .map(
+                                    (user: any) => ({
+                                        id:
+                                            user.id,
+
+                                        name:
+                                            user.userName,
+
+                                        username:
+                                            `@${user.userName
+                                                .toLowerCase()
+                                                .replace(
+                                                    /\s+/g,
+                                                    ''
+                                                )}`,
+
+                                        avatar:
+                                            user.userName
+                                                .substring(
+                                                    0,
+                                                    2
+                                                )
+                                                .toUpperCase()
+                                    })
+                                );
+
+                        setUsers(
+                            mappedUsers
+                        );
+                    } catch (err) {
+                        if (
+                            err instanceof DOMException &&
+                            err.name === 'AbortError'
+                        ) {
+                            return;
+                        }
+
+                        console.error(
+                            'User search failed:',
+                            err
+                        );
+
+                        setError(
+                            'Could not load search results.'
+                        );
+                    } finally {
+                        if (
+                            !controller.signal
+                                .aborted
+                        ) {
+                            setLoading(false);
+                        }
+                    }
+                },
+                300
+            );
+
+        return () => {
+            window.clearTimeout(
+                timeoutId
+            );
+
+            controller.abort();
+        };
+    }, [
+        searchQuery,
+        currentUserId,
+        involvedUserIds
+    ]);
 
   const handleAddFriend = async (targetUser: User) => {
     setSendingRequest(targetUser.id);
@@ -129,10 +285,7 @@ export function UserSearch({
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  
 
   return (
     <div className={`min-h-screen p-6 transition-colors duration-300 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
@@ -164,12 +317,29 @@ export function UserSearch({
       {/* List */}
       <div className="max-w-2xl mx-auto space-y-3">
         {loading ? (
-          <div className="flex flex-col items-center py-20">
-            <Loader2 className="w-10 h-10 animate-spin text-teal-500 mb-4" />
-            <p className={isDark ? 'text-slate-400' : 'text-slate-500'}>Syncing...</p>
-          </div>
+            <div className="flex flex-col items-center py-20">
+                <Loader2 className="w-10 h-10 animate-spin text-teal-500 mb-4" />
+
+                <p
+                    className={
+                        isDark
+                            ? 'text-slate-400'
+                            : 'text-slate-500'
+                    }
+                >
+                    Searching...
+                </p>
+            </div>
+        ) : searchQuery.trim().length < 2 ? (
+            <div className="text-center py-16 text-slate-500">
+                Enter at least 2 characters to find someone.
+            </div>
+        ) : users.length === 0 ? (
+            <div className="text-center py-16 text-slate-500">
+                No users found.
+            </div>
         ) : (
-          filteredUsers.map((user) => (
+         users.map((user) => (
             <div key={user.id} className={`flex items-center justify-between p-5 rounded-3xl ${isDark ? 'bg-slate-800/50' : 'bg-white shadow-sm'}`}>
               <div className="flex items-center gap-4">
                 <div className="flex items-center justify-center w-14 h-14 rounded-2xl font-bold bg-gradient-to-br from-teal-500 to-cyan-600 text-white">{user.avatar}</div>
