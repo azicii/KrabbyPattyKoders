@@ -331,7 +331,8 @@ export function UserSearch({
                 </p>
             </div>
         ) : searchQuery.trim().length < 2 ? (
-            
+            <div className="text-center py-16 text-slate-500">
+            </div>
         ) : users.length === 0 ? (
             <div className="text-center py-16 text-slate-500">
                 No users found.
