@@ -121,6 +121,39 @@ namespace Picability.Controllers
             return TimeZoneInfo.ConvertTimeFromUtc(nowUtc, pacificZone).Date;
         }
 
+        private static DateTime?
+    GetCurrentPublicFeedEventAt(
+        Streak streak)
+        {
+            var eventAt =
+                streak.IsActive
+                    ? streak.LastFullyCompletedAt
+                    : streak.FailedAt;
+
+            if (
+                !eventAt.HasValue ||
+                eventAt.Value == default
+            )
+            {
+                return null;
+            }
+
+            var eventPacificDate =
+                ToPacificDate(
+                    eventAt.Value
+                );
+
+            var todayPacific =
+                GetPacificToday(
+                    DateTime.UtcNow
+                );
+
+            return eventPacificDate ==
+                todayPacific
+                    ? eventAt.Value
+                    : null;
+        }
+
         private static int GetHoursUntilPacificMidnight(DateTime nowUtc)
         {
             var pacificZone = GetPacificTimeZone();
@@ -1105,81 +1138,27 @@ namespace Picability.Controllers
                 .Select(streak => streak.Id)
                 .ToList();
 
-            var reactions = await _context.StreakReactions
-    .Where(reaction =>
-        streakIds.Contains(
-            reaction.StreakId
+            var reactions =
+    await _context.StreakReactions
+        .Where(reaction =>
+            streakIds.Contains(
+                reaction.StreakId
+            )
         )
-    )
-    .ToListAsync();
+        .ToListAsync();
 
-            var commentCounts =
-                await _context.StreakComments
-                    .Where(comment =>
-                        streakIds.Contains(
-                            comment.StreakId
-                        )
-                    )
-                    .GroupBy(comment =>
-                        comment.StreakId
-                    )
-                    .Select(group =>
-                        new
-                        {
-                            StreakId =
-                                group.Key,
-
-                            Count =
-                                group.Count()
-                        }
-                    )
-                    .ToDictionaryAsync(
-                        item =>
-                            item.StreakId,
-                        item =>
-                            item.Count
-                    );
-
-            var singleCommentStreakIds =
-                commentCounts
-                    .Where(pair =>
-                        pair.Value == 1
-                    )
-                    .Select(pair =>
-                        pair.Key
-                    )
-                    .ToList();
-
-            var singleComments =
+            var comments =
                 await _context.StreakComments
                     .AsNoTracking()
                     .Include(comment =>
                         comment.User
                     )
                     .Where(comment =>
-                        singleCommentStreakIds.Contains(
+                        streakIds.Contains(
                             comment.StreakId
                         )
                     )
-                    .Select(comment =>
-                        new
-                        {
-                            comment.Id,
-                            comment.StreakId,
-                            comment.UserId,
-
-                            UserName =
-                                comment.User.UserName ??
-                                "Unknown user",
-
-                            comment.Text,
-                            comment.CreatedAt
-                        }
-                    )
-                    .ToDictionaryAsync(
-                        comment =>
-                            comment.StreakId
-                    );
+                    .ToListAsync();
 
             /*
              * Check-in history is required to determine exactly which members
@@ -1458,6 +1437,27 @@ namespace Picability.Controllers
                         ? streak.FailedAt
                         : streak.LastFullyCompletedAt;
 
+                if (!eventAt.HasValue)
+                {
+                    continue;
+                }
+
+                var feedEventAt =
+                    eventAt.Value;
+
+                var eventComments =
+                    comments
+                        .Where(comment =>
+                            comment.StreakId ==
+                                streak.Id &&
+                            comment.FeedEventAt ==
+                                feedEventAt
+                        )
+                        .OrderBy(comment =>
+                            comment.CreatedAt
+                        )
+                        .ToList();
+
                 feedItems.Add(new
                 {
                     streak.Id,
@@ -1499,7 +1499,7 @@ namespace Picability.Controllers
                     streak.FailedAt,
 
                     EventAt =
-                        eventAt,
+                        feedEventAt,
 
                     KilledBy =
                         killedBy,
@@ -1533,6 +1533,8 @@ namespace Picability.Controllers
                         reactions.Count(reaction =>
                             reaction.StreakId ==
                                 streak.Id &&
+                            reaction.FeedEventAt ==
+                                feedEventAt &&
                             reaction.ReactionType ==
                                 reactionType
                         ),
@@ -1541,26 +1543,33 @@ namespace Picability.Controllers
                         reactions.Any(reaction =>
                             reaction.StreakId ==
                                 streak.Id &&
+                            reaction.FeedEventAt ==
+                                feedEventAt &&
                             reaction.UserId ==
                                 currentUserId &&
                             reaction.ReactionType ==
                                 reactionType
                         ),
 
-                                        CommentCount =
-                        commentCounts.TryGetValue(
-                            streak.Id,
-                            out var commentCount
-                        )
-                            ? commentCount
-                            : 0,
+                    CommentCount =
+                        eventComments.Count,
 
-                                        PreviewComment =
-                        singleComments.TryGetValue(
-                            streak.Id,
-                            out var singleComment
-                        )
-                            ? singleComment
+                    PreviewComment =
+                        eventComments.Count == 1
+                            ? new
+                            {
+                                eventComments[0].Id,
+                                eventComments[0].StreakId,
+                                eventComments[0].UserId,
+
+                                UserName =
+                                    eventComments[0].User
+                                        .UserName ??
+                                    "Unknown user",
+
+                                eventComments[0].Text,
+                                eventComments[0].CreatedAt
+                            }
                             : null
                 });
             }
@@ -1630,6 +1639,20 @@ namespace Picability.Controllers
                 return Forbid();
             }
 
+            var feedEventAt =
+                GetCurrentPublicFeedEventAt(
+                    streak
+                );
+
+            if (!feedEventAt.HasValue)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "This streak does not currently have a public feed event."
+                });
+            }
+
             var comments =
                 await _context.StreakComments
                     .AsNoTracking()
@@ -1637,7 +1660,9 @@ namespace Picability.Controllers
                         comment.User
                     )
                     .Where(comment =>
-                        comment.StreakId == id
+                        comment.StreakId == id &&
+                        comment.FeedEventAt ==
+                            feedEventAt.Value
                     )
                     .OrderBy(comment =>
                         comment.CreatedAt
@@ -1731,6 +1756,20 @@ namespace Picability.Controllers
                 return Forbid();
             }
 
+            var feedEventAt =
+                GetCurrentPublicFeedEventAt(
+                    streak
+                );
+
+            if (!feedEventAt.HasValue)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "This streak does not currently have a public feed event."
+                });
+            }
+
             var currentUser =
                 await _context.Users
                     .AsNoTracking()
@@ -1756,6 +1795,10 @@ namespace Picability.Controllers
                 {
                     StreakId = id,
                     UserId = currentUserId,
+
+                    FeedEventAt =
+                        feedEventAt.Value,
+
                     Text = text,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -1812,6 +1855,20 @@ namespace Picability.Controllers
                 return Forbid();
             }
 
+            var feedEventAt =
+                GetCurrentPublicFeedEventAt(
+                    streak
+                );
+
+            if (!feedEventAt.HasValue)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "This streak does not currently have a public feed event."
+                });
+            }
+
             var reactionType =
                 streak.IsActive
                     ? "FistBump"
@@ -1821,7 +1878,10 @@ namespace Picability.Controllers
                 await _context.StreakReactions
                     .FirstOrDefaultAsync(reaction =>
                         reaction.StreakId == id &&
-                        reaction.UserId == currentUserId
+                        reaction.UserId ==
+                            currentUserId &&
+                        reaction.FeedEventAt ==
+                            feedEventAt.Value
                     );
 
             if (existingReaction != null)
@@ -1833,9 +1893,11 @@ namespace Picability.Controllers
                 await _context.SaveChangesAsync();
 
                 var newCount =
-                    await _context.StreakReactions
+                     await _context.StreakReactions
                         .CountAsync(reaction =>
                             reaction.StreakId == id &&
+                            reaction.FeedEventAt ==
+                                feedEventAt.Value &&
                             reaction.ReactionType ==
                                 reactionType
                         );
@@ -1855,13 +1917,21 @@ namespace Picability.Controllers
                 });
             }
 
-            var reaction = new StreakReaction
-            {
-                StreakId = id,
-                UserId = currentUserId,
-                ReactionType = reactionType,
-                CreatedAt = DateTime.UtcNow
-            };
+            var reaction =
+                new StreakReaction
+                {
+                    StreakId = id,
+                    UserId = currentUserId,
+
+                    FeedEventAt =
+                        feedEventAt.Value,
+
+                    ReactionType =
+                        reactionType,
+
+                    CreatedAt =
+                        DateTime.UtcNow
+                };
 
             _context.StreakReactions.Add(reaction);
             await _context.SaveChangesAsync();
@@ -1870,6 +1940,8 @@ namespace Picability.Controllers
                 await _context.StreakReactions
                     .CountAsync(existing =>
                         existing.StreakId == id &&
+                        existing.FeedEventAt ==
+                            feedEventAt.Value &&
                         existing.ReactionType ==
                             reactionType
                     );
@@ -1921,23 +1993,46 @@ namespace Picability.Controllers
                 return Forbid();
             }
 
+            var feedEventAt =
+                GetCurrentPublicFeedEventAt(
+                    streak
+                );
+
+            if (!feedEventAt.HasValue)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "This streak does not currently have a public feed event."
+                });
+            }
+
             var reactionType =
                 streak.IsActive
                     ? "FistBump"
                     : "HeartBreak";
 
-            var reactions = await _context.StreakReactions
-                .Include(r => r.User)
-                .Where(r => r.StreakId == id && r.ReactionType == reactionType)
-                .OrderBy(r => r.User.UserName)
-                .Select(r => new
-                {
-                    r.UserId,
-                    UserName = r.User.UserName,
-                    r.ReactionType,
-                    r.CreatedAt
-                })
-                .ToListAsync();
+            var reactions =
+                await _context.StreakReactions
+                    .Include(reaction =>
+                        reaction.User
+                    )
+                    .Where(reaction =>
+                        reaction.StreakId == id &&
+                        reaction.FeedEventAt ==
+                            feedEventAt.Value &&
+                        reaction.ReactionType ==
+                            reactionType
+                    )
+                    .OrderBy(r => r.User.UserName)
+                    .Select(r => new
+                    {
+                        r.UserId,
+                        UserName = r.User.UserName,
+                        r.ReactionType,
+                        r.CreatedAt
+                    })
+                    .ToListAsync();
 
             return Ok(new
             {

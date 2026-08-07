@@ -23,6 +23,8 @@ namespace Picability.Models
         [Required]
         public string ReactionType { get; set; } = string.Empty;
 
+        public DateTime FeedEventAt { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

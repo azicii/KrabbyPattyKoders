@@ -163,7 +163,12 @@ namespace Picability.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<StreakReaction>()
-                .HasIndex(r => new { r.StreakId, r.UserId })
+                .HasIndex(reaction => new
+                {
+                    reaction.StreakId,
+                    reaction.UserId,
+                    reaction.FeedEventAt
+                })
                 .IsUnique();
 
             builder.Entity<StreakComment>()
@@ -182,6 +187,7 @@ namespace Picability.Data
                 .HasIndex(comment => new
                 {
                     comment.StreakId,
+                    comment.FeedEventAt,
                     comment.CreatedAt
                 });
 

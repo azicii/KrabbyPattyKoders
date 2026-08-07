@@ -25,7 +25,9 @@ namespace Picability.Models
         [Required]
         [MaxLength(500)]
         public string Text { get; set; } =
-            string.Empty;
+    string.Empty;
+
+        public DateTime FeedEventAt { get; set; }
 
         public DateTime CreatedAt { get; set; } =
             DateTime.UtcNow;
