@@ -19,6 +19,7 @@ namespace Picability.Data
         public DbSet<StreakReaction> StreakReactions { get; set; }
         public DbSet<StreakComment> StreakComments { get; set; }
         public DbSet<PushSubscription> PushSubscriptions { get; set; }
+        public DbSet<AutomaticStreakReminder> AutomaticStreakReminders { get; set; }
         public DbSet<StreakCheckIn> StreakCheckIns { get; set; }
         public DbSet<StreakMember> StreakMembers { get; set; }
         public DbSet<StreakRequestMember> StreakRequestMembers { get; set; }
@@ -201,8 +202,36 @@ namespace Picability.Data
                 .HasIndex(p => p.Endpoint)
                 .IsUnique();
 
+            builder.Entity<AutomaticStreakReminder>()
+                .HasOne(reminder => reminder.User)
+                .WithMany()
+                .HasForeignKey(reminder => reminder.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AutomaticStreakReminder>()
+                .HasOne(reminder => reminder.Streak)
+                .WithMany()
+                .HasForeignKey(reminder => reminder.StreakId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AutomaticStreakReminder>()
+                .HasIndex(reminder => new
+                {
+                    reminder.UserId,
+                    reminder.StreakId,
+                    reminder.CycleStartUtc
+                })
+                .IsUnique();
+
+            builder.Entity<AutomaticStreakReminder>()
+                .HasIndex(reminder => new
+                {
+                    reminder.UserId,
+                    reminder.SentAt
+                });
+
             builder.Entity<StreakCheckIn>()
-                .HasOne(c => c.Streak)
+                            .HasOne(c => c.Streak)
                 .WithMany()
                 .HasForeignKey(c => c.StreakId)
                 .OnDelete(DeleteBehavior.Cascade);

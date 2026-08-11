@@ -70,6 +70,8 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddScoped<PushNotificationService>();
+builder.Services.AddScoped<AutomaticStreakReminderService>();
+builder.Services.AddHostedService<AutomaticStreakReminderWorker>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

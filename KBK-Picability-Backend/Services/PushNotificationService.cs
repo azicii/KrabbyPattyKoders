@@ -151,17 +151,46 @@ namespace Picability.Services
             string senderName,
             string streakName)
         {
+                    return await SendPushAsync(
+            receiverId,
+            "Streak reminder",
+            $"{senderName} sent a reminder about your " +
+            $"\"{streakName}\" streak.",
+            "/"
+        );
+        }
+
+        public async Task<PushSendResult>
+            NotifyAutomaticStreakReminderAsync(
+                string receiverId,
+                int unfinishedStreakCount)
+        {
+            var normalizedCount =
+                Math.Max(
+                    1,
+                    unfinishedStreakCount
+                );
+
+            var title =
+                normalizedCount == 1
+                    ? "1 streak waiting to be completed!"
+                    : $"{normalizedCount} streaks waiting to be completed!";
+
+            var body =
+                normalizedCount == 1
+                    ? "Open Picability to keep it going."
+                    : "Open Picability to keep them going.";
+
             return await SendPushAsync(
                 receiverId,
-                "Streak reminder",
-                $"{senderName} sent a reminder about your " +
-                $"\"{streakName}\" streak.",
+                title,
+                body,
                 "/"
             );
         }
 
         private async Task<PushSendResult> SendPushAsync(
-            string receiverId,
+                string receiverId,
             string title,
             string body,
             string url)
