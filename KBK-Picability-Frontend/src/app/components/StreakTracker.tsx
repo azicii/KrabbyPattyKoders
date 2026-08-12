@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { canUsePushNotifications, enablePushNotifications } from '../utils/pushNotifications';
-import { StreakDecoration } from './StreakDecoration';
 
 const STREAKY_USER_ID =
     'picability-system-streaky';
@@ -88,7 +87,6 @@ interface StreakTrackerProps {
     onToggleDark: () => void;
     onFriends?: () => void;
     onAddHabit?: () => void;
-    accentColor?: string;
     onStreakTap?: (streakId: number) => void;
     onDismissStreak?: (streakId: number) => void;
     streaks: Streak[];
@@ -125,7 +123,6 @@ interface StreakTrackerProps {
 
 export function StreakTracker({
     isDark,
-    accentColor = '#0ea5e9',
     user,
     onLogout,
     onToggleDark,
@@ -1025,22 +1022,15 @@ export function StreakTracker({
     `}
             </style>
             <div
-                className={`relative min-h-screen px-4 py-5 sm:p-6 overflow-hidden transition-colors duration-300 ${isDark
-                        ? 'bg-slate-950'
-                        : 'bg-slate-50'
-                    }`}
-            >
-                {/* Picability visual identity layer */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <StreakDecoration
-                        src="/streak-designs/streak-ambient.jpg"
-                        accentColor={accentColor}
-                        opacity={0.11}
-                        repeat
-                        className="inset-0 w-full h-full"
-                    />
-                </div>
-
+                className="
+                    relative
+                    min-h-screen
+                    px-4
+                    py-5
+                    sm:p-6
+                    bg-transparent
+                "
+                        >
                 <div className="relative z-10">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4 mb-8">

@@ -10,6 +10,7 @@ import { PublicFeed, PublicFeedItem } from './components/PublicFeed.tsx';
 import { OnboardingSlides } from './components/OnboardingSlides.tsx';
 import { MobileBottomNav, MobileTab } from './components/MobileBottomNav.tsx';
 import { consumePushRefreshRequired } from '../pushRefreshStore';
+import { PicabilityPageShell} from './components/PicabilityPageShell';
 
 type Screen =
     | 'auth'
@@ -101,7 +102,14 @@ export default function App() {
     });
     const [currentScreen, setCurrentScreen] = useState<Screen>('tracker');
     const [isDark, setIsDark] = useState(true);
-    const [picabilityAccentColor] = useState('#0ea5e9');
+    const [picabilityAccentColor] = useState(() => {
+        return (
+            localStorage.getItem(
+                'picabilityAccentColor'
+            ) ??
+            '#0ea5e9'
+        );
+    });
     const [selectedHabitType, setSelectedHabitType] = useState<number | 'create' | null>(null);
     const [streaks, setStreaks] = useState<Streak[]>([]);
     const [preSelectedFriend, setPreSelectedFriend] = useState<User | null>(null);
@@ -1983,26 +1991,64 @@ export default function App() {
     };
 
     if (!user) {
-        return <AuthScreen isDark={isDark} onToggleDark={() => setIsDark(!isDark)} onSuccess={handleAuthSuccess} />;
+        return (
+            <PicabilityPageShell
+                variant="auth"
+                accentColor={
+                    picabilityAccentColor
+                }
+                isDark={isDark}
+            >
+                <AuthScreen
+                    isDark={isDark}
+                    onToggleDark={() =>
+                        setIsDark(!isDark)
+                    }
+                    onSuccess={
+                        handleAuthSuccess
+                    }
+                />
+            </PicabilityPageShell>
+        );
     }
 
     return (
         <div className="size-full">
             {currentScreen === 'onboarding' && user && (
-                <OnboardingSlides
+                <PicabilityPageShell
+                    variant="onboarding"
+                    accentColor={
+                        picabilityAccentColor
+                    }
                     isDark={isDark}
-                    onComplete={() => {
-                        localStorage.setItem(`picabilityOnboardingComplete:${user.id}`, 'true');
-                        setCurrentScreen('tracker');
-                    }}
-                />
+                >
+                    <OnboardingSlides
+                        isDark={isDark}
+                        onComplete={() => {
+                            localStorage.setItem(
+                                `picabilityOnboardingComplete:${user.id}`,
+                                'true'
+                            );
+
+                            setCurrentScreen(
+                                'tracker'
+                            );
+                        }}
+                    />
+                </PicabilityPageShell>
             )}
 
             {isPrimaryScreen && (
                 <>
                     <div
-                        className={`relative w-full min-h-screen overflow-x-hidden pb-28 ${isDark ? 'bg-slate-900' : 'bg-slate-50'
-                            }`}
+                        className="
+                            relative
+                            w-full
+                            min-h-screen
+                            overflow-x-hidden
+                            pb-28
+                            bg-slate-950
+                        "
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
@@ -2036,8 +2082,20 @@ export default function App() {
                             transform: `translateX(calc(-${activePrimaryIndex * 33.333333}% + ${touchDeltaX}px)) translateY(${visiblePullDistance}px)`
                         }}
                     >
-                        <div className={`w-1/3 shrink-0 ${mobileTab === 'friends' ? '' : 'h-0 overflow-hidden'}`}>
-                            <FriendsList
+                            <div
+                                className={`w-1/3 shrink-0 ${mobileTab === 'friends'
+                                        ? ''
+                                        : 'h-0 overflow-hidden'
+                                    }`}
+                            >
+                                <PicabilityPageShell
+                                    variant="friends"
+                                    accentColor={
+                                        picabilityAccentColor
+                                    }
+                                    isDark={isDark}
+                                >
+                                    <FriendsList
                                 isDark={isDark}
                                 onToggleDark={() => setIsDark(!isDark)}
                                 onBack={() => {
@@ -2068,13 +2126,25 @@ export default function App() {
                                     onFinishMultiSelect={
                                         handleFinishGroupFriendSelection
                                     }
-                            />
+                                    />
+                                </PicabilityPageShell>
                         </div>
 
-                        <div className={`w-1/3 shrink-0 ${mobileTab === 'tracker' ? '' : 'h-0 overflow-hidden'}`}>
-                            <StreakTracker
+                            <div
+                                className={`w-1/3 shrink-0 ${mobileTab === 'tracker'
+                                        ? ''
+                                        : 'h-0 overflow-hidden'
+                                    }`}
+                            >
+                                <PicabilityPageShell
+                                    variant="tracker"
+                                    accentColor={
+                                        picabilityAccentColor
+                                    }
+                                    isDark={isDark}
+                                >
+                                    <StreakTracker
                                 isDark={isDark}
-                                accentColor={picabilityAccentColor}
                                 user={user}
                                 onLogout={() => {
                                     localStorage.removeItem('picabilityUser');
@@ -2100,16 +2170,34 @@ export default function App() {
                                 onPublicFeed={() => handleMobileTabChange('feed')}
                                 onToggleVisibility={handleToggleStreakVisibility}
                                 onSendReminderPing={handleSendReminderPing}
-                            />
+                                    />
+                                </PicabilityPageShell>
                         </div>
 
-                        <div className={`w-1/3 shrink-0 ${mobileTab === 'feed' ? '' : 'h-0 overflow-hidden'}`}>
-                            <PublicFeed
-                                isDark={isDark}
-                                items={publicFeed}
-                                onBack={() => handleMobileTabChange('tracker')}
-                            />
-                        </div>
+                            <div
+                                className={`w-1/3 shrink-0 ${mobileTab === 'feed'
+                                        ? ''
+                                        : 'h-0 overflow-hidden'
+                                    }`}
+                            >
+                                <PicabilityPageShell
+                                    variant="feed"
+                                    accentColor={
+                                        picabilityAccentColor
+                                    }
+                                    isDark={isDark}
+                                >
+                                    <PublicFeed
+                                        isDark={isDark}
+                                        items={publicFeed}
+                                        onBack={() =>
+                                            handleMobileTabChange(
+                                                'tracker'
+                                            )
+                                        }
+                                    />
+                                </PicabilityPageShell>
+                            </div>
                     </div>
 
                     </div>
@@ -2124,27 +2212,61 @@ export default function App() {
 
 {
     currentScreen === 'selector' && (
-        <HabitSelector
+        <PicabilityPageShell
+            variant="selector"
+            accentColor={
+                picabilityAccentColor
+            }
             isDark={isDark}
-            user={user}
-            onLogout={() => setUser(null)}
-            onToggleDark={() => setIsDark(!isDark)}
-            onBack={() => handleMobileTabChange('tracker')}
-            onFriends={() => {
-                setIsSelectingFriendForStreak(true);
-                setCurrentScreen('friends-list');
-                setMobileTab('friends');
-            }}
-            onSelectHabit={(id) => {
-                setSelectedHabitType(id);
-                setCurrentScreen('config');
-            }}
-        />
+        >
+            <HabitSelector
+                isDark={isDark}
+                user={user}
+                onLogout={() =>
+                    setUser(null)
+                }
+                onToggleDark={() =>
+                    setIsDark(!isDark)
+                }
+                onBack={() =>
+                    handleMobileTabChange(
+                        'tracker'
+                    )
+                }
+                onFriends={() => {
+                    setIsSelectingFriendForStreak(
+                        true
+                    );
+                    setCurrentScreen(
+                        'friends-list'
+                    );
+                    setMobileTab(
+                        'friends'
+                    );
+                }}
+                onSelectHabit={(id) => {
+                    setSelectedHabitType(
+                        id
+                    );
+                    setCurrentScreen(
+                        'config'
+                    );
+                }}
+            />
+        </PicabilityPageShell>
     )
 }
 
 {
     currentScreen === 'config' && (
+
+        <PicabilityPageShell
+            variant="config"
+            accentColor={
+                picabilityAccentColor
+            }
+            isDark={isDark}
+        >
         <HabitConfig
             isDark={isDark}
             user={user}
@@ -2195,44 +2317,91 @@ export default function App() {
                 setCurrentScreen('friends-list');
                 setMobileTab('friends');
             }}
-        />
+            />
+        </PicabilityPageShell>
     )
 }
 
 {
     currentScreen === 'user-search' && (
-        <UserSearch
+        <PicabilityPageShell
+            variant="search"
+            accentColor={
+                picabilityAccentColor
+            }
             isDark={isDark}
-            onToggleDark={() => setIsDark(!isDark)}
-            onBack={() => setCurrentScreen('friends-list')}
-            onSelectUser={(u) => console.log(u)}
-            selectedUserId={preSelectedFriend?.id}
-            currentUserId={user.id}
-        />
+        >
+            <UserSearch
+                isDark={isDark}
+                onToggleDark={() =>
+                    setIsDark(!isDark)
+                }
+                onBack={() =>
+                    setCurrentScreen(
+                        'friends-list'
+                    )
+                }
+                onSelectUser={(u) =>
+                    console.log(u)
+                }
+                selectedUserId={
+                    preSelectedFriend?.id
+                }
+                currentUserId={
+                    user.id
+                }
+            />
+        </PicabilityPageShell>
     )
 }
 
 {
-    currentScreen === 'confirmation' && lastRequestConfig && (
-        <RequestConfirmation
-            isDark={isDark}
-            recipients={
-                lastRequestConfig.recipients
-            }
-            habitName={
-                lastRequestConfig.habitName
-            }
-            onComplete={() => {
-                setLastRequestConfig(null);
-                setPreSelectedFriend(null);
-                setSelectedGroupFriends([]);
-                setIsSelectingGroupFriends(false);
-                setIsSelectingFriendForStreak(false);
-                setCurrentScreen('tracker');
-                setMobileTab('tracker');
-            }}
-        />
-    )
+    currentScreen ===
+        'confirmation' &&
+        lastRequestConfig && (
+            <PicabilityPageShell
+                variant="confirmation"
+                accentColor={
+                    picabilityAccentColor
+                }
+                isDark={isDark}
+            >
+                <RequestConfirmation
+                    isDark={isDark}
+                    recipients={
+                        lastRequestConfig
+                            .recipients
+                    }
+                    habitName={
+                        lastRequestConfig
+                            .habitName
+                    }
+                    onComplete={() => {
+                        setLastRequestConfig(
+                            null
+                        );
+                        setPreSelectedFriend(
+                            null
+                        );
+                        setSelectedGroupFriends(
+                            []
+                        );
+                        setIsSelectingGroupFriends(
+                            false
+                        );
+                        setIsSelectingFriendForStreak(
+                            false
+                        );
+                        setCurrentScreen(
+                            'tracker'
+                        );
+                        setMobileTab(
+                            'tracker'
+                        );
+                    }}
+                />
+            </PicabilityPageShell>
+        )
 }
         </div >
     );
