@@ -1036,8 +1036,8 @@ export function StreakTracker({
                         src="/streak-designs/streak-ambient.jpg"
                         accentColor={accentColor}
                         opacity={0.11}
+                        repeat
                         className="inset-0 w-full h-full"
-                        imageClassName="object-cover"
                     />
                 </div>
 

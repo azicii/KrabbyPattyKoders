@@ -4,6 +4,7 @@ interface StreakDecorationProps {
     opacity?: number;
     className?: string;
     imageClassName?: string;
+    repeat?: boolean;
 }
 
 export function StreakDecoration({
@@ -11,7 +12,8 @@ export function StreakDecoration({
     accentColor = '#0ea5e9',
     opacity = 1,
     className = '',
-    imageClassName = ''
+    imageClassName = '',
+    repeat = false
 }: StreakDecorationProps) {
     return (
         <div
@@ -22,20 +24,45 @@ export function StreakDecoration({
                 isolation: 'isolate'
             }}
         >
-            <img
-                src={src}
-                alt=""
-                draggable={false}
-                className={`absolute inset-0 w-full h-full select-none ${imageClassName || 'object-cover'}`}
-            />
+            {repeat ? (
+                <>
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundImage: `url(${src})`,
+                            backgroundRepeat: 'repeat-y',
+                            backgroundSize: '100% auto',
+                            backgroundPosition: 'top center'
+                        }}
+                    />
 
-            <div
-                className="absolute inset-0"
-                style={{
-                    backgroundColor: accentColor,
-                    mixBlendMode: 'color'
-                }}
-            />
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundColor: accentColor,
+                            mixBlendMode: 'color'
+                        }}
+                    />
+                </>
+            ) : (
+                <>
+                    <img
+                        src={src}
+                        alt=""
+                        draggable={false}
+                        className={`absolute inset-0 w-full h-full select-none ${imageClassName || 'object-cover'
+                            }`}
+                    />
+
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundColor: accentColor,
+                            mixBlendMode: 'color'
+                        }}
+                    />
+                </>
+            )}
         </div>
     );
 }
