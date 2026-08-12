@@ -101,6 +101,7 @@ export default function App() {
     });
     const [currentScreen, setCurrentScreen] = useState<Screen>('tracker');
     const [isDark, setIsDark] = useState(true);
+    const [picabilityAccentColor] = useState('#0ea5e9');
     const [selectedHabitType, setSelectedHabitType] = useState<number | 'create' | null>(null);
     const [streaks, setStreaks] = useState<Streak[]>([]);
     const [preSelectedFriend, setPreSelectedFriend] = useState<User | null>(null);
@@ -2073,6 +2074,7 @@ export default function App() {
                         <div className={`w-1/3 shrink-0 ${mobileTab === 'tracker' ? '' : 'h-0 overflow-hidden'}`}>
                             <StreakTracker
                                 isDark={isDark}
+                                accentColor={picabilityAccentColor}
                                 user={user}
                                 onLogout={() => {
                                     localStorage.removeItem('picabilityUser');

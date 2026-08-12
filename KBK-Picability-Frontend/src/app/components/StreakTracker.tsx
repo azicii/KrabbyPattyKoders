@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { canUsePushNotifications, enablePushNotifications } from '../utils/pushNotifications';
+import { StreakDecoration } from './StreakDecoration';
 
 const STREAKY_USER_ID =
     'picability-system-streaky';
@@ -87,6 +88,7 @@ interface StreakTrackerProps {
     onToggleDark: () => void;
     onFriends?: () => void;
     onAddHabit?: () => void;
+    accentColor?: string;
     onStreakTap?: (streakId: number) => void;
     onDismissStreak?: (streakId: number) => void;
     streaks: Streak[];
@@ -123,6 +125,7 @@ interface StreakTrackerProps {
 
 export function StreakTracker({
     isDark,
+    accentColor = '#0ea5e9',
     user,
     onLogout,
     onToggleDark,
@@ -1021,10 +1024,59 @@ export function StreakTracker({
       }
     `}
             </style>
-            <div className={`min-h-screen px-4 py-5 sm:p-6 transition-colors duration-300 ${isDark
-                ? 'bg-gradient-to-br from-slate-900 to-slate-800'
-                : 'bg-gradient-to-br from-slate-50 to-slate-100'
-                }`}>
+            <div
+                className={`relative min-h-screen px-4 py-5 sm:p-6 overflow-hidden transition-colors duration-300 ${isDark
+                        ? 'bg-gradient-to-br from-slate-900 to-slate-800'
+                        : 'bg-gradient-to-br from-slate-50 to-slate-100'
+                    }`}
+            >
+                {/* Picability visual identity layer */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <StreakDecoration
+                        src="/streak-designs/streak-ambient.jpg"
+                        accentColor={accentColor}
+                        opacity={0.10}
+                        className="
+                -top-24
+                -right-40
+                w-[620px]
+                h-[620px]
+                sm:w-[900px]
+                sm:h-[900px]
+            "
+                    />
+
+                    <StreakDecoration
+                        src="/streak-designs/streak-corner.jpg"
+                        accentColor={accentColor}
+                        opacity={0.16}
+                        className="
+                -bottom-24
+                -left-24
+                w-[440px]
+                h-[440px]
+                sm:w-[650px]
+                sm:h-[650px]
+            "
+                    />
+
+                    <StreakDecoration
+                        src="/streak-designs/streak-micro.jpg"
+                        accentColor={accentColor}
+                        opacity={0.32}
+                        className="
+                top-20
+                right-3
+                w-28
+                h-28
+                sm:right-20
+                sm:w-40
+                sm:h-40
+            "
+                    />
+                </div>
+
+                <div className="relative z-10">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4 mb-8">
                     <div className="flex flex-col min-w-0">
@@ -3638,13 +3690,36 @@ export function StreakTracker({
                     document.body
                 )}
 
-                {streaks.length === 0 && (
-                    <div className="max-w-2xl mx-auto text-center py-16">
-                        <div className={`text-6xl mb-4 ${isDark ? 'opacity-50' : 'opacity-30'}`}>🎯</div>
-                        <h2 className={`text-xl font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>No Active Streaks</h2>
-                        <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Start your first habit streak with a friend!</p>
-                    </div>
-                )}
+                    {streaks.length === 0 && (
+                        <div className="max-w-2xl mx-auto text-center py-16">
+                            <div
+                                className={`text-6xl mb-4 ${isDark ? 'opacity-50' : 'opacity-30'
+                                    }`}
+                            >
+                                🎯
+                            </div>
+
+                            <h2
+                                className={`text-xl font-semibold mb-2 ${isDark
+                                        ? 'text-slate-300'
+                                        : 'text-slate-700'
+                                    }`}
+                            >
+                                No Active Streaks
+                            </h2>
+
+                            <p
+                                className={`text-sm mb-6 ${isDark
+                                        ? 'text-slate-400'
+                                        : 'text-slate-600'
+                                    }`}
+                            >
+                                Start your first habit streak with a friend!
+                            </p>
+                        </div>
+                    )}
+
+                </div>
             </div>
         </>
     );
