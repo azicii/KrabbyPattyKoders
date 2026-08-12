@@ -1434,7 +1434,7 @@ export function StreakTracker({
                                     <div
                                         key={`accepted-group-${invite.id}`}
                                         className={`relative w-full rounded-3xl p-5 sm:p-6 shadow-sm border transition-all ${isDark
-                                                ? 'bg-slate-800/40 border-slate-700/70'
+                                                ? 'bg-slate-900 border-slate-700/70'
                                                 : 'bg-white border-slate-200'
                                             }`}
                                     >
@@ -1958,8 +1958,7 @@ export function StreakTracker({
                             >
                                 <button
                                     onClick={() => handleStreakClick(streak.id)}
-                                    className={`group w-full relative overflow-hidden rounded-3xl p-6 shadow-sm transition-all duration-300 hover:scale-[1.01] ${isDark ? 'bg-slate-800/50 backdrop-blur-sm' : 'bg-white'
-                                        } ${isExpanded ? 'rounded-b-none' : ''}`}
+                                    className={`group w-full relative overflow-hidden rounded-3xl p-6 shadow-sm transition-all duration-300 hover:scale-[1.01] ${isDark ? 'bg-slate-900' : 'bg-white'} ${isExpanded ? 'rounded-b-none' : ''}`}
                                 >
                                     <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-start">
                                         <div className="flex items-start sm:items-center gap-3 min-w-0 pr-4">
@@ -2133,7 +2132,10 @@ export function StreakTracker({
                                     )}
 
                                 {isExpanded && (
-                                    <div className={`rounded-b-3xl overflow-hidden shadow-lg border-t ${isDark ? 'bg-slate-800/80 backdrop-blur-md border-slate-700/50' : 'bg-white border-slate-100'}`}>
+                                    <div className={`rounded-b-3xl overflow-hidden shadow-lg border-t ${isDark
+                                        ? 'bg-slate-900 border-slate-700/50'
+                                        : 'bg-white border-slate-100'
+                                            }`}>
                                         <div className="p-6">
                                             {!isBroken && (
                                                 <div className="mb-4">
@@ -3430,7 +3432,7 @@ export function StreakTracker({
                                     <div
                                         key={`broken-${streak.id}`}
                                         className={`relative w-full rounded-3xl p-5 sm:p-6 shadow-sm border transition-all opacity-85 ${isDark
-                                                ? 'bg-slate-800/40 border-slate-700'
+                                                ? 'bg-slate-900 border-slate-700'
                                                 : 'bg-white border-slate-200'
                                             }`}
                                     >

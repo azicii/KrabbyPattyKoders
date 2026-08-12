@@ -156,7 +156,7 @@ export function PicabilityPageShell({
                         <FullBleedStreaks
                             src="/streak-designs/streak-ambient.jpg"
                             accentColor={accentColor}
-                            opacity={0.16}
+                            opacity={0.19}
                             backgroundSize="100% auto"
                         />
 
@@ -279,18 +279,6 @@ export function PicabilityPageShell({
                             backgroundSize="cover"
                             repeat={false}
                         />
-
-                        <PicabilityMotif
-                            name="edge"
-                            accentColor={accentColor}
-                            opacity={0.32}
-                            className="
-                                left-0
-                                bottom-0
-                                w-full
-                                h-52
-                            "
-                        />
                     </>
                 );
 
@@ -340,20 +328,6 @@ export function PicabilityPageShell({
                             backgroundSize="125% auto"
                             flip
                         />
-
-                        <PicabilityMotif
-                            name="edge"
-                            accentColor={accentColor}
-                            opacity={0.20}
-                            rotate="180deg"
-                            className="
-                                left-0
-                                top-0
-                                w-full
-                                h-44
-                            "
-                        />
-
                         <PicabilityMotif
                             name="cluster"
                             accentColor={accentColor}
@@ -428,18 +402,6 @@ export function PicabilityPageShell({
                             opacity={0.13}
                             backgroundSize="cover"
                             repeat={false}
-                        />
-
-                        <PicabilityMotif
-                            name="edge"
-                            accentColor={accentColor}
-                            opacity={0.22}
-                            className="
-                                left-0
-                                bottom-0
-                                w-full
-                                h-40
-                            "
                         />
                     </>
                 );
