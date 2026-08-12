@@ -148,6 +148,10 @@ export function PicabilityPageShell({
             ? '#020d1f'
             : '#f8fafc';
 
+    const accentBackground = isDark
+        ? `color-mix(in srgb, ${accentColor} 18%, #020d1f)`
+        : `color-mix(in srgb, ${accentColor} 10%, #f8fafc)`;
+
     const renderArtwork = () => {
         switch (variant) {
             case 'tracker':
@@ -412,8 +416,7 @@ export function PicabilityPageShell({
         <div
             className={`picability-page-shell relative min-h-screen overflow-hidden ${className}`}
             style={{
-                backgroundColor:
-                    baseBackground
+                backgroundColor: accentBackground
             }}
         >
             <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -424,7 +427,7 @@ export function PicabilityPageShell({
                     from fighting with cards/text.
                 */}
                 {isDark && (
-                    <div className="absolute inset-0 bg-slate-950/16" />
+                    <div className="absolute inset-0 bg-slate-950/10" />
                 )}
             </div>
 
