@@ -26,7 +26,7 @@ export function StreakDecoration({
                 src={src}
                 alt=""
                 draggable={false}
-                className={`absolute inset-0 w-full h-full object-cover select-none ${imageClassName}`}
+                className={`absolute inset-0 w-full h-full select-none ${imageClassName || 'object-cover'}`}
             />
 
             <div

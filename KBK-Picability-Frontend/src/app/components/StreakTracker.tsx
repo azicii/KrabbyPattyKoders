@@ -1026,8 +1026,8 @@ export function StreakTracker({
             </style>
             <div
                 className={`relative min-h-screen px-4 py-5 sm:p-6 overflow-hidden transition-colors duration-300 ${isDark
-                        ? 'bg-gradient-to-br from-slate-900 to-slate-800'
-                        : 'bg-gradient-to-br from-slate-50 to-slate-100'
+                        ? 'bg-slate-950'
+                        : 'bg-slate-50'
                     }`}
             >
                 {/* Picability visual identity layer */}
@@ -1035,44 +1035,9 @@ export function StreakTracker({
                     <StreakDecoration
                         src="/streak-designs/streak-ambient.jpg"
                         accentColor={accentColor}
-                        opacity={0.10}
-                        className="
-                -top-24
-                -right-40
-                w-[620px]
-                h-[620px]
-                sm:w-[900px]
-                sm:h-[900px]
-            "
-                    />
-
-                    <StreakDecoration
-                        src="/streak-designs/streak-corner.jpg"
-                        accentColor={accentColor}
-                        opacity={0.16}
-                        className="
-                -bottom-24
-                -left-24
-                w-[440px]
-                h-[440px]
-                sm:w-[650px]
-                sm:h-[650px]
-            "
-                    />
-
-                    <StreakDecoration
-                        src="/streak-designs/streak-micro.jpg"
-                        accentColor={accentColor}
-                        opacity={0.32}
-                        className="
-                top-20
-                right-3
-                w-28
-                h-28
-                sm:right-20
-                sm:w-40
-                sm:h-40
-            "
+                        opacity={0.11}
+                        className="inset-0 w-full h-full"
+                        imageClassName="object-cover"
                     />
                 </div>
 
