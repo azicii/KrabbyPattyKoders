@@ -14,6 +14,9 @@ import { PicabilityPageShell} from './components/PicabilityPageShell';
 import {
     UserProfileModal
 } from './components/UserProfileModal';
+import {
+    AppUpdatePrompt
+} from './components/AppUpdatePrompt';
 
 type Screen =
     | 'auth'
@@ -2036,26 +2039,33 @@ export default function App() {
 
     if (!user) {
         return (
-            <PicabilityPageShell
-                variant="auth"
-                accentColor={
-                    picabilityAccentColor
-                }
-                isDark={isDark}
-            >
-                <AuthScreen
+            <>
+                <PicabilityPageShell
+                    variant="auth"
+                    accentColor={
+                        picabilityAccentColor
+                    }
                     isDark={isDark}
-                    onToggleDark={() =>
-                        setIsDark(!isDark)
-                    }
-                    onSuccess={
-                        handleAuthSuccess
-                    }
+                >
+                    <AuthScreen
+                        isDark={isDark}
+                        onToggleDark={() =>
+                            setIsDark(
+                                !isDark
+                            )
+                        }
+                        onSuccess={
+                            handleAuthSuccess
+                        }
+                    />
+                </PicabilityPageShell>
+
+                <AppUpdatePrompt
+                    isDark={isDark}
                 />
-            </PicabilityPageShell>
+            </>
         );
     }
-
     return (
         <div className="size-full">
             {currentScreen === 'onboarding' && user && (
@@ -2475,6 +2485,10 @@ export default function App() {
                             current + 1
                     );
                 }}
+            />
+
+            <AppUpdatePrompt
+                isDark={isDark}
             />
         </div >
     );

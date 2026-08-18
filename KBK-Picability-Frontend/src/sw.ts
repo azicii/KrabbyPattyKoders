@@ -14,14 +14,28 @@ import {
 declare const self: ServiceWorkerGlobalScope;
 
 /*
- * Activate new Picability versions immediately instead of
- * waiting for every existing browser tab to close.
+ * A newly downloaded Picability version waits until the
+ * user explicitly chooses "Update".
+ *
+ * vite-plugin-pwa sends SKIP_WAITING when updateSW(true)
+ * is called from the application.
  */
-self.skipWaiting();
+self.addEventListener(
+    'message',
+    event => {
+        if (
+            event.data?.type ===
+            'SKIP_WAITING'
+        ) {
+            void self.skipWaiting();
+        }
+    }
+);
 
 /*
- * Allow the newly activated worker to control currently
- * open Picability pages immediately.
+ * Once the user approves the update and the new service
+ * worker activates, immediately take control of open
+ * Picability windows.
  */
 clientsClaim();
 

@@ -25,7 +25,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         strategies: 'injectManifest',
         srcDir: 'src',
         filename: 'sw.ts',
@@ -34,10 +34,10 @@ export default defineConfig({
             'favicon-16x16.png',
             'favicon-32x32.png',
             'favicon-48x48.png',
-            'apple-touch-icon.png',
-            'pwa-192x192.png',
-            'pwa-512x512.png',
-            'pwa-maskable-512x512.png'
+            'apple-touch-icon-streaky-v2.png',
+            'pwa-192x192-streaky-v2.png',
+            'pwa-512x512-streaky-v2.png',
+            'pwa-maskable-512x512-streaky-v2.png'
         ],
         manifest: {
             name: 'Picability',
@@ -51,19 +51,19 @@ export default defineConfig({
             scope: '/',
             icons: [
                 {
-                    src: '/pwa-192x192.png',
+                    src: '/pwa-192x192-streaky-v2.png',
                     sizes: '192x192',
                     type: 'image/png',
                     purpose: 'any'
                 },
                 {
-                    src: '/pwa-512x512.png',
+                    src: '/pwa-512x512-streaky-v2.png',
                     sizes: '512x512',
                     type: 'image/png',
                     purpose: 'any'
                 },
                 {
-                    src: '/pwa-maskable-512x512.png',
+                    src: '/pwa-maskable-512x512-streaky-v2.png',
                     sizes: '512x512',
                     type: 'image/png',
                     purpose: 'maskable'
