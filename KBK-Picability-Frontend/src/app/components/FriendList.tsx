@@ -428,6 +428,30 @@ export function FriendsList({
                                           <button
                                               type="button"
                                               onClick={() =>
+                                                  onSelectFriend?.(
+                                                      friend
+                                                  )
+                                              }
+                                              title={`Start a streak with ${friend.name}`}
+                                              aria-label={`Start a streak with ${friend.name}`}
+                                              className={`
+                                                        p-4
+                                                        rounded-3xl
+                                                        transition-all
+                                                        ${isDark
+                                                      ? 'bg-slate-800/50 hover:bg-teal-500/20 text-teal-400'
+                                                      : 'bg-white hover:bg-teal-50 text-teal-600 shadow-sm'
+                                                  }
+                                               `}
+                                          >
+                                              <Zap className="w-5 h-5" />
+                                          </button>
+                                      )}
+
+                                      {!multiSelectMode && (
+                                          <button
+                                              type="button"
+                                              onClick={() =>
                                                   handleUnfriend(
                                                       friend.id,
                                                       friend.name
