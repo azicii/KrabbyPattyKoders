@@ -12,6 +12,9 @@ import {
 } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
+import {
+    ProfileUserLink
+} from './ProfileUserLink';
 
 interface PublicFeedMember {
     userId: string;
@@ -84,6 +87,9 @@ interface PublicFeedProps {
     isDark: boolean;
     items: PublicFeedItem[];
     onBack: () => void;
+    onOpenProfile: (
+        userName: string
+    ) => void;
 }
 
 const BASE_URL =
@@ -363,7 +369,8 @@ const getCountUnitLabel = (
 export function PublicFeed({
     isDark,
     items,
-    onBack
+    onBack,
+    onOpenProfile
 }: PublicFeedProps) {
     const [
         feedItems,
@@ -835,11 +842,6 @@ export function PublicFeed({
                                 ? [item.friendName]
                                 : [];
 
-                    const participantLabel =
-                        formatNameList(
-                            participantNames
-                        );
-
                     const failedLabel =
                         formatNameList(
                             failedMemberNames
@@ -933,7 +935,49 @@ export function PublicFeed({
                                                 }`}
                                         >
                                             <span className="font-semibold">
-                                                {participantLabel}
+                                                {participantNames.map(
+                                                    (
+                                                        participantName,
+                                                        index
+                                                    ) => (
+                                                        <span
+                                                            key={`${participantName}-${index}`}
+                                                        >
+                                                            {index > 0 &&
+                                                                (
+                                                                    index ===
+                                                                        participantNames.length -
+                                                                        1
+                                                                        ? participantNames.length ===
+                                                                            2
+                                                                            ? ' and '
+                                                                            : ', and '
+                                                                        : ', '
+                                                                )}
+
+                                                            <ProfileUserLink
+                                                                userName={
+                                                                    participantName
+                                                                }
+                                                                onOpenProfile={
+                                                                    onOpenProfile
+                                                                }
+                                                                className={
+                                                                    participantName ===
+                                                                        'Streaky'
+                                                                        ? ''
+                                                                        : 'hover:text-teal-400'
+                                                                }
+                                                                disabled={
+                                                                    participantName ===
+                                                                    'Streaky'
+                                                                }
+                                                            >
+                                                                {participantName}
+                                                            </ProfileUserLink>
+                                                        </span>
+                                                    )
+                                                )}
                                             </span>
 
                                             {includesStreaky && (
@@ -954,8 +998,40 @@ export function PublicFeed({
                                                     }`}
                                             >
                                                 Shared by{' '}
-                                                {formatNameList(
-                                                    visibleFriendNames
+
+                                                {visibleFriendNames.map(
+                                                    (
+                                                        visibleName,
+                                                        index
+                                                    ) => (
+                                                        <span
+                                                            key={`${visibleName}-${index}`}
+                                                        >
+                                                            {index > 0 &&
+                                                                (
+                                                                    index ===
+                                                                        visibleFriendNames.length -
+                                                                        1
+                                                                        ? visibleFriendNames.length ===
+                                                                            2
+                                                                            ? ' and '
+                                                                            : ', and '
+                                                                        : ', '
+                                                                )}
+
+                                                            <ProfileUserLink
+                                                                userName={
+                                                                    visibleName
+                                                                }
+                                                                onOpenProfile={
+                                                                    onOpenProfile
+                                                                }
+                                                                className="font-semibold hover:text-teal-400"
+                                                            >
+                                                                {visibleName}
+                                                            </ProfileUserLink>
+                                                        </span>
+                                                    )
                                                 )}
                                             </p>
                                         )}
@@ -1104,17 +1180,24 @@ export function PublicFeed({
                                             }`}
                                     >
                                         <div className="flex items-baseline gap-2 min-w-0">
-                                            <span
-                                                className={`text-sm font-semibold shrink-0 ${isDark
-                                                        ? 'text-slate-200'
-                                                        : 'text-slate-800'
-                                                    }`}
-                                            >
-                                                {
-                                                    item.previewComment
-                                                        .userName
-                                                }
-                                            </span>
+                                        <ProfileUserLink
+                                            userName={
+                                                item.previewComment
+                                                    .userName
+                                            }
+                                            onOpenProfile={
+                                                onOpenProfile
+                                            }
+                                            className={`text-sm font-semibold shrink-0 ${isDark
+                                                    ? 'text-slate-200 hover:text-teal-400'
+                                                    : 'text-slate-800 hover:text-teal-600'
+                                                }`}
+                                        >
+                                            {
+                                                item.previewComment
+                                                    .userName
+                                            }
+                                        </ProfileUserLink>
 
                                             <span
                                                 className={`text-sm break-words min-w-0 ${isDark
@@ -1164,16 +1247,20 @@ export function PublicFeed({
 
                                                             <div className="min-w-0 flex-1">
                                                                 <div className="flex flex-wrap items-baseline gap-x-2">
-                                                                    <span
-                                                                        className={`text-sm font-semibold ${isDark
-                                                                                ? 'text-slate-200'
-                                                                                : 'text-slate-800'
-                                                                            }`}
-                                                                    >
-                                                                        {
+                                                                    <ProfileUserLink
+                                                                        userName={
                                                                             comment.userName
                                                                         }
-                                                                    </span>
+                                                                        onOpenProfile={
+                                                                            onOpenProfile
+                                                                        }
+                                                                        className={`text-sm font-semibold ${isDark
+                                                                                ? 'text-slate-200 hover:text-teal-400'
+                                                                                : 'text-slate-800 hover:text-teal-600'
+                                                                            }`}
+                                                                    >
+                                                                        {comment.userName}
+                                                                    </ProfileUserLink>
 
                                                                     <span className="text-xs text-slate-500">
                                                                         {new Date(

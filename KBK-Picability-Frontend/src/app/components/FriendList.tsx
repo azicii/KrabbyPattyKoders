@@ -29,7 +29,10 @@ interface FriendsListProps {
   multiSelectMode?: boolean;
   selectedFriendIds?: string[];
   onToggleFriendSelection?: (friend: User) => void;
-  onFinishMultiSelect?: () => void;
+    onFinishMultiSelect?: () => void;
+    onOpenProfile?: (
+        userName: string
+    ) => void;
 }
 
 export function FriendsList({
@@ -43,6 +46,7 @@ export function FriendsList({
     refreshKey,
     multiSelectMode = false,
     selectedFriendIds = [],
+    onOpenProfile,
     onToggleFriendSelection,
     onFinishMultiSelect
 }: FriendsListProps) {
@@ -322,7 +326,20 @@ export function FriendsList({
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-white font-bold">{req.avatar}</div>
                   <div>
-                    <p className={`font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{req.name}</p>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    onOpenProfile?.(
+                                        req.name
+                                    )
+                                }
+                                className={`font-semibold hover:underline underline-offset-2 ${isDark
+                                        ? 'text-slate-100'
+                                        : 'text-slate-800'
+                                    }`}
+                            >
+                                {req.name}
+                            </button>
                     <p className="text-xs text-slate-500">wants to be friends</p>
                   </div>
                 </div>
@@ -354,9 +371,13 @@ export function FriendsList({
                                           type="button"
                                           onClick={() => {
                                               if (multiSelectMode) {
-                                                  onToggleFriendSelection?.(friend);
+                                                  onToggleFriendSelection?.(
+                                                      friend
+                                                  );
                                               } else {
-                                                  onSelectFriend?.(friend);
+                                                  onOpenProfile?.(
+                                                      friend.name
+                                                  );
                                               }
                                           }}
                                           className={`flex-1 flex items-center justify-between p-5 rounded-3xl transition-all ${isSelected && multiSelectMode
@@ -400,10 +421,32 @@ export function FriendsList({
                                                       <Check className="w-4 h-4" />
                                                   )}
                                               </div>
-                                          ) : (
-                                              <Zap className="text-teal-500 w-5 h-5" />
-                                          )}
+                                          ) : null}
                                       </button>
+
+                                      {!multiSelectMode && (
+                                          <button
+                                              type="button"
+                                              onClick={() =>
+                                                  onSelectFriend?.(
+                                                      friend
+                                                  )
+                                              }
+                                              title={`Start a streak with ${friend.name}`}
+                                              aria-label={`Start a streak with ${friend.name}`}
+                                              className={`
+                                                        p-4
+                                                        rounded-3xl
+                                                        transition-all
+                                                        ${isDark
+                                                      ? 'bg-slate-800/50 hover:bg-teal-500/20 text-teal-400'
+                                                      : 'bg-white hover:bg-teal-50 text-teal-600 shadow-sm'
+                                                  }
+                                               `}
+                                          >
+                                              <Zap className="w-5 h-5" />
+                                          </button>
+                                      )}
 
                                       {!multiSelectMode && (
                                           <button

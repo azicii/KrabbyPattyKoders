@@ -11,6 +11,9 @@ import { OnboardingSlides } from './components/OnboardingSlides.tsx';
 import { MobileBottomNav, MobileTab } from './components/MobileBottomNav.tsx';
 import { consumePushRefreshRequired } from '../pushRefreshStore';
 import { PicabilityPageShell} from './components/PicabilityPageShell';
+import {
+    UserProfileModal
+} from './components/UserProfileModal';
 
 type Screen =
     | 'auth'
@@ -139,6 +142,12 @@ export default function App() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isSelectingFriendForStreak, setIsSelectingFriendForStreak] = useState(false);
     const [friendsRefreshKey, setFriendsRefreshKey] = useState(0);
+    const [
+        openProfileUserName,
+        setOpenProfileUserName
+    ] = useState<string | null>(
+        null
+    );
     const submittingContentStreakIds = useRef<Set<number>>(new Set());
     const processingStreakRequestIds = useRef<Set<number>>(new Set());
     const [
@@ -1507,6 +1516,41 @@ export default function App() {
         setCurrentScreen('selector');
     };
 
+    const handleOpenProfile = (
+        userName: string
+    ) => {
+        setOpenProfileUserName(
+            userName
+        );
+    };
+
+    const handleStartStreakFromProfile = (
+        profileUser: User
+    ) => {
+        setOpenProfileUserName(
+            null
+        );
+
+        setPreSelectedFriend(
+            profileUser
+        );
+
+        setSelectedGroupFriends([]);
+        setIsSelectingGroupFriends(false);
+        setIsSelectingFriendForStreak(false);
+
+        setSelectedHabitType(null);
+        setDraftHabitConfig(null);
+
+        setCurrentScreen(
+            'selector'
+        );
+
+        setMobileTab(
+            'tracker'
+        );
+    };
+
     const handleToggleGroupFriend = (friend: User) => {
         setSelectedGroupFriends(current => {
             const alreadySelected =
@@ -2107,6 +2151,9 @@ export default function App() {
                                     }
                                 }}
                                 onSelectFriend={handleSelectFriend}
+                                onOpenProfile={
+                                    handleOpenProfile
+                                }
                                 onFindFriends={() => setCurrentScreen('user-search')}
                                 currentUserId={user.id}
                                 onRemoveFriend={handleRemoveFriend}
@@ -2190,6 +2237,9 @@ export default function App() {
                                     <PublicFeed
                                         isDark={isDark}
                                         items={publicFeed}
+                                        onOpenProfile={
+                                            handleOpenProfile
+                                        }
                                         onBack={() =>
                                             handleMobileTabChange(
                                                 'tracker'
@@ -2402,7 +2452,30 @@ export default function App() {
                 />
             </PicabilityPageShell>
         )
-}
+            }
+
+            <UserProfileModal
+                userName={
+                    openProfileUserName
+                }
+                isDark={isDark}
+                onClose={() =>
+                    setOpenProfileUserName(
+                        null
+                    )
+                }
+                onStartStreak={
+                    handleStartStreakFromProfile
+                }
+                onFriendRequestSent={() => {
+                    void fetchPendingFriendRequestCount();
+
+                    setFriendsRefreshKey(
+                        current =>
+                            current + 1
+                    );
+                }}
+            />
         </div >
     );
 }
