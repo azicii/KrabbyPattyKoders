@@ -531,7 +531,7 @@ export function StreakShareModal({
                             `}
                         >
                             <Download className="w-5 h-5" />
-                            Save to Photos
+                            Save
                         </button>
                     </div>
                 </div>
