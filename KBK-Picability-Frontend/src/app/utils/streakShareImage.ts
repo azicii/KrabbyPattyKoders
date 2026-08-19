@@ -325,10 +325,10 @@ const getRankPhrase = (
     if (streakCount >= 3)
         return 'THE MOMENTUM IS REAL.';
 
-    /*
-     * Icebound / opening tier.
-     */
-    return 'WE CAME BACK AND CONQUERED.';
+    if (streakCount === 2)
+        return 'WE CAME BACK AND CONQUERED.';
+
+    return 'EVERY GREAT STREAK STARTS SOMEWHERE.';
 };
 
 const getCycleUnitLabel = (
