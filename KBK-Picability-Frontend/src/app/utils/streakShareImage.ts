@@ -15,270 +15,24 @@
     participantNames: string[];
 
     completed: boolean;
+
+    /*
+     * Existing Picability streak color.
+     *
+     * Example:
+     * "from-pink-500 to-rose-600"
+     */
+    streakColor?: string;
 }
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
 
-interface ShareRank {
-    emoji: string;
-    title: string;
-}
-
-interface ShareHype {
-    eyebrow: string;
-    headline: string;
-    caption: string;
-}
-
-const getRank = (
-    count: number
-): ShareRank => {
-    if (count >= 1000)
-        return {
-            emoji: '🚀🌟',
-            title: 'LEGENDARY'
-        };
-
-    if (count >= 500)
-        return {
-            emoji: '🌋',
-            title: 'VOLCANIC'
-        };
-
-    if (count >= 400)
-        return {
-            emoji: '🐉',
-            title: 'DRAGON'
-        };
-
-    if (count >= 300)
-        return {
-            emoji: '💎',
-            title: 'DIAMOND'
-        };
-
-    if (count >= 200)
-        return {
-            emoji: '👑',
-            title: 'ROYAL'
-        };
-
-    if (count >= 150)
-        return {
-            emoji: '🏆',
-            title: 'CHAMPION'
-        };
-
-    if (count >= 100)
-        return {
-            emoji: '☄️',
-            title: 'COMET'
-        };
-
-    if (count >= 80)
-        return {
-            emoji: '🌶️',
-            title: 'RED HOT'
-        };
-
-    if (count >= 50)
-        return {
-            emoji: '💥',
-            title: 'EXPLOSIVE'
-        };
-
-    if (count >= 30)
-        return {
-            emoji: '⚡',
-            title: 'CHARGED'
-        };
-
-    if (count >= 20)
-        return {
-            emoji: '🔥',
-            title: 'ON FIRE'
-        };
-
-    if (count >= 10)
-        return {
-            emoji: '✨',
-            title: 'SPARK'
-        };
-
-    if (count >= 5)
-        return {
-            emoji: '💨',
-            title: 'MOMENTUM'
-        };
-
-    if (count >= 3)
-        return {
-            emoji: '💧',
-            title: 'DRIP'
-        };
-
-    if (count >= 1)
-        return {
-            emoji: '🧊',
-            title: 'ICEBOUND'
-        };
-
-    return {
-        emoji: '🔥',
-        title: 'JUST GETTING STARTED'
-    };
-};
-
-const getHype = (
-    count: number,
-    completed: boolean
-): ShareHype => {
-    if (count >= 1000) {
-        return {
-            eyebrow:
-                completed
-                    ? 'STREAK SECURED'
-                    : 'STILL GOING',
-            headline:
-                'ABSOLUTE LEGENDS.',
-            caption:
-                'THIS STOPPED BEING NORMAL A LONG TIME AGO.'
-        };
-    }
-
-    if (count >= 500) {
-        return {
-            eyebrow:
-                completed
-                    ? 'ANOTHER ONE LOCKED IN'
-                    : 'THE RUN CONTINUES',
-            headline:
-                'BUILT DIFFERENT.',
-            caption:
-                'CONSISTENCY AT AN UNREASONABLE LEVEL.'
-        };
-    }
-
-    if (count >= 100) {
-        return {
-            eyebrow:
-                completed
-                    ? 'STREAK SECURED'
-                    : 'STILL STANDING',
-            headline:
-                'TRIPLE DIGITS.',
-            caption:
-                'CONSISTENCY IS THE FLEX.'
-        };
-    }
-
-    if (count >= 50) {
-        return {
-            eyebrow:
-                completed
-                    ? 'ANOTHER ONE'
-                    : 'STILL LOCKED IN',
-            headline:
-                'NO SIGNS OF STOPPING.',
-            caption:
-                'THE RESULTS ARE STARTING TO SPEAK FOR THEMSELVES.'
-        };
-    }
-
-    if (count >= 30) {
-        return {
-            eyebrow:
-                completed
-                    ? 'MISSION COMPLETE'
-                    : 'LOCKED IN',
-            headline:
-                'WE ARE DIALED IN.',
-            caption:
-                'DISCIPLINE LOOKS GOOD ON US.'
-        };
-    }
-
-    if (count >= 20) {
-        return {
-            eyebrow:
-                completed
-                    ? 'STREAK SECURED'
-                    : 'STILL MOVING',
-            headline:
-                'THIS IS GETTING SERIOUS.',
-            caption:
-                'MOMENTUM HAS ENTERED THE CHAT.'
-        };
-    }
-
-    if (count >= 10) {
-        return {
-            eyebrow:
-                completed
-                    ? 'ANOTHER ONE LOCKED IN'
-                    : 'THE RUN CONTINUES',
-            headline:
-                'DOUBLE DIGITS.',
-            caption:
-                'THIS IS A HABIT NOW.'
-        };
-    }
-
-    if (count >= 5) {
-        return {
-            eyebrow:
-                completed
-                    ? 'STREAK SECURED'
-                    : 'MOMENTUM BUILDING',
-            headline:
-                'WE KEEP SHOWING UP.',
-            caption:
-                'KEEP WATCHING.'
-        };
-    }
-
-    if (count >= 3) {
-        return {
-            eyebrow:
-                completed
-                    ? 'ANOTHER DAY WON'
-                    : 'STILL BUILDING',
-            headline:
-                'MOMENTUM.',
-            caption:
-                'THE STREAK IS STARTING TO TALK.'
-        };
-    }
-
-    if (count >= 2) {
-        return {
-            eyebrow:
-                completed
-                    ? 'STREAK SECURED'
-                    : 'ROUND TWO',
-            headline:
-                'WE CAME BACK.',
-            caption:
-                'THAT IS HOW STREAKS GET BUILT.'
-        };
-    }
-
-    return {
-        eyebrow:
-            completed
-                ? 'DAY ONE SECURED'
-                : 'THE RUN STARTS HERE',
-        headline:
-            'WE ARE ON THE BOARD.',
-        caption:
-            'EVERY LEGENDARY STREAK STARTS AT 1.'
-    };
-};
+const WEBSITE_URL =
+    'picability.vercel.app';
 
 const roundedRect = (
-    context:
-        CanvasRenderingContext2D,
+    context: CanvasRenderingContext2D,
     x: number,
     y: number,
     width: number,
@@ -297,8 +51,7 @@ const roundedRect = (
 };
 
 const wrapText = (
-    context:
-        CanvasRenderingContext2D,
+    context: CanvasRenderingContext2D,
     text: string,
     maxWidth: number
 ) => {
@@ -310,38 +63,44 @@ const wrapText = (
     const lines: string[] =
         [];
 
-    let line = '';
+    let currentLine = '';
 
     words.forEach(word => {
-        const test =
-            line
-                ? `${line} ${word}`
+        const testLine =
+            currentLine
+                ? `${currentLine} ${word}`
                 : word;
 
         if (
-            line &&
+            currentLine &&
             context
-                .measureText(test)
+                .measureText(testLine)
                 .width >
             maxWidth
         ) {
-            lines.push(line);
-            line = word;
+            lines.push(
+                currentLine
+            );
+
+            currentLine =
+                word;
         } else {
-            line = test;
+            currentLine =
+                testLine;
         }
     });
 
-    if (line) {
-        lines.push(line);
+    if (currentLine) {
+        lines.push(
+            currentLine
+        );
     }
 
     return lines;
 };
 
 const fitFontSize = (
-    context:
-        CanvasRenderingContext2D,
+    context: CanvasRenderingContext2D,
     text: string,
     maxWidth: number,
     initialSize: number,
@@ -352,52 +111,256 @@ const fitFontSize = (
         initialSize;
 
     while (
-        size > minimumSize
+        size >
+        minimumSize
     ) {
         context.font =
             `${weight} ${size}px Arial, sans-serif`;
 
         if (
-            context.measureText(text)
+            context
+                .measureText(text)
                 .width <=
             maxWidth
         ) {
-            break;
+            return size;
         }
 
         size -= 2;
     }
 
-    return size;
+    return minimumSize;
 };
 
-const getCountUnit = (
-    input:
-        StreakShareImageInput
+/*
+ * Convert the existing Tailwind streak color into a
+ * representative poster accent.
+ *
+ * No backend work is required. The streak already carries
+ * this color information to the frontend.
+ */
+const getAccentColor = (
+    streakColor?: string
 ) => {
+    const color =
+        streakColor
+            ?.toLowerCase() ??
+        '';
+
     if (
-        input.cycleLength >
-        1
+        color.includes('pink') ||
+        color.includes('rose')
     ) {
-        return input.streakCount ===
-            1
-            ? 'CYCLE STRONG'
-            : 'CYCLES STRONG';
+        return '#ec4899';
     }
 
-    const unit =
-        input.cycleUnit
-            .toUpperCase();
+    if (
+        color.includes('red')
+    ) {
+        return '#ef4444';
+    }
 
-    return input.streakCount ===
-        1
-        ? `${unit} STRONG`
-        : `${unit}S STRONG`;
+    if (
+        color.includes('orange')
+    ) {
+        return '#f97316';
+    }
+
+    if (
+        color.includes('amber') ||
+        color.includes('yellow')
+    ) {
+        return '#f59e0b';
+    }
+
+    if (
+        color.includes('lime')
+    ) {
+        return '#84cc16';
+    }
+
+    if (
+        color.includes('green') ||
+        color.includes('emerald')
+    ) {
+        return '#10b981';
+    }
+
+    if (
+        color.includes('cyan')
+    ) {
+        return '#06b6d4';
+    }
+
+    if (
+        color.includes('sky')
+    ) {
+        return '#0ea5e9';
+    }
+
+    if (
+        color.includes('blue')
+    ) {
+        return '#3b82f6';
+    }
+
+    if (
+        color.includes('indigo')
+    ) {
+        return '#6366f1';
+    }
+
+    if (
+        color.includes('violet')
+    ) {
+        return '#8b5cf6';
+    }
+
+    if (
+        color.includes('purple')
+    ) {
+        return '#a855f7';
+    }
+
+    if (
+        color.includes('fuchsia')
+    ) {
+        return '#d946ef';
+    }
+
+    /*
+     * Picability teal fallback.
+     */
+    return '#14b8a6';
+};
+
+const hexToRgba = (
+    hex: string,
+    alpha: number
+) => {
+    const normalized =
+        hex.replace(
+            '#',
+            ''
+        );
+
+    const red =
+        parseInt(
+            normalized.slice(
+                0,
+                2
+            ),
+            16
+        );
+
+    const green =
+        parseInt(
+            normalized.slice(
+                2,
+                4
+            ),
+            16
+        );
+
+    const blue =
+        parseInt(
+            normalized.slice(
+                4,
+                6
+            ),
+            16
+        );
+
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+};
+
+/*
+ * One phrase per Picability rank tier.
+ *
+ * We intentionally do NOT show the rank title itself
+ * on the share poster anymore.
+ */
+const getRankPhrase = (
+    streakCount: number
+) => {
+    if (streakCount >= 1000)
+        return 'LEGEND STATUS. NO NOTES.';
+
+    if (streakCount >= 500)
+        return 'THIS IS WHAT RELENTLESS LOOKS LIKE.';
+
+    if (streakCount >= 400)
+        return 'BUILT TO LAST. STILL GOING.';
+
+    if (streakCount >= 300)
+        return 'CONSISTENCY BECAME SECOND NATURE.';
+
+    if (streakCount >= 200)
+        return 'WE MADE DISCIPLINE LOOK EASY.';
+
+    if (streakCount >= 150)
+        return 'THE WORK SPEAKS FOR ITSELF.';
+
+    if (streakCount >= 100)
+        return 'TRIPLE DIGITS. WE REALLY DID THAT.';
+
+    if (streakCount >= 80)
+        return 'AT THIS POINT, WE ARE LOCKED IN.';
+
+    if (streakCount >= 50)
+        return 'FIFTY STRONG AND STILL MOVING.';
+
+    if (streakCount >= 30)
+        return 'A MONTH OF SHOWING UP HITS DIFFERENT.';
+
+    if (streakCount >= 20)
+        return 'MOMENTUM IS DOING ITS THING.';
+
+    if (streakCount >= 10)
+        return 'DOUBLE DIGITS. NOW WE ARE TALKING.';
+
+    if (streakCount >= 5)
+        return 'WE ARE STARTING TO COOK.';
+
+    if (streakCount >= 3)
+        return 'THE MOMENTUM IS REAL.';
+
+    /*
+     * Icebound / opening tier.
+     */
+    return 'WE CAME BACK AND CONQUERED.';
+};
+
+const getCycleUnitLabel = (
+    input: StreakShareImageInput
+) => {
+    /*
+     * For the ordinary Picability schedules this gives
+     * DAY / DAYS, WEEK / WEEKS, MONTH / MONTHS.
+     */
+    if (
+        input.cycleLength === 1
+    ) {
+        if (
+            input.streakCount === 1
+        ) {
+            return input.cycleUnit
+                .toUpperCase();
+        }
+
+        return `${input.cycleUnit.toUpperCase()}S`;
+    }
+
+    /*
+     * Multi-unit cycles are themselves the streak unit.
+     */
+    return input.streakCount === 1
+        ? 'CYCLE'
+        : 'CYCLES';
 };
 
 const getScheduleText = (
-    input:
-        StreakShareImageInput
+    input: StreakShareImageInput
 ) => {
     const checkIns =
         Math.max(
@@ -405,7 +368,7 @@ const getScheduleText = (
             input.requiredCheckIns
         );
 
-    const length =
+    const cycleLength =
         Math.max(
             1,
             input.cycleLength
@@ -413,22 +376,91 @@ const getScheduleText = (
 
     const unit =
         input.cycleUnit
-            .toLowerCase();
+            .toUpperCase();
+
+    const cycleLabel =
+        cycleLength === 1
+            ? unit
+            : `${cycleLength} ${unit}${cycleLength === 1
+                ? ''
+                : 'S'
+            }`;
 
     return `${checkIns === 1
             ? '1 CHECK-IN'
             : `${checkIns} CHECK-INS`
-        } EVERY ${length === 1
-            ? unit.toUpperCase()
-            : `${length} ${unit.toUpperCase()}S`
-        }`;
+        } EVERY ${cycleLabel}`;
 };
 
-const drawPosterBackground = (
-    context:
-        CanvasRenderingContext2D
+const getParticipantHeadline = (
+    participantNames: string[]
 ) => {
-    const gradient =
+    const names =
+        participantNames
+            .filter(Boolean)
+            .map(name =>
+                name.toUpperCase()
+            );
+
+    if (
+        names.length === 0
+    ) {
+        return 'PICABILITY USER';
+    }
+
+    if (
+        names.length === 1
+    ) {
+        return names[0];
+    }
+
+    if (
+        names.length === 2
+    ) {
+        return `${names[0]} & ${names[1]}`;
+    }
+
+    return `${names
+            .slice(
+                0,
+                2
+            )
+            .join(' & ')
+        } + ${names.length - 2} MORE`;
+};
+
+const getParticipantSignature = (
+    participantNames: string[]
+) => {
+    const names =
+        participantNames
+            .filter(Boolean)
+            .map(name =>
+                name.toUpperCase()
+            );
+
+    if (
+        names.length <= 3
+    ) {
+        return names.join(
+            ' × '
+        );
+    }
+
+    return `${names
+            .slice(
+                0,
+                3
+            )
+            .join(' × ')
+        } +${names.length - 3}`;
+};
+
+const drawBackground = (
+    context: CanvasRenderingContext2D,
+    accentColor: string
+) => {
+    const backgroundGradient =
         context.createLinearGradient(
             0,
             0,
@@ -436,23 +468,23 @@ const drawPosterBackground = (
             HEIGHT
         );
 
-    gradient.addColorStop(
+    backgroundGradient.addColorStop(
         0,
-        '#03182c'
+        '#07182b'
     );
 
-    gradient.addColorStop(
+    backgroundGradient.addColorStop(
         0.55,
-        '#061629'
+        '#061425'
     );
 
-    gradient.addColorStop(
+    backgroundGradient.addColorStop(
         1,
-        '#020a13'
+        '#020811'
     );
 
     context.fillStyle =
-        gradient;
+        backgroundGradient;
 
     context.fillRect(
         0,
@@ -462,25 +494,26 @@ const drawPosterBackground = (
     );
 
     /*
-     * Large Picability-style diagonal
-     * streaks.
+     * Subtle black/navy Picability streaks.
+     * These deliberately stay dark regardless of
+     * the streak's selected accent color.
      */
-    const strokes = [
-        [-350, 380, 550, -80, 94],
-        [-260, 650, 680, 165, 25],
-        [-300, 805, 520, 385, 10],
+    const darkStreaks = [
+        [-240, 350, 520, -40, 72],
+        [-180, 600, 600, 195, 28],
+        [-250, 930, 410, 590, 13],
 
-        [630, 250, 1260, -85, 72],
-        [720, 560, 1220, 300, 17],
+        [665, 255, 1260, -55, 65],
+        [705, 650, 1245, 365, 22],
 
-        [-260, 1530, 600, 1090, 110],
-        [-180, 1760, 535, 1390, 25],
+        [-250, 1515, 585, 1080, 80],
+        [-180, 1790, 550, 1410, 22],
 
-        [590, 1960, 1300, 1590, 130],
-        [690, 1680, 1210, 1410, 17]
+        [630, 1960, 1280, 1620, 95],
+        [745, 1660, 1230, 1410, 17]
     ];
 
-    strokes.forEach(
+    darkStreaks.forEach(
         (
             [
                 x1,
@@ -503,21 +536,21 @@ const drawPosterBackground = (
                 y2
             );
 
-            context.lineWidth =
-                width;
-
             context.lineCap =
                 'square';
 
+            context.lineWidth =
+                width;
+
             context.strokeStyle =
                 index % 3 === 0
-                    ? '#01050a'
-                    : '#102a45';
+                    ? '#01050b'
+                    : '#102640';
 
             context.globalAlpha =
                 index % 2 === 0
                     ? 0.92
-                    : 0.65;
+                    : 0.58;
 
             context.stroke();
         }
@@ -526,21 +559,21 @@ const drawPosterBackground = (
     context.globalAlpha = 1;
 
     /*
-     * Accent streaks.
+     * A few thin streak-color accents.
      */
     context.strokeStyle =
-        '#16d7cb';
+        accentColor;
 
     context.lineWidth = 7;
 
     context.globalAlpha =
-        0.85;
+        0.88;
 
     [
-        [35, 430, 255, 315],
-        [730, 270, 955, 150],
-        [85, 1610, 330, 1485],
-        [780, 1480, 1040, 1345]
+        [35, 300, 235, 195],
+        [820, 280, 1035, 168],
+        [70, 1605, 280, 1495],
+        [805, 1570, 1045, 1445]
     ].forEach(
         ([x1, y1, x2, y2]) => {
             context.beginPath();
@@ -562,31 +595,42 @@ const drawPosterBackground = (
     context.globalAlpha = 1;
 };
 
-const drawGlow = (
-    context:
-        CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    radius: number
+const drawNumberAura = (
+    context: CanvasRenderingContext2D,
+    accentColor: string
 ) => {
     const glow =
         context.createRadialGradient(
-            x,
-            y,
+            WIDTH / 2,
+            800,
             0,
-            x,
-            y,
-            radius
+            WIDTH / 2,
+            800,
+            410
         );
 
     glow.addColorStop(
         0,
-        'rgba(22, 215, 203, 0.26)'
+        hexToRgba(
+            accentColor,
+            0.34
+        )
+    );
+
+    glow.addColorStop(
+        0.42,
+        hexToRgba(
+            accentColor,
+            0.17
+        )
     );
 
     glow.addColorStop(
         1,
-        'rgba(22, 215, 203, 0)'
+        hexToRgba(
+            accentColor,
+            0
+        )
     );
 
     context.fillStyle =
@@ -595,9 +639,9 @@ const drawGlow = (
     context.beginPath();
 
     context.arc(
-        x,
-        y,
-        radius,
+        WIDTH / 2,
+        800,
+        410,
         0,
         Math.PI * 2
     );
@@ -607,8 +651,7 @@ const drawGlow = (
 
 export const generateStreakShareImage =
     async (
-        input:
-            StreakShareImageInput
+        input: StreakShareImageInput
     ) => {
         const canvas =
             document.createElement(
@@ -629,114 +672,119 @@ export const generateStreakShareImage =
             );
         }
 
-        const rank =
-            getRank(
+        const accentColor =
+            getAccentColor(
+                input.streakColor
+            );
+
+        const rankPhrase =
+            getRankPhrase(
                 input.streakCount
             );
 
-        const hype =
-            getHype(
-                input.streakCount,
-                input.completed
+        const participantHeadline =
+            getParticipantHeadline(
+                input.participantNames
             );
 
-        drawPosterBackground(
-            context
+        const participantSignature =
+            getParticipantSignature(
+                input.participantNames
+            );
+
+        drawBackground(
+            context,
+            accentColor
         );
 
-        /*
-         * Soft center glow makes the main
-         * statistic jump forward.
-         */
-        drawGlow(
+        drawNumberAura(
             context,
-            WIDTH / 2,
-            900,
-            500
+            accentColor
         );
 
         context.textAlign =
             'center';
 
         /*
-         * Small branding. Picability is
-         * present, but the USER is the star.
+         * PICABILITY
          */
         context.fillStyle =
-            '#16d7cb';
+            accentColor;
 
         context.font =
-            '800 30px Arial, sans-serif';
+            '800 31px Arial, sans-serif';
 
         context.fillText(
             'PICABILITY',
             WIDTH / 2,
-            105
+            100
         );
 
         /*
-         * Top achievement chip.
+         * Small cycle badge.
          */
-        const eyebrow =
-            hype.eyebrow;
+        const cycleBadge =
+            input.streakCount === 1
+                ? 'DAY ONE'
+                : input.streakCount === 2
+                    ? 'ROUND TWO'
+                    : 'STREAK PROGRESS';
 
         context.font =
-            '800 28px Arial, sans-serif';
+            '800 27px Arial, sans-serif';
 
-        const eyebrowWidth =
-            Math.min(
-                710,
+        const badgeWidth =
+            Math.max(
+                250,
                 context
                     .measureText(
-                        eyebrow
+                        cycleBadge
                     )
                     .width +
-                110
+                100
             );
 
         roundedRect(
             context,
             (
                 WIDTH -
-                eyebrowWidth
+                badgeWidth
             ) / 2,
-            165,
-            eyebrowWidth,
-            76,
-            38
+            145,
+            badgeWidth,
+            68,
+            34
         );
 
         context.fillStyle =
-            input.completed
-                ? 'rgba(16, 185, 129, 0.17)'
-                : 'rgba(22, 215, 203, 0.14)';
+            hexToRgba(
+                accentColor,
+                0.08
+            );
 
         context.fill();
 
         context.strokeStyle =
-            input.completed
-                ? 'rgba(52, 211, 153, 0.55)'
-                : 'rgba(22, 215, 203, 0.45)';
+            hexToRgba(
+                accentColor,
+                0.75
+            );
 
         context.lineWidth = 2;
 
         context.stroke();
 
         context.fillStyle =
-            input.completed
-                ? '#34d399'
-                : '#16d7cb';
+            accentColor;
 
         context.fillText(
-            input.completed
-                ? `✓ ${eyebrow}`
-                : eyebrow,
+            cycleBadge,
             WIDTH / 2,
-            214
+            189
         );
 
         /*
-         * Hype headline.
+         * Who did it.
          */
         context.fillStyle =
             '#ffffff';
@@ -744,42 +792,130 @@ export const generateStreakShareImage =
         const headlineSize =
             fitFontSize(
                 context,
-                hype.headline,
-                890,
-                76,
-                50
+                participantHeadline,
+                900,
+                55,
+                31,
+                800
             );
 
         context.font =
-            `900 ${headlineSize}px Arial, sans-serif`;
+            `800 ${headlineSize}px Arial, sans-serif`;
 
         context.fillText(
-            hype.headline,
+            participantHeadline,
             WIDTH / 2,
-            350
+            305
+        );
+
+        context.fillStyle =
+            accentColor;
+
+        context.font =
+            '800 26px Arial, sans-serif';
+
+        context.fillText(
+            input.completed
+                ? 'FINISHED'
+                : 'IS WORKING ON',
+            WIDTH / 2,
+            360
         );
 
         /*
-         * Habit name.
+         * Massive streak count.
          */
+        const numberText =
+            String(
+                input.streakCount
+            );
+
         context.fillStyle =
-            '#a9b8ca';
+            '#ffffff';
 
         context.font =
-            '800 34px Arial, sans-serif';
+            '900 350px Arial, sans-serif';
+
+        context.shadowColor =
+            hexToRgba(
+                accentColor,
+                0.95
+            );
+
+        context.shadowBlur = 55;
+
+        context.fillText(
+            numberText,
+            WIDTH / 2,
+            790
+        );
+
+        context.shadowBlur = 0;
+
+        /*
+         * DAY / DAYS / WEEK / etc.
+         */
+        context.fillStyle =
+            '#f8fafc';
+
+        context.font =
+            '900 80px Arial, sans-serif';
+
+        context.fillText(
+            getCycleUnitLabel(
+                input
+            ),
+            WIDTH / 2,
+            895
+        );
+
+        /*
+         * Tie the streak name directly to the number.
+         */
+        context.fillStyle =
+            accentColor;
+
+        context.font =
+            '800 29px Arial, sans-serif';
+
+        context.fillText(
+            'OF OUR',
+            WIDTH / 2,
+            955
+        );
+
+        const habitName =
+            input.habitName
+                .toUpperCase();
+
+        context.fillStyle =
+            '#ffffff';
+
+        const habitFontSize =
+            fitFontSize(
+                context,
+                habitName,
+                900,
+                52,
+                30,
+                900
+            );
+
+        context.font =
+            `900 ${habitFontSize}px Arial, sans-serif`;
 
         const habitLines =
             wrapText(
                 context,
-                input.habitName
-                    .toUpperCase(),
-                800
+                habitName,
+                900
             ).slice(
                 0,
                 2
             );
 
-        let habitY = 425;
+        let habitY =
+            1025;
 
         habitLines.forEach(
             line => {
@@ -789,167 +925,114 @@ export const generateStreakShareImage =
                     habitY
                 );
 
-                habitY += 45;
+                habitY +=
+                    habitFontSize +
+                    10;
             }
         );
 
-        /*
-         * Giant number.
-         */
-        const countY =
-            habitY + 330;
-
         context.fillStyle =
-            '#ffffff';
+            accentColor;
 
         context.font =
-            '900 330px Arial, sans-serif';
-
-        context.shadowColor =
-            'rgba(22, 215, 203, 0.32)';
-
-        context.shadowBlur = 55;
+            '800 29px Arial, sans-serif';
 
         context.fillText(
-            String(
-                input.streakCount
-            ),
+            'STREAK',
             WIDTH / 2,
-            countY
-        );
-
-        context.shadowBlur = 0;
-
-        context.fillStyle =
-            '#cbd5e1';
-
-        context.font =
-            '800 43px Arial, sans-serif';
-
-        context.fillText(
-            getCountUnit(
-                input
-            ),
-            WIDTH / 2,
-            countY + 85
+            habitY + 8
         );
 
         /*
-         * Rank badge.
+         * Schedule capsule.
          */
-        const rankY =
-            countY + 155;
+        const scheduleY =
+            habitY + 85;
 
         roundedRect(
             context,
-            270,
-            rankY,
-            540,
-            100,
-            50
+            210,
+            scheduleY,
+            660,
+            76,
+            38
         );
 
         context.fillStyle =
-            'rgba(15, 37, 61, 0.95)';
+            'rgba(15, 37, 61, 0.88)';
 
         context.fill();
 
         context.strokeStyle =
-            'rgba(22, 215, 203, 0.35)';
+            hexToRgba(
+                accentColor,
+                0.28
+            );
 
         context.lineWidth = 2;
 
         context.stroke();
 
-        context.font =
-            '52px Arial, sans-serif';
-
         context.fillStyle =
-            '#ffffff';
-
-        context.fillText(
-            rank.emoji,
-            350,
-            rankY + 67
-        );
-
-        context.fillStyle =
-            '#16d7cb';
+            '#cbd5e1';
 
         context.font =
-            '900 31px Arial, sans-serif';
-
-        context.textAlign =
-            'left';
+            '700 25px Arial, sans-serif';
 
         context.fillText(
-            rank.title,
-            410,
-            rankY + 61
+            getScheduleText(
+                input
+            ),
+            WIDTH / 2,
+            scheduleY + 48
         );
-
-        context.textAlign =
-            'center';
 
         /*
-         * Hype caption.
+         * Exactly one dynamic hype phrase.
          */
-        const captionY =
-            rankY + 210;
+        const phraseY =
+            scheduleY + 160;
 
         context.fillStyle =
-            '#ffffff';
+            accentColor;
 
         context.font =
-            '900 50px Arial, sans-serif';
+            '900 34px Arial, sans-serif';
 
-        const captionLines =
+        const phraseLines =
             wrapText(
                 context,
-                hype.caption,
-                830
+                rankPhrase,
+                800
             ).slice(
                 0,
-                3
+                2
             );
 
-        let captionLineY =
-            captionY;
+        let currentPhraseY =
+            phraseY;
 
-        captionLines.forEach(
+        phraseLines.forEach(
             line => {
                 context.fillText(
                     line,
                     WIDTH / 2,
-                    captionLineY
+                    currentPhraseY
                 );
 
-                captionLineY += 62;
+                currentPhraseY +=
+                    46;
             }
         );
 
         /*
-         * Participant section.
+         * Participants.
          */
-        const names =
-            input.participantNames
-                .filter(Boolean)
-                .map(name =>
-                    name.toUpperCase()
-                );
-
-        const participantText =
-            names.length <= 3
-                ? names.join(' × ')
-                : `${names
-                    .slice(0, 3)
-                    .join(' × ')} +${names.length - 3
-                }`;
-
-        const partnersY =
+        const builtTogetherY =
             Math.max(
-                captionLineY + 115,
-                1390
+                currentPhraseY +
+                85,
+                1450
             );
 
         context.fillStyle =
@@ -959,11 +1042,12 @@ export const generateStreakShareImage =
             '800 22px Arial, sans-serif';
 
         context.fillText(
-            names.length > 1
+            input.participantNames.length >
+                1
                 ? 'BUILT TOGETHER'
                 : 'BUILT BY',
             WIDTH / 2,
-            partnersY
+            builtTogetherY
         );
 
         context.fillStyle =
@@ -972,9 +1056,9 @@ export const generateStreakShareImage =
         const participantFontSize =
             fitFontSize(
                 context,
-                participantText,
-                820,
-                44,
+                participantSignature,
+                850,
+                42,
                 27,
                 800
             );
@@ -983,75 +1067,80 @@ export const generateStreakShareImage =
             `800 ${participantFontSize}px Arial, sans-serif`;
 
         context.fillText(
-            participantText,
+            participantSignature,
             WIDTH / 2,
-            partnersY + 58
+            builtTogetherY + 57
         );
 
         /*
-         * Habit schedule.
-         */
-        const scheduleY =
-            partnersY + 120;
-
-        roundedRect(
-            context,
-            240,
-            scheduleY,
-            600,
-            70,
-            35
-        );
-
-        context.fillStyle =
-            'rgba(15, 37, 61, 0.88)';
-
-        context.fill();
-
-        context.fillStyle =
-            '#94a3b8';
-
-        context.font =
-            '700 24px Arial, sans-serif';
-
-        context.fillText(
-            getScheduleText(
-                input
-            ),
-            WIDTH / 2,
-            scheduleY + 45
-        );
-
-        /*
-         * Bottom signature.
+         * Footer branding.
          */
         context.fillStyle =
-            '#16d7cb';
+            accentColor;
 
         context.font =
-            '900 28px Arial, sans-serif';
+            '900 29px Arial, sans-serif';
 
         context.fillText(
             'PICABILITY',
             WIDTH / 2,
-            1775
+            1695
         );
 
         context.fillStyle =
             '#64748b';
 
         context.font =
-            '600 22px Arial, sans-serif';
+            '700 21px Arial, sans-serif';
 
         context.fillText(
             'BUILD HABITS TOGETHER.',
             WIDTH / 2,
-            1815
+            1735
         );
 
         /*
-         * Export.
+         * Website capsule.
+         *
+         * This is visible in the PNG. The PNG itself
+         * cannot contain a functional hyperlink.
          */
+        roundedRect(
+            context,
+            315,
+            1780,
+            450,
+            70,
+            35
+        );
+
+        context.fillStyle =
+            'rgba(5, 15, 27, 0.8)';
+
+        context.fill();
+
+        context.strokeStyle =
+            hexToRgba(
+                accentColor,
+                0.65
+            );
+
+        context.lineWidth = 2;
+
+        context.stroke();
+
+        context.fillStyle =
+            accentColor;
+
+        context.font =
+            '700 25px Arial, sans-serif';
+
+        context.fillText(
+            WEBSITE_URL,
+            WIDTH / 2,
+            1825
+        );
+
         return await new Promise<Blob>(
             (
                 resolve,

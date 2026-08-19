@@ -147,7 +147,10 @@ export function StreakShareModal({
 
                                 participantNames,
 
-                                completed
+                                completed,
+
+                                streakColor:
+                                    streak.color
                             }
                         );
 
@@ -277,7 +280,7 @@ export function StreakShareModal({
                     `${streak.habitName} streak`,
 
                 text:
-                    `My ${streak.habitName} streak is at ${streak.streakCount}! 🔥`
+                    `We made it to ${streak.streakCount} on our ${streak.habitName} streak 🔥\n\nhttps://picability.vercel.app`
             };
 
             const supportsFileSharing =
