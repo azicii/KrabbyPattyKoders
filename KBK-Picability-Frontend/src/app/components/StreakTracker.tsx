@@ -1,4 +1,4 @@
-import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed, Bell, BellRing, FlipHorizontal2, CircleHelp } from 'lucide-react';
+import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed, Bell, BellRing, FlipHorizontal2, CircleHelp, Share2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -6,6 +6,9 @@ import { canUsePushNotifications, enablePushNotifications } from '../utils/pushN
 import {
     ProfileUserLink
 } from './ProfileUserLink';
+import {
+    StreakShareModal
+} from './StreakShareModal';
 
 const STREAKY_USER_ID =
     'picability-system-streaky';
@@ -171,6 +174,12 @@ export function StreakTracker({
     const [reminderSentId, setReminderSentId] = useState<number | null>(null);
     const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
     const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
+    const [
+        shareStreak,
+        setShareStreak
+    ] = useState<Streak | null>(
+        null
+    );
     const [
         visibilityHelpStreakId,
         setVisibilityHelpStreakId
@@ -2587,30 +2596,38 @@ export function StreakTracker({
                                                 </button>
                                             ) : (
                                                 <div className="space-y-3">
-                                                    <button
-                                                        disabled={!canCheckIn}
-                                                        onClick={(e) => openCheckInModal(streak, e)}
-                                                        className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl transition-all duration-300 shadow-md ${canCheckIn
-                                                            ? `bg-gradient-to-r ${streak.color} hover:brightness-110`
-                                                            : 'bg-slate-700/30 cursor-not-allowed grayscale'
-                                                            }`}
-                                                    >
-                                                        {canCheckIn ? (
-                                                            <>
-                                                                <CheckCircle2 className="w-6 h-6 text-white animate-bounce" />
-                                                                    <span className="font-bold text-white text-lg">
-                                                                        {usesMultipleCheckIns
-                                                                            ? `Check In · ${userCycleCheckIns}/${requiredCheckIns}`
-                                                                            : streak.cycleUnit === 'Week'
-                                                                                ? 'Complete This Week'
-                                                                                : streak.cycleUnit === 'Month'
-                                                                                    ? 'Complete This Month'
-                                                                                    : 'Complete Today'}
-                                                                    </span>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <Clock className="w-6 h-6 text-slate-400" />
+                                                        <div className="flex gap-3">
+                                                            <button
+                                                                disabled={!canCheckIn}
+                                                                onClick={(event) =>
+                                                                    openCheckInModal(
+                                                                        streak,
+                                                                        event
+                                                                    )
+                                                                }
+                                                                className={`min-w-0 flex-1 flex items-center justify-center gap-3 py-4 px-4 rounded-2xl transition-all duration-300 shadow-md ${canCheckIn
+                                                                        ? `bg-gradient-to-r ${streak.color} hover:brightness-110`
+                                                                        : 'bg-slate-700/30 cursor-not-allowed grayscale'
+                                                                    }`}
+                                                            >
+                                                                {canCheckIn ? (
+                                                                    <>
+                                                                        <CheckCircle2 className="w-6 h-6 shrink-0 text-white animate-bounce" />
+
+                                                                        <span className="font-bold text-white text-lg">
+                                                                            {usesMultipleCheckIns
+                                                                                ? `Check In · ${userCycleCheckIns}/${requiredCheckIns}`
+                                                                                : streak.cycleUnit === 'Week'
+                                                                                    ? 'Complete This Week'
+                                                                                    : streak.cycleUnit === 'Month'
+                                                                                        ? 'Complete This Month'
+                                                                                        : 'Complete Today'}
+                                                                        </span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Clock className="w-6 h-6 shrink-0 text-slate-400" />
+
                                                                         <span className="font-bold text-slate-400 text-lg">
                                                                             {userCompletedCycle
                                                                                 ? usesMultipleCheckIns
@@ -2618,10 +2635,51 @@ export function StreakTracker({
                                                                                     : 'Streak complete'
                                                                                 : streak.timeMessage}
                                                                         </span>
+                                                                    </>
+                                                                )}
+                                                            </button>
 
-                                                            </>
-                                                        )}
-                                                        </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={event => {
+                                                                    event.stopPropagation();
+
+                                                                    setShareStreak(
+                                                                        streak
+                                                                    );
+                                                                }}
+                                                                aria-label={`Share ${streak.habitName} streak progress`}
+                                                                title="Share streak progress"
+                                                                className={`
+                                                                    shrink-0
+                                                                    w-16
+                                                                    sm:w-auto
+                                                                    sm:px-5
+                                                                    flex
+                                                                    flex-col
+                                                                    sm:flex-row
+                                                                    items-center
+                                                                    justify-center
+                                                                    gap-1
+                                                                    sm:gap-2
+                                                                    rounded-2xl
+                                                                    border
+                                                                    shadow-md
+                                                                    transition-all
+                                                                    active:scale-95
+                                                                    ${isDark
+                                                                        ? 'bg-slate-800/80 border-slate-700 text-teal-400 hover:bg-slate-800'
+                                                                        : 'bg-white border-slate-200 text-teal-600 hover:bg-slate-50'
+                                                                    }
+                                                                `}
+                                                            >
+                                                                <Share2 className="w-5 h-5" />
+
+                                                                <span className="text-[10px] sm:text-sm font-bold">
+                                                                    Share
+                                                                </span>
+                                                            </button>
+                                                        </div>
 
                                                         {(
                                                             !streak.isGroupStreak ||
@@ -3846,7 +3904,25 @@ export function StreakTracker({
                             <span className="text-lg font-semibold text-white">Start New Habit Streak</span>
                         </div>
                     </button>
-                </div>
+                    </div>
+
+                    <StreakShareModal
+                        streak={
+                            shareStreak
+                        }
+                        currentUserName={
+                            user?.userName ??
+                            'You'
+                        }
+                        isDark={
+                            isDark
+                        }
+                        onClose={() =>
+                            setShareStreak(
+                                null
+                            )
+                        }
+                    />
 
                 {cancelPendingRequest && createPortal(
                     <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
