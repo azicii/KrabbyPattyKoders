@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Picability.Data;
@@ -24,6 +24,61 @@ namespace Picability.Controllers
         {
             return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
+
+        private static (
+    string Emoji,
+    string Title
+) GetProfileRank(
+    int bestStreakCount)
+        {
+            if (bestStreakCount >= 1000)
+                return ("🚀🌟", "Legendary");
+
+            if (bestStreakCount >= 500)
+                return ("🌋", "Volcanic");
+
+            if (bestStreakCount >= 400)
+                return ("🐉", "Dragon");
+
+            if (bestStreakCount >= 300)
+                return ("💎", "Diamond");
+
+            if (bestStreakCount >= 200)
+                return ("👑", "Royal");
+
+            if (bestStreakCount >= 150)
+                return ("🏆", "Champion");
+
+            if (bestStreakCount >= 100)
+                return ("☄️", "Comet");
+
+            if (bestStreakCount >= 80)
+                return ("🌶️", "Red Hot");
+
+            if (bestStreakCount >= 50)
+                return ("💥", "Explosive");
+
+            if (bestStreakCount >= 30)
+                return ("⚡", "Charged");
+
+            if (bestStreakCount >= 20)
+                return ("🔥", "On Fire");
+
+            if (bestStreakCount >= 10)
+                return ("✨", "Spark");
+
+            if (bestStreakCount >= 5)
+                return ("💨", "Momentum");
+
+            if (bestStreakCount >= 3)
+                return ("💧", "Drip");
+
+            if (bestStreakCount >= 1)
+                return ("🧊", "Icebound");
+
+            return ("—", "Unranked");
+        }
+
         [HttpGet("me")]
         public async Task<IActionResult> GetMe()
         {
@@ -140,7 +195,10 @@ namespace Picability.Controllers
                     .Select(user => new
                     {
                         user.Id,
-                        user.UserName
+                        user.UserName,
+                        user.BestStreakCount,
+                        user.BestStreakName,
+                        user.BestStreakIcon
                     })
                     .FirstOrDefaultAsync();
 
@@ -237,39 +295,33 @@ namespace Picability.Controllers
                 }
             }
 
-            /*
-             * Pull every streak this user has participated
-             * in. This supports both modern StreakMember
-             * records and older UserOne/UserTwo streaks.
+                        /*
+             * Best-streak information is permanently stored on the
+             * ApplicationUser so deleting old streak rows cannot erase
+             * the user's personal record.
+             *
+             * Active streak count remains live data.
              */
-            var userStreaks =
+            var activeStreakCount =
                 await _context.Streaks
-                    .Where(streak =>
-                        streak.Members.Any(member =>
-                            member.UserId ==
+                    .CountAsync(streak =>
+                        streak.IsActive &&
+                        (
+                            streak.Members.Any(member =>
+                                member.UserId ==
+                                    profileUser.Id
+                            ) ||
+                            streak.UserOneId ==
+                                profileUser.Id ||
+                            streak.UserTwoId ==
                                 profileUser.Id
-                        ) ||
-                        streak.UserOneId ==
-                            profileUser.Id ||
-                        streak.UserTwoId ==
-                            profileUser.Id
-                    )
-                    .Select(streak => new
-                    {
-                        streak.Id,
-                        streak.HabitName,
-                        streak.CurrentCount,
-                        streak.IsActive
-                    })
-                    .ToListAsync();
+                        )
+                    );
 
-            var highestStreak =
-                userStreaks
-                    .OrderByDescending(
-                        streak =>
-                            streak.CurrentCount
-                    )
-                    .FirstOrDefault();
+            var rank =
+                GetProfileRank(
+                    profileUser.BestStreakCount
+                );
 
             var result =
                 new UserProfileDto
@@ -281,22 +333,22 @@ namespace Picability.Controllers
                         string.Empty,
 
                     HighestStreakCount =
-                        highestStreak
-                            ?.CurrentCount ??
-                        0,
+                        profileUser.BestStreakCount,
 
                     HighestStreakName =
-                        highestStreak
-                            ?.HabitName,
+                        profileUser.BestStreakName,
+
+                    HighestStreakIcon =
+                        profileUser.BestStreakIcon,
 
                     ActiveStreakCount =
-                        userStreaks.Count(
-                            streak =>
-                                streak.IsActive
-                        ),
+                        activeStreakCount,
 
-                    TotalStreakCount =
-                        userStreaks.Count,
+                    RankEmoji =
+                        rank.Emoji,
+
+                    RankTitle =
+                        rank.Title,
 
                     RelationshipStatus =
                         relationshipStatus

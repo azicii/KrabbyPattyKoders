@@ -1,15 +1,28 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Picability.Models;
 
-namespace Picability.Models
+public class ApplicationUser : IdentityUser
 {
-    // Need email/password auth and user info saved on registration. ASP.NET Identity is being used for this.
-    // IdentityUser class gives Id, Email, PasswordHash, and UserName, directly helping with enable email/password auth, save user info (username, email, ID) upon registration, and setup Users table data model in C#
-    public class ApplicationUser : IdentityUser
-    {
-        public string UserNameDisplay { get; set; } = string.Empty;
+    public string UserNameDisplay { get; set; } = string.Empty;
 
-        // Navigation properties
-        public ICollection<FriendRequest> SentFriendRequests { get; set; } = new List<FriendRequest>();
-        public ICollection<FriendRequest> ReceivedFriendRequests { get; set; } = new List<FriendRequest>();
-    }
-} 
+    /*
+     * Permanent profile record.
+     *
+     * These values survive even after the streak that produced
+     * them is eventually deleted from the database.
+     *
+     * We intentionally do not backfill historical streak data.
+     */
+    public int BestStreakCount { get; set; } = 0;
+
+    public string? BestStreakName { get; set; }
+
+    public string? BestStreakIcon { get; set; }
+
+    // Navigation properties
+    public ICollection<FriendRequest> SentFriendRequests { get; set; } =
+        new List<FriendRequest>();
+
+    public ICollection<FriendRequest> ReceivedFriendRequests { get; set; } =
+        new List<FriendRequest>();
+}

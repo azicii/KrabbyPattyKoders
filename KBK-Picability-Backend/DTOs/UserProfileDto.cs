@@ -12,9 +12,15 @@
 
         public string? HighestStreakName { get; set; }
 
+        public string? HighestStreakIcon { get; set; }
+
         public int ActiveStreakCount { get; set; }
 
-        public int TotalStreakCount { get; set; }
+        public string RankEmoji { get; set; } =
+            "—";
+
+        public string RankTitle { get; set; } =
+            "Unranked";
 
         // "Self"
         // "Friends"

@@ -4,7 +4,6 @@ import {
     Loader2,
     Trophy,
     UserPlus,
-    Users,
     X,
     Zap
 } from 'lucide-react';
@@ -21,10 +20,20 @@ const BASE_URL =
 interface UserProfile {
     id: string;
     userName: string;
+
     highestStreakCount: number;
-    highestStreakName?: string | null;
+
+    highestStreakName?:
+    string | null;
+
+    highestStreakIcon?:
+    string | null;
+
     activeStreakCount: number;
-    totalStreakCount: number;
+
+    rankEmoji: string;
+    rankTitle: string;
+
     relationshipStatus:
     | 'Self'
     | 'Friends'
@@ -525,31 +534,48 @@ export function UserProfileModal({
                             </div>
                         </div>
 
-                        <div
-                            className={`mt-3 flex items-center justify-between rounded-2xl border px-4 py-3 ${isDark
-                                    ? 'bg-slate-800/60 border-slate-700'
-                                    : 'bg-slate-50 border-slate-200'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4 text-teal-400" />
+                                <div
+                                    className={`mt-3 flex items-center justify-between rounded-2xl border px-4 py-3 ${isDark
+                                            ? 'bg-slate-800/60 border-slate-700'
+                                            : 'bg-slate-50 border-slate-200'
+                                        }`}
+                                >
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                                            Rank
+                                        </p>
 
-                                <span className="text-sm text-slate-500">
-                                    Total streaks
-                                </span>
-                            </div>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-2xl leading-none">
+                                                {profile.rankEmoji}
+                                            </span>
 
-                            <span
-                                className={`font-bold ${isDark
-                                        ? 'text-slate-200'
-                                        : 'text-slate-800'
-                                    }`}
-                            >
-                                {
-                                    profile.totalStreakCount
-                                }
-                            </span>
-                        </div>
+                                            <span
+                                                className={`font-bold ${isDark
+                                                        ? 'text-slate-200'
+                                                        : 'text-slate-800'
+                                                    }`}
+                                            >
+                                                {profile.rankTitle}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-right">
+                                        <p className="text-xs text-slate-500">
+                                            Best streak
+                                        </p>
+
+                                        <p
+                                            className={`font-bold ${isDark
+                                                    ? 'text-slate-200'
+                                                    : 'text-slate-800'
+                                                }`}
+                                        >
+                                            {profile.highestStreakCount}
+                                        </p>
+                                    </div>
+                                </div>
 
                         {error && (
                             <div className="mt-4 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-sm text-rose-400">

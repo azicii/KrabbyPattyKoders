@@ -2569,6 +2569,43 @@ namespace Picability.Controllers
                 streak.CurrentCount++;
                 streak.LastFullyCompletedAt = nowUtc;
                 streak.LastCompletedAt = nowUtc;
+
+                /*
+                 * Permanently record this streak as each participant's
+                 * personal best whenever it exceeds their previous record.
+                 *
+                 * Streaky is a system account and does not need profile
+                 * statistics.
+                 */
+                foreach (
+                    var member in memberModels
+                )
+                {
+                    if (
+                        member.User == null ||
+                        StreakyIdentity.IsStreaky(
+                            member.UserId
+                        )
+                    )
+                    {
+                        continue;
+                    }
+
+                    if (
+                        streak.CurrentCount >
+                        member.User.BestStreakCount
+                    )
+                    {
+                        member.User.BestStreakCount =
+                            streak.CurrentCount;
+
+                        member.User.BestStreakName =
+                            streak.HabitName;
+
+                        member.User.BestStreakIcon =
+                            streak.HabitIcon;
+                    }
+                }
             }
 
             await _context.SaveChangesAsync();
