@@ -226,36 +226,28 @@ export function StreakShareModal({
     const fileName =
         `picability-${safeHabitName || 'streak'}-${streak.streakCount}.png`;
 
-    const downloadImage =
+    const openSaveImageView =
         () => {
-            if (
-                !imageBlob ||
-                !previewUrl
-            ) {
+            if (!previewUrl) {
                 return;
             }
 
-            const anchor =
-                document.createElement(
-                    'a'
+            const saveWindow =
+                window.open(
+                    previewUrl,
+                    '_blank'
                 );
 
-            anchor.href =
-                previewUrl;
+            if (!saveWindow) {
+                setMessage(
+                    'Press and hold the image above, then choose Save to Photos.'
+                );
 
-            anchor.download =
-                fileName;
-
-            document.body.appendChild(
-                anchor
-            );
-
-            anchor.click();
-
-            anchor.remove();
+                return;
+            }
 
             setMessage(
-                'Image saved. You can upload it anywhere you like.'
+                'Press and hold the image, then choose Save to Photos.'
             );
         };
 
@@ -300,7 +292,7 @@ export function StreakShareModal({
             if (
                 !supportsFileSharing
             ) {
-                downloadImage();
+                openSaveImageView();
 
                 return;
             }
@@ -518,7 +510,7 @@ export function StreakShareModal({
                                 generating
                             }
                             onClick={
-                                downloadImage
+                                openSaveImageView
                             }
                             className={`
                                 flex
@@ -539,7 +531,7 @@ export function StreakShareModal({
                             `}
                         >
                             <Download className="w-5 h-5" />
-                            Save
+                            Save to Photos
                         </button>
                     </div>
                 </div>
