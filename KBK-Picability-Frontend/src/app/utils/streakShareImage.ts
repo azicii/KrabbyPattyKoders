@@ -847,7 +847,7 @@ export const generateStreakShareImage =
         context.fillText(
             numberText,
             WIDTH / 2,
-            790
+            720
         );
 
         context.shadowBlur = 0;
@@ -859,14 +859,14 @@ export const generateStreakShareImage =
             '#f8fafc';
 
         context.font =
-            '900 80px Arial, sans-serif';
+            '900 96px Arial, sans-serif';
 
         context.fillText(
             getCycleUnitLabel(
                 input
             ),
             WIDTH / 2,
-            895
+            835
         );
 
         /*
@@ -876,12 +876,12 @@ export const generateStreakShareImage =
             accentColor;
 
         context.font =
-            '800 29px Arial, sans-serif';
+            '800 38px Arial, sans-serif';
 
         context.fillText(
             'OF OUR',
             WIDTH / 2,
-            955
+            900
         );
 
         const habitName =
@@ -896,8 +896,8 @@ export const generateStreakShareImage =
                 context,
                 habitName,
                 900,
-                52,
-                30,
+                68,
+                40,
                 900
             );
 
@@ -915,7 +915,7 @@ export const generateStreakShareImage =
             );
 
         let habitY =
-            1025;
+            975;
 
         habitLines.forEach(
             line => {
@@ -935,27 +935,27 @@ export const generateStreakShareImage =
             accentColor;
 
         context.font =
-            '800 29px Arial, sans-serif';
+            '800 36px Arial, sans-serif';
 
         context.fillText(
             'STREAK',
             WIDTH / 2,
-            habitY + 8
+            habitY + 12
         );
 
         /*
          * Schedule capsule.
          */
         const scheduleY =
-            habitY + 85;
+            habitY + 95;
 
         roundedRect(
             context,
-            210,
+            185,
             scheduleY,
-            660,
-            76,
-            38
+            710,
+            86,
+            43
         );
 
         context.fillStyle =
@@ -977,27 +977,27 @@ export const generateStreakShareImage =
             '#cbd5e1';
 
         context.font =
-            '700 25px Arial, sans-serif';
+            '700 30px Arial, sans-serif';
 
         context.fillText(
             getScheduleText(
                 input
             ),
             WIDTH / 2,
-            scheduleY + 48
+            scheduleY + 55
         );
 
         /*
          * Exactly one dynamic hype phrase.
          */
         const phraseY =
-            scheduleY + 160;
+            scheduleY + 145;
 
         context.fillStyle =
             accentColor;
 
         context.font =
-            '900 34px Arial, sans-serif';
+            '900 40px Arial, sans-serif';
 
         const phraseLines =
             wrapText(
@@ -1021,7 +1021,7 @@ export const generateStreakShareImage =
                 );
 
                 currentPhraseY +=
-                    46;
+                    52;
             }
         );
 
@@ -1031,15 +1031,15 @@ export const generateStreakShareImage =
         const builtTogetherY =
             Math.max(
                 currentPhraseY +
-                85,
-                1450
+                75,
+                1365
             );
 
         context.fillStyle =
             '#64748b';
 
         context.font =
-            '800 22px Arial, sans-serif';
+            '800 29px Arial, sans-serif';
 
         context.fillText(
             input.participantNames.length >
@@ -1057,9 +1057,9 @@ export const generateStreakShareImage =
             fitFontSize(
                 context,
                 participantSignature,
-                850,
-                42,
-                27,
+                900,
+                48,
+                30,
                 800
             );
 
@@ -1069,7 +1069,7 @@ export const generateStreakShareImage =
         context.fillText(
             participantSignature,
             WIDTH / 2,
-            builtTogetherY + 57
+            builtTogetherY + 66
         );
 
         /*
@@ -1084,19 +1084,19 @@ export const generateStreakShareImage =
         context.fillText(
             'PICABILITY',
             WIDTH / 2,
-            1695
+            1605
         );
 
         context.fillStyle =
             '#64748b';
 
         context.font =
-            '700 21px Arial, sans-serif';
+            '700 26px Arial, sans-serif'
 
         context.fillText(
             'BUILD HABITS TOGETHER.',
             WIDTH / 2,
-            1735
+            1650
         );
 
         /*
@@ -1107,11 +1107,11 @@ export const generateStreakShareImage =
          */
         roundedRect(
             context,
-            315,
-            1780,
-            450,
-            70,
-            35
+            275,
+            1700,
+            530,
+            82,
+            41
         );
 
         context.fillStyle =
@@ -1133,12 +1133,12 @@ export const generateStreakShareImage =
             accentColor;
 
         context.font =
-            '700 25px Arial, sans-serif';
+            '700 30px Arial, sans-serif';
 
         context.fillText(
             WEBSITE_URL,
             WIDTH / 2,
-            1825
+            1753
         );
 
         return await new Promise<Blob>(
