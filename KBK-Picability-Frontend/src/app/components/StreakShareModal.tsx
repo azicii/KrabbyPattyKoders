@@ -1,5 +1,4 @@
 ﻿import {
-    Download,
     Loader2,
     Share2,
     X
@@ -229,31 +228,6 @@ export function StreakShareModal({
     const fileName =
         `picability-${safeHabitName || 'streak'}-${streak.streakCount}.png`;
 
-    const openSaveImageView =
-        () => {
-            if (!previewUrl) {
-                return;
-            }
-
-            const saveWindow =
-                window.open(
-                    previewUrl,
-                    '_blank'
-                );
-
-            if (!saveWindow) {
-                setMessage(
-                    'Press and hold the image above, then choose Save to Photos.'
-                );
-
-                return;
-            }
-
-            setMessage(
-                'Press and hold the image, then choose Save to Photos.'
-            );
-        };
-
     const shareImage =
         async () => {
             if (
@@ -295,7 +269,9 @@ export function StreakShareModal({
             if (
                 !supportsFileSharing
             ) {
-                openSaveImageView();
+                setMessage(
+                    'Sharing files is not supported on this device.'
+                );
 
                 return;
             }
@@ -468,7 +444,7 @@ export function StreakShareModal({
                         </p>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3 mt-5">
+                    <div className="mt-5">
                         <button
                             type="button"
                             disabled={
@@ -480,61 +456,34 @@ export function StreakShareModal({
                                 void shareImage()
                             }
                             className="
-                                flex
-                                items-center
-                                justify-center
-                                gap-2
-                                py-3.5
-                                rounded-2xl
-                                bg-gradient-to-r
-                                from-teal-600
-                                to-cyan-700
-                                text-white
-                                font-bold
-                                shadow-lg
-                                transition-all
-                                active:scale-[0.98]
-                                disabled:opacity-50
-                            "
-                        >
+                                    w-full
+                                    flex
+                                    items-center
+                                    justify-center
+                                    gap-2
+                                    py-4
+                                    rounded-2xl
+                                    bg-gradient-to-r
+                                    from-teal-600
+                                    to-cyan-700
+                                    text-white
+                                    font-bold
+                                    text-base
+                                    shadow-lg
+                                    transition-all
+                                    active:scale-[0.98]
+                                    disabled:opacity-50
+                                "
+                                     >
                             {sharing ? (
                                 <Loader2 className="w-5 h-5 animate-spin" />
                             ) : (
                                 <Share2 className="w-5 h-5" />
                             )}
 
-                            Share
-                        </button>
-
-                        <button
-                            type="button"
-                            disabled={
-                                !imageBlob ||
-                                generating
-                            }
-                            onClick={
-                                openSaveImageView
-                            }
-                            className={`
-                                flex
-                                items-center
-                                justify-center
-                                gap-2
-                                py-3.5
-                                rounded-2xl
-                                font-bold
-                                border
-                                transition-all
-                                active:scale-[0.98]
-                                disabled:opacity-50
-                                ${isDark
-                                    ? 'bg-slate-800 border-slate-700 text-slate-200'
-                                    : 'bg-slate-50 border-slate-200 text-slate-700'
-                                }
-                            `}
-                        >
-                            <Download className="w-5 h-5" />
-                            Save
+                            {sharing
+                                ? 'Opening Share...'
+                                : 'Share Streak'}
                         </button>
                     </div>
                 </div>
