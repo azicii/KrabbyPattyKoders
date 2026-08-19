@@ -2596,90 +2596,47 @@ export function StreakTracker({
                                                 </button>
                                             ) : (
                                                 <div className="space-y-3">
-                                                        <div className="flex gap-3">
-                                                            <button
-                                                                disabled={!canCheckIn}
-                                                                onClick={(event) =>
-                                                                    openCheckInModal(
-                                                                        streak,
-                                                                        event
-                                                                    )
-                                                                }
-                                                                className={`min-w-0 flex-1 flex items-center justify-center gap-3 py-4 px-4 rounded-2xl transition-all duration-300 shadow-md ${canCheckIn
-                                                                        ? `bg-gradient-to-r ${streak.color} hover:brightness-110`
-                                                                        : 'bg-slate-700/30 cursor-not-allowed grayscale'
-                                                                    }`}
-                                                            >
-                                                                {canCheckIn ? (
-                                                                    <>
-                                                                        <CheckCircle2 className="w-6 h-6 shrink-0 text-white animate-bounce" />
+                                                        <button
+                                                            disabled={!canCheckIn}
+                                                            onClick={(event) =>
+                                                                openCheckInModal(
+                                                                    streak,
+                                                                    event
+                                                                )
+                                                            }
+                                                            className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl transition-all duration-300 shadow-md ${canCheckIn
+                                                                    ? `bg-gradient-to-r ${streak.color} hover:brightness-110`
+                                                                    : 'bg-slate-700/30 cursor-not-allowed grayscale'
+                                                                }`}
+                                                        >
+                                                            {canCheckIn ? (
+                                                                <>
+                                                                    <CheckCircle2 className="w-6 h-6 text-white animate-bounce" />
 
-                                                                        <span className="font-bold text-white text-lg">
-                                                                            {usesMultipleCheckIns
-                                                                                ? `Check In · ${userCycleCheckIns}/${requiredCheckIns}`
-                                                                                : streak.cycleUnit === 'Week'
-                                                                                    ? 'Complete This Week'
-                                                                                    : streak.cycleUnit === 'Month'
-                                                                                        ? 'Complete This Month'
-                                                                                        : 'Complete Today'}
-                                                                        </span>
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <Clock className="w-6 h-6 shrink-0 text-slate-400" />
+                                                                    <span className="font-bold text-white text-lg">
+                                                                        {usesMultipleCheckIns
+                                                                            ? `Check In · ${userCycleCheckIns}/${requiredCheckIns}`
+                                                                            : streak.cycleUnit === 'Week'
+                                                                                ? 'Complete This Week'
+                                                                                : streak.cycleUnit === 'Month'
+                                                                                    ? 'Complete This Month'
+                                                                                    : 'Complete Today'}
+                                                                    </span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Clock className="w-6 h-6 text-slate-400" />
 
-                                                                        <span className="font-bold text-slate-400 text-lg">
-                                                                            {userCompletedCycle
-                                                                                ? usesMultipleCheckIns
-                                                                                    ? 'Required check-ins complete'
-                                                                                    : 'Streak complete'
-                                                                                : streak.timeMessage}
-                                                                        </span>
-                                                                    </>
-                                                                )}
-                                                            </button>
-
-                                                            <button
-                                                                type="button"
-                                                                onClick={event => {
-                                                                    event.stopPropagation();
-
-                                                                    setShareStreak(
-                                                                        streak
-                                                                    );
-                                                                }}
-                                                                aria-label={`Share ${streak.habitName} streak progress`}
-                                                                title="Share streak progress"
-                                                                className={`
-                                                                    shrink-0
-                                                                    w-16
-                                                                    sm:w-auto
-                                                                    sm:px-5
-                                                                    flex
-                                                                    flex-col
-                                                                    sm:flex-row
-                                                                    items-center
-                                                                    justify-center
-                                                                    gap-1
-                                                                    sm:gap-2
-                                                                    rounded-2xl
-                                                                    border
-                                                                    shadow-md
-                                                                    transition-all
-                                                                    active:scale-95
-                                                                    ${isDark
-                                                                        ? 'bg-slate-800/80 border-slate-700 text-teal-400 hover:bg-slate-800'
-                                                                        : 'bg-white border-slate-200 text-teal-600 hover:bg-slate-50'
-                                                                    }
-                                                                `}
-                                                            >
-                                                                <Share2 className="w-5 h-5" />
-
-                                                                <span className="text-[10px] sm:text-sm font-bold">
-                                                                    Share
-                                                                </span>
-                                                            </button>
-                                                        </div>
+                                                                    <span className="font-bold text-slate-400 text-lg">
+                                                                        {userCompletedCycle
+                                                                            ? usesMultipleCheckIns
+                                                                                ? 'Required check-ins complete'
+                                                                                : 'Streak complete'
+                                                                            : streak.timeMessage}
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </button>
 
                                                         {(
                                                             !streak.isGroupStreak ||
@@ -2730,7 +2687,7 @@ export function StreakTracker({
                                             </p>
 
                                             <div className="flex items-end justify-between mt-3 gap-4">
-                                                <div className="min-w-[44px]">
+                                                <div className="flex min-w-[44px] items-center gap-2">
                                                     {!isBroken &&
                                                         !isStreakyStreak &&
                                                         userCompletedCycle &&
@@ -2785,6 +2742,35 @@ export function StreakTracker({
                                                                 )}
                                                             </button>
                                                         )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={event => {
+                                                            event.stopPropagation();
+
+                                                            setShareStreak(
+                                                                streak
+                                                            );
+                                                        }}
+                                                        className={`
+                                                                w-11
+                                                                h-11
+                                                                rounded-full
+                                                                border
+                                                                flex
+                                                                items-center
+                                                                justify-center
+                                                                transition-all
+                                                                active:scale-95
+                                                                ${isDark
+                                                                    ? 'bg-slate-700/40 border-slate-600 text-teal-400 hover:bg-slate-700'
+                                                                    : 'bg-slate-100 border-slate-200 text-teal-600 hover:bg-slate-200'
+                                                                }
+                                                            `}
+                                                        title="Share streak progress"
+                                                        aria-label={`Share ${streak.habitName} streak progress`}
+                                                    >
+                                                        <Share2 className="w-5 h-5" />
+                                                    </button>
                                                 </div>
 
                                                 <div className="relative flex items-center gap-2">
