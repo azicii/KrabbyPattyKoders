@@ -2227,7 +2227,8 @@ export default function App() {
                                 onPublicFeed={() => handleMobileTabChange('feed')}
                                 onToggleVisibility={handleToggleStreakVisibility}
                                 onSendReminderPing={handleSendReminderPing}
-                                    />
+                                onOpenProfile={handleOpenProfile}
+                                 />
                                 </PicabilityPageShell>
                         </div>
 

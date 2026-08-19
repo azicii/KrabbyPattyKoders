@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { canUsePushNotifications, enablePushNotifications } from '../utils/pushNotifications';
+import {
+    ProfileUserLink
+} from './ProfileUserLink';
 
 const STREAKY_USER_ID =
     'picability-system-streaky';
@@ -119,6 +122,9 @@ interface StreakTrackerProps {
     onPublicFeed?: () => void;
     onToggleVisibility?: (streakId: number, isPublic: boolean) => void;
     onSendReminderPing?: (streakId: number) => Promise<boolean>;
+    onOpenProfile?: (
+        userName: string
+    ) => void;
 }
 
 export function StreakTracker({
@@ -144,7 +150,8 @@ export function StreakTracker({
     onRejectInvite,
     onCancelPendingStreakRequest,
     onToggleVisibility,
-    onSendCheckInPhoto
+    onSendCheckInPhoto,
+    onOpenProfile
 }: StreakTrackerProps) {
     const [expandedStreakId, setExpandedStreakId] = useState<number | null>(null);
     const [showInvites, setShowInvites] = useState(false);
@@ -1040,7 +1047,19 @@ export function StreakTracker({
                         </h1>
                         <div className="flex items-center gap-2 mt-1">
                             <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                                Hi, <span className="font-semibold text-teal-500">{user?.userName}</span>
+                                    Hi,{' '}
+                                    <ProfileUserLink
+                                        userName={
+                                            user?.userName ?? ''
+                                        }
+                                        onOpenProfile={
+                                            onOpenProfile ??
+                                            (() => { })
+                                        }
+                                        className="font-semibold text-teal-500 hover:text-teal-400"
+                                    >
+                                        {user?.userName}
+                                    </ProfileUserLink>
                             </p>
                         </div>
                     </div>
@@ -1076,7 +1095,16 @@ export function StreakTracker({
                                                 <div key={invite.id} className={`p-3 rounded-xl flex items-center justify-between transition-colors duration-300 ${isAccepted ? 'bg-emerald-500/20' : isDark ? 'bg-slate-700/50' : 'bg-slate-50'
                                                     }`}>
                                                     <div className="flex flex-col min-w-0 pr-2">
-                                                        <span className="text-sm font-bold truncate">{invite.senderName}</span>
+                                                        <ProfileUserLink
+                                                            userName={invite.senderName}
+                                                            onOpenProfile={
+                                                                onOpenProfile ??
+                                                                (() => { })
+                                                            }
+                                                            className="text-sm font-bold truncate hover:text-teal-400"
+                                                        >
+                                                            {invite.senderName}
+                                                        </ProfileUserLink>
                                                         <span className="text-[10px] text-slate-400 truncate">Habit: {invite.habitName}</span>
                                                     </div>
                                                     <button
@@ -1265,9 +1293,20 @@ export function StreakTracker({
                                                                 : 'text-slate-600'
                                                             }`}
                                                     >
+                                                        <ProfileUserLink
+                                                            userName={invite.senderName}
+                                                            onOpenProfile={
+                                                                onOpenProfile ??
+                                                                (() => { })
+                                                            }
+                                                            className="font-semibold hover:text-teal-400"
+                                                        >
+                                                            {invite.senderName}
+                                                        </ProfileUserLink>
+
                                                         {invite.isGroupRequest
-                                                            ? `${invite.senderName} invited you to join a group streak`
-                                                            : `${invite.senderName} invited you to start this streak`}
+                                                            ? ' invited you to join a group streak'
+                                                            : ' invited you to start this streak'}
                                                     </p>
 
                                                     {invite.isGroupRequest && (
@@ -1294,15 +1333,20 @@ export function StreakTracker({
 
                                                                 <div className="space-y-1.5">
                                                                     <div className="flex items-center justify-between gap-3 text-xs">
-                                                                        <span
+                                                                        <ProfileUserLink
+                                                                            userName={invite.senderName}
+                                                                            onOpenProfile={
+                                                                                onOpenProfile ??
+                                                                                (() => { })
+                                                                            }
                                                                             className={
                                                                                 isDark
-                                                                                    ? 'text-slate-300'
-                                                                                    : 'text-slate-700'
+                                                                                    ? 'text-slate-300 hover:text-teal-400'
+                                                                                    : 'text-slate-700 hover:text-teal-600'
                                                                             }
                                                                         >
                                                                             {invite.senderName}
-                                                                        </span>
+                                                                        </ProfileUserLink>
 
                                                                         <span className="text-teal-500 font-semibold">
                                                                             Creator
@@ -1315,15 +1359,20 @@ export function StreakTracker({
                                                                                 key={member.userId}
                                                                                 className="flex items-center justify-between gap-3 text-xs"
                                                                             >
-                                                                                <span
+                                                                                <ProfileUserLink
+                                                                                    userName={member.userName}
+                                                                                    onOpenProfile={
+                                                                                        onOpenProfile ??
+                                                                                        (() => { })
+                                                                                    }
                                                                                     className={
                                                                                         isDark
-                                                                                            ? 'text-slate-300'
-                                                                                            : 'text-slate-700'
+                                                                                            ? 'text-slate-300 hover:text-teal-400'
+                                                                                            : 'text-slate-700 hover:text-teal-600'
                                                                                     }
                                                                                 >
                                                                                     {member.userName}
-                                                                                </span>
+                                                                                </ProfileUserLink>
 
                                                                                 <span
                                                                                     className={`font-semibold ${member.status === 'Accepted'
@@ -1491,14 +1540,19 @@ export function StreakTracker({
 
                                                             <div className="space-y-2">
                                                                 <div className="flex items-center justify-between gap-4">
-                                                                    <span
-                                                                        className={`text-sm truncate ${isDark
-                                                                                ? 'text-slate-200'
-                                                                                : 'text-slate-700'
+                                                                    <ProfileUserLink
+                                                                        userName={invite.senderName}
+                                                                        onOpenProfile={
+                                                                            onOpenProfile ??
+                                                                            (() => { })
+                                                                        }
+                                                                        className={`text-sm truncate font-semibold ${isDark
+                                                                                ? 'text-slate-200 hover:text-teal-400'
+                                                                                : 'text-slate-700 hover:text-teal-600'
                                                                             }`}
                                                                     >
                                                                         {invite.senderName}
-                                                                    </span>
+                                                                    </ProfileUserLink>
 
                                                                     <span className="text-xs font-semibold shrink-0 text-teal-500">
                                                                         Creator
@@ -1516,16 +1570,35 @@ export function StreakTracker({
                                                                                 key={member.userId}
                                                                                 className="flex items-center justify-between gap-4"
                                                                             >
-                                                                                <span
-                                                                                    className={`text-sm truncate ${isDark
-                                                                                            ? 'text-slate-200'
-                                                                                            : 'text-slate-700'
-                                                                                        }`}
-                                                                                >
-                                                                                    {isCurrentUser
-                                                                                        ? 'You'
-                                                                                        : member.userName}
-                                                                                </span>
+                                                                                {isCurrentUser ? (
+                                                                                    <ProfileUserLink
+                                                                                        userName={user?.userName ?? ''}
+                                                                                        onOpenProfile={
+                                                                                            onOpenProfile ??
+                                                                                            (() => { })
+                                                                                        }
+                                                                                        className={`text-sm truncate ${isDark
+                                                                                                ? 'text-slate-200 hover:text-teal-400'
+                                                                                                : 'text-slate-700 hover:text-teal-600'
+                                                                                            }`}
+                                                                                    >
+                                                                                        You
+                                                                                    </ProfileUserLink>
+                                                                                ) : (
+                                                                                    <ProfileUserLink
+                                                                                        userName={member.userName}
+                                                                                        onOpenProfile={
+                                                                                            onOpenProfile ??
+                                                                                            (() => { })
+                                                                                        }
+                                                                                        className={`text-sm truncate ${isDark
+                                                                                                ? 'text-slate-200 hover:text-teal-400'
+                                                                                                : 'text-slate-700 hover:text-teal-600'
+                                                                                            }`}
+                                                                                    >
+                                                                                        {member.userName}
+                                                                                    </ProfileUserLink>
+                                                                                )}
 
                                                                                 <span
                                                                                     className={`text-xs font-semibold shrink-0 ${member.status === 'Accepted'
@@ -1650,14 +1723,19 @@ export function StreakTracker({
                                                                                 key={member.userId}
                                                                                 className="flex items-center justify-between gap-4"
                                                                             >
-                                                                                <span
+                                                                                <ProfileUserLink
+                                                                                    userName={member.userName}
+                                                                                    onOpenProfile={
+                                                                                        onOpenProfile ??
+                                                                                        (() => { })
+                                                                                    }
                                                                                     className={`text-sm truncate ${isDark
-                                                                                            ? 'text-slate-200'
-                                                                                            : 'text-slate-700'
+                                                                                            ? 'text-slate-200 hover:text-teal-400'
+                                                                                            : 'text-slate-700 hover:text-teal-600'
                                                                                         }`}
                                                                                 >
                                                                                     {member.userName}
-                                                                                </span>
+                                                                                </ProfileUserLink>
 
                                                                                 <span
                                                                                     className={`text-xs font-semibold shrink-0 ${member.status === 'Accepted'
@@ -1682,7 +1760,18 @@ export function StreakTracker({
                                                                     : 'text-slate-600'
                                                                 }`}
                                                         >
-                                                            Requested with {request.receiverName}
+                                                            Requested with{' '}
+
+                                                            <ProfileUserLink
+                                                                userName={request.receiverName}
+                                                                onOpenProfile={
+                                                                    onOpenProfile ??
+                                                                    (() => { })
+                                                                }
+                                                                className="font-semibold hover:text-teal-400"
+                                                            >
+                                                                {request.receiverName}
+                                                            </ProfileUserLink>
                                                         </p>
                                                     )}
 
@@ -2030,7 +2119,18 @@ export function StreakTracker({
                                                                             : 'text-slate-600'
                                                                         }`}
                                                                 >
-                                                                    with {streak.userName}
+                                                                    with{' '}
+
+                                                                    <ProfileUserLink
+                                                                        userName={streak.userName}
+                                                                        onOpenProfile={
+                                                                            onOpenProfile ??
+                                                                            (() => { })
+                                                                        }
+                                                                        className="font-semibold hover:text-teal-400"
+                                                                    >
+                                                                        {streak.userName}
+                                                                    </ProfileUserLink>
                                                                 </span>
                                                             </div>
                                                     )}
@@ -2164,18 +2264,39 @@ export function StreakTracker({
                                                                     >
                                                                         <div className="flex items-center justify-between gap-3">
                                                                             <div className="min-w-0">
-                                                                                <span
-                                                                                    className={`block text-sm font-bold truncate ${member.completedCycle
-                                                                                            ? 'text-emerald-500'
-                                                                                            : isDark
-                                                                                                ? 'text-slate-200'
-                                                                                                : 'text-slate-700'
-                                                                                        }`}
-                                                                                >
-                                                                                    {member.isCurrentUser
-                                                                                        ? 'You'
-                                                                                        : member.userName}
-                                                                                </span>
+                                                                                {member.isCurrentUser ? (
+                                                                                    <ProfileUserLink
+                                                                                        userName={user?.userName ?? ''}
+                                                                                        onOpenProfile={
+                                                                                            onOpenProfile ??
+                                                                                            (() => { })
+                                                                                        }
+                                                                                        className={`block text-sm font-bold truncate ${member.completedCycle
+                                                                                                ? 'text-emerald-500 hover:text-emerald-400'
+                                                                                                : isDark
+                                                                                                    ? 'text-slate-200 hover:text-teal-400'
+                                                                                                    : 'text-slate-700 hover:text-teal-600'
+                                                                                            }`}
+                                                                                    >
+                                                                                        You
+                                                                                    </ProfileUserLink>
+                                                                                ) : (
+                                                                                    <ProfileUserLink
+                                                                                        userName={member.userName}
+                                                                                        onOpenProfile={
+                                                                                            onOpenProfile ??
+                                                                                            (() => { })
+                                                                                        }
+                                                                                        className={`block text-sm font-bold truncate ${member.completedCycle
+                                                                                                ? 'text-emerald-500 hover:text-emerald-400'
+                                                                                                : isDark
+                                                                                                    ? 'text-slate-200 hover:text-teal-400'
+                                                                                                    : 'text-slate-700 hover:text-teal-600'
+                                                                                            }`}
+                                                                                    >
+                                                                                        {member.userName}
+                                                                                    </ProfileUserLink>
+                                                                                )}
 
                                                                                 {member.isCreator && (
                                                                                     <span className="block text-[10px] font-semibold text-teal-500 mt-0.5">
@@ -2324,16 +2445,21 @@ export function StreakTracker({
                                                                                 />
                                                                             )}
 
-                                                                            <span
-                                                                                className={`text-sm font-bold truncate ${partnerCompletedCycle
-                                                                                        ? 'text-emerald-500'
+                                                                            <ProfileUserLink
+                                                                                userName={streak.userName}
+                                                                                onOpenProfile={
+                                                                                    onOpenProfile ??
+                                                                                    (() => { })
+                                                                                }
+                                                                                className={`text-sm font-bold ${partnerCompletedCycle
+                                                                                        ? 'text-emerald-500 hover:text-emerald-400'
                                                                                         : isDark
-                                                                                            ? 'text-slate-200'
-                                                                                            : 'text-slate-700'
+                                                                                            ? 'text-slate-200 hover:text-teal-400'
+                                                                                            : 'text-slate-700 hover:text-teal-600'
                                                                                     }`}
                                                                             >
                                                                                 {streak.userName}
-                                                                            </span>
+                                                                            </ProfileUserLink>
                                                                         </div>
 
                                                                         <span
@@ -3099,15 +3225,30 @@ export function StreakTracker({
                                                 </div>
 
                                                 <div className="min-w-0">
-                                                    <p
-                                                        className={`font-semibold truncate ${isDark
-                                                                ? 'text-slate-100'
-                                                                : 'text-slate-800'
-                                                            }`}
-                                                    >
-                                                        {viewingContent.senderName ||
-                                                            'Unknown member'}
-                                                    </p>
+                                                    {viewingContent.senderName ? (
+                                                        <ProfileUserLink
+                                                            userName={viewingContent.senderName}
+                                                            onOpenProfile={
+                                                                onOpenProfile ??
+                                                                (() => { })
+                                                            }
+                                                            className={`font-semibold truncate ${isDark
+                                                                    ? 'text-slate-100 hover:text-teal-400'
+                                                                    : 'text-slate-800 hover:text-teal-600'
+                                                                }`}
+                                                        >
+                                                            {viewingContent.senderName}
+                                                        </ProfileUserLink>
+                                                    ) : (
+                                                        <p
+                                                            className={`font-semibold truncate ${isDark
+                                                                    ? 'text-slate-100'
+                                                                    : 'text-slate-800'
+                                                                }`}
+                                                        >
+                                                            Unknown member
+                                                        </p>
+                                                    )}
 
                                                     <p
                                                         className={`text-sm truncate ${isDark
@@ -3362,11 +3503,6 @@ export function StreakTracker({
                                     );
                                 };
 
-                                const participantLabel =
-                                    formatNames(
-                                        participantNames
-                                    );
-
                                 const failedMemberLabel =
                                     formatNames(
                                         failedMemberNames
@@ -3475,9 +3611,73 @@ export function StreakTracker({
                                                                 : 'text-slate-600'
                                                             }`}
                                                     >
-                                                        {isGroupStreak
-                                                            ? participantLabel
-                                                            : `with ${streak.userName}`}
+                                                        {isGroupStreak ? (
+                                                            <>
+                                                                {participantNames.map(
+                                                                    (
+                                                                        participantName,
+                                                                        index
+                                                                    ) => (
+                                                                        <span
+                                                                            key={`${participantName}-${index}`}
+                                                                        >
+                                                                            {index > 0 &&
+                                                                                (
+                                                                                    index ===
+                                                                                        participantNames.length - 1
+                                                                                        ? participantNames.length === 2
+                                                                                            ? ' and '
+                                                                                            : ', and '
+                                                                                        : ', '
+                                                                                )}
+
+                                                                            {participantName === 'You' ? (
+                                                                                <ProfileUserLink
+                                                                                    userName={
+                                                                                        user?.userName ?? ''
+                                                                                    }
+                                                                                    onOpenProfile={
+                                                                                        onOpenProfile ??
+                                                                                        (() => { })
+                                                                                    }
+                                                                                    className="font-semibold hover:text-teal-400"
+                                                                                >
+                                                                                    You
+                                                                                </ProfileUserLink>
+                                                                            ) : (
+                                                                                <ProfileUserLink
+                                                                                    userName={
+                                                                                        participantName
+                                                                                    }
+                                                                                    onOpenProfile={
+                                                                                        onOpenProfile ??
+                                                                                        (() => { })
+                                                                                    }
+                                                                                    className="font-semibold hover:text-teal-400"
+                                                                                >
+                                                                                    {participantName}
+                                                                                </ProfileUserLink>
+                                                                            )}
+                                                                        </span>
+                                                                    )
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                with{' '}
+
+                                                                <ProfileUserLink
+                                                                    userName={streak.userName}
+                                                                    onOpenProfile={
+                                                                        onOpenProfile ??
+                                                                        (() => { })
+                                                                    }
+                                                                    className="font-semibold hover:text-teal-400"
+                                                                >
+                                                                    {streak.userName}
+                                                                </ProfileUserLink>
+                                                            </>
+                                                        )}
                                                     </p>
 
                                                     <div
@@ -3509,7 +3709,55 @@ export function StreakTracker({
                                                                         }`}
                                                                 >
                                                                     Failed cycle:{' '}
-                                                                    {failedMemberLabel}
+
+                                                                    {failedMemberNames.map(
+                                                                        (
+                                                                            failedMemberName,
+                                                                            index
+                                                                        ) => (
+                                                                            <span
+                                                                                key={`${failedMemberName}-${index}`}
+                                                                            >
+                                                                                {index > 0 &&
+                                                                                    (
+                                                                                        index ===
+                                                                                            failedMemberNames.length - 1
+                                                                                            ? failedMemberNames.length === 2
+                                                                                                ? ' and '
+                                                                                                : ', and '
+                                                                                            : ', '
+                                                                                    )}
+
+                                                                                {failedMemberName === 'You' ? (
+                                                                                    <ProfileUserLink
+                                                                                        userName={
+                                                                                            user?.userName ?? ''
+                                                                                        }
+                                                                                        onOpenProfile={
+                                                                                            onOpenProfile ??
+                                                                                            (() => { })
+                                                                                        }
+                                                                                        className="font-semibold hover:text-rose-100"
+                                                                                    >
+                                                                                        You
+                                                                                    </ProfileUserLink>
+                                                                                ) : (
+                                                                                    <ProfileUserLink
+                                                                                        userName={
+                                                                                            failedMemberName
+                                                                                        }
+                                                                                        onOpenProfile={
+                                                                                            onOpenProfile ??
+                                                                                            (() => { })
+                                                                                        }
+                                                                                        className="font-semibold hover:text-rose-100"
+                                                                                    >
+                                                                                        {failedMemberName}
+                                                                                    </ProfileUserLink>
+                                                                                )}
+                                                                            </span>
+                                                                        )
+                                                                    )}
                                                                 </p>
                                                             )}
                                                     </div>
