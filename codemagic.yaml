@@ -1,0 +1,41 @@
+
+workflows:
+  picability-ios:
+    name: Picability iOS Build
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      node: 22
+      xcode: latest
+
+    scripts:
+      - name: Install frontend dependencies
+        script: |
+          cd KBK-Picability-Frontend
+          npm ci
+
+      - name: Build React frontend
+        script: |
+          cd KBK-Picability-Frontend
+          npm run build
+
+      - name: Sync Capacitor iOS project
+        script: |
+          cd KBK-Picability-Frontend
+          npx cap sync ios
+
+      - name: Compile iOS app for simulator
+        script: |
+          cd KBK-Picability-Frontend/ios/App
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+    artifacts:
+      - KBK-Picability-Frontend/ios/App/build/**/*
