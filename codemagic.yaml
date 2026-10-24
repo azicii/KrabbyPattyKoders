@@ -1,13 +1,19 @@
 
 workflows:
   picability-ios:
-    name: Picability iOS Build
+    name: Picability iOS Signed Build
     instance_type: mac_mini_m2
     max_build_duration: 60
+
+    integrations:
+      app_store_connect: Picability Apple API
 
     environment:
       node: 22
       xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.picability.app
 
     scripts:
       - name: Install frontend dependencies
@@ -25,17 +31,17 @@ workflows:
           cd KBK-Picability-Frontend
           npx cap sync ios
 
-      - name: Compile iOS app for simulator
+      - name: Configure Apple code signing
         script: |
           cd KBK-Picability-Frontend/ios/App
-          xcodebuild \
-            -project App.xcodeproj \
-            -scheme App \
-            -configuration Debug \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO \
-            build
+          xcode-project use-profiles
+
+      - name: Build signed iOS app
+        script: |
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/KBK-Picability-Frontend/ios/App/App.xcodeproj" \
+            --scheme "App"
 
     artifacts:
-      - KBK-Picability-Frontend/ios/App/build/**/*
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
