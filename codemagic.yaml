@@ -36,6 +36,11 @@ workflows:
           cd KBK-Picability-Frontend/ios/App
           xcode-project use-profiles
 
+      - name: Set iOS build number
+        script: |
+          cd KBK-Picability-Frontend/ios/App
+          agvtool new-version -all 2
+
       - name: Build signed iOS app
         script: |
           xcode-project build-ipa \
