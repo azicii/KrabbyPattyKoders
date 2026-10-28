@@ -24,7 +24,7 @@ workflows:
       - name: Build React frontend
         script: |
           cd KBK-Picability-Frontend
-          npm run build
+          VITE_IOS_DIAGNOSTICS=true npm run build
 
       - name: Sync Capacitor iOS project
         script: |
@@ -36,16 +36,48 @@ workflows:
           cd KBK-Picability-Frontend/ios/App
           xcode-project use-profiles
 
+      
+      
       - name: Set iOS build number
         script: |
-          cd KBK-Picability-Frontend/ios/App
-          agvtool new-version -all 2
+          set -e
+          cd "$CM_BUILD_DIR/KBK-Picability-Frontend/ios/App"
+
+          agvtool new-version -all 3
+
+          echo "Checking iOS Info.plist:"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist
+
+          ACTUAL=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist)
+
+          if [ "$ACTUAL" != "3" ]; then
+            echo "ERROR: Expected build number 3, got $ACTUAL"
+            exit 1
+          fi
 
       - name: Build signed iOS app
         script: |
           xcode-project build-ipa \
             --project "$CM_BUILD_DIR/KBK-Picability-Frontend/ios/App/App.xcodeproj" \
             --scheme "App"
+
+      
+      - name: Verify packaged IPA build number
+        script: |
+          set -e
+          IPA="$CM_BUILD_DIR/build/ios/ipa/App.ipa"
+
+          ACTUAL=$(unzip -p "$IPA" Payload/App.app/Info.plist |
+            plutil -extract CFBundleVersion raw -o - -)
+
+          echo "Packaged IPA build number: $ACTUAL"
+
+          if [ "$ACTUAL" != "3" ]; then
+            echo "ERROR: IPA contains build $ACTUAL instead of 3"
+            exit 1
+          fi
+
+          echo "IPA version verification passed."
 
     artifacts:
       - build/ios/ipa/*.ipa
