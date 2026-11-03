@@ -43,7 +43,7 @@ workflows:
           set -e
           cd "$CM_BUILD_DIR/KBK-Picability-Frontend/ios/App"
 
-          agvtool new-version -all 3
+          agvtool new-version -all 4
 
           echo "Checking iOS Info.plist:"
           /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist

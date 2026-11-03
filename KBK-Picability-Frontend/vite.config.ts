@@ -3,6 +3,7 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import type { Plugin } from 'vite';
 
 
 function figmaAssetResolver() {
@@ -17,12 +18,32 @@ function figmaAssetResolver() {
   }
 }
 
+
+function iosDiagnostics(): Plugin {
+    return {
+        name: 'picability-ios-diagnostics',
+        transformIndexHtml(html) {
+            if (process.env.NODE_ENV !== 'production' ||
+                process.env.VITE_IOS_DIAGNOSTICS !== 'true') {
+                return html;
+            }
+
+            return html.replace(
+                '<head>',
+                '<head>\n<script src="./ios-diagnostics.js"></script>'
+            );
+        }
+    };
+}
+
+
 export default defineConfig({
     base: './',
     plugins: [
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if
-    // Tailwind is not being actively used – do not remove them
+        // Tailwind is not being actively used – do not remove them
+    iosDiagnostics(),
     react(),
     tailwindcss(),
     VitePWA({
