@@ -50,7 +50,7 @@ workflows:
 
           ACTUAL=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist)
 
-          if [ "$ACTUAL" != "3" ]; then
+          if [ "$ACTUAL" != "4" ]; then
             echo "ERROR: Expected build number 3, got $ACTUAL"
             exit 1
           fi
@@ -72,7 +72,7 @@ workflows:
 
           echo "Packaged IPA build number: $ACTUAL"
 
-          if [ "$ACTUAL" != "3" ]; then
+          if [ "$ACTUAL" != "4" ]; then
             echo "ERROR: IPA contains build $ACTUAL instead of 3"
             exit 1
           fi
