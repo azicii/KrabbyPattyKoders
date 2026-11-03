@@ -17,12 +17,13 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins(
-                    "https://picability.vercel.app",
-                    "http://localhost:5173",
-                    "https://localhost:5173"
-                )
-                .AllowAnyMethod()
-                .AllowAnyHeader();
+             "https://picability.vercel.app",
+             "http://localhost:5173",
+             "https://localhost:5173",
+             "capacitor://localhost"
+         )
+         .AllowAnyMethod()
+         .AllowAnyHeader();
         });
 });
 
