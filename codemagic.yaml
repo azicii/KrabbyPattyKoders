@@ -24,7 +24,7 @@ workflows:
       - name: Build React frontend
         script: |
           cd KBK-Picability-Frontend
-          VITE_IOS_DIAGNOSTICS=true npm run build
+          npm run build
 
       - name: Sync Capacitor iOS project
         script: |
@@ -43,14 +43,14 @@ workflows:
           set -e
           cd "$CM_BUILD_DIR/KBK-Picability-Frontend/ios/App"
 
-          agvtool new-version -all 5
+          agvtool new-version -all 6
 
           echo "Checking iOS Info.plist:"
           /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist
 
           ACTUAL=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist)
 
-          if [ "$ACTUAL" != "5" ]; then
+          if [ "$ACTUAL" != "6" ]; then
             echo "ERROR: Expected build number 3, got $ACTUAL"
             exit 1
           fi
@@ -72,7 +72,7 @@ workflows:
 
           echo "Packaged IPA build number: $ACTUAL"
 
-          if [ "$ACTUAL" != "5" ]; then
+          if [ "$ACTUAL" != "6" ]; then
             echo "ERROR: IPA contains build $ACTUAL instead of 3"
             exit 1
           fi
