@@ -1,4 +1,4 @@
-﻿import {
+import {
     registerSW
 } from 'virtual:pwa-register';
 
@@ -93,6 +93,13 @@ export const requestPicabilityUpdateCheck =
 
 export const initializePwaUpdates =
     () => {
+        // Skip PWA service workers when the browser API is unavailable.
+        if (
+            typeof navigator === 'undefined' ||
+            !navigator.serviceWorker
+        ) {
+            return;
+        }
         updateServiceWorker =
             registerSW({
                 immediate: true,
