@@ -1,3 +1,8 @@
+import { Capacitor } from '@capacitor/core';
+
+if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+  document.documentElement.classList.add('picability-native-ios');
+}
 import {
     createRoot
 } from 'react-dom/client';

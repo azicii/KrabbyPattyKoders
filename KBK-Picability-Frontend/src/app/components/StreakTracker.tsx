@@ -1040,7 +1040,7 @@ export function StreakTracker({
             <div
                 className="
                     relative
-                    min-h-screen
+                    min-h-screen picability-ios-tracker
                     px-4
                     py-5
                     sm:p-6

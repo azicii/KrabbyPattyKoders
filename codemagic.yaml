@@ -43,15 +43,15 @@ workflows:
           set -e
           cd "$CM_BUILD_DIR/KBK-Picability-Frontend/ios/App"
 
-          agvtool new-version -all 6
+          agvtool new-version -all 7
 
           echo "Checking iOS Info.plist:"
           /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist
 
           ACTUAL=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist)
 
-          if [ "$ACTUAL" != "6" ]; then
-            echo "ERROR: Expected build number 3, got $ACTUAL"
+          if [ "$ACTUAL" != "7" ]; then
+            echo "ERROR: Expected build number 7, got $ACTUAL"
             exit 1
           fi
 
@@ -72,7 +72,7 @@ workflows:
 
           echo "Packaged IPA build number: $ACTUAL"
 
-          if [ "$ACTUAL" != "6" ]; then
+          if [ "$ACTUAL" != "7" ]; then
             echo "ERROR: IPA contains build $ACTUAL instead of 3"
             exit 1
           fi
