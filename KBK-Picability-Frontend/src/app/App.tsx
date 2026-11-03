@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef} from 'react';
+import { Capacitor } from '@capacitor/core';
 import { HabitSelector } from './components/HabitSelector.tsx';
 import { StreakTracker, Streak } from './components/StreakTracker.tsx';
 import { HabitConfig, HabitConfiguration } from './components/HabitConfig.tsx';
@@ -102,6 +103,50 @@ const getAuthHeaders = (token?: string) => ({
 
 
 export default function App() {
+    const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'failed'>(() =>
+        Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
+            ? 'connecting'
+            : 'connected'
+    );
+    const connectionAttemptRef = useRef(0);
+
+    const checkBackendConnection = async () => {
+        const attempt = ++connectionAttemptRef.current;
+        setConnectionStatus('connecting');
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 90000);
+
+        try {
+            await fetch(`${BASE_URL}/`, {
+                method: 'GET',
+                cache: 'no-store',
+                signal: controller.signal
+            });
+
+            if (attempt === connectionAttemptRef.current) {
+                setConnectionStatus('connected');
+            }
+        } catch (error) {
+            console.error('Picability backend connection failed:', error);
+
+            if (attempt === connectionAttemptRef.current) {
+                setConnectionStatus('failed');
+            }
+        } finally {
+            clearTimeout(timeout);
+        }
+    };
+
+    useEffect(() => {
+        if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+            void checkBackendConnection();
+        }
+
+        return () => {
+            connectionAttemptRef.current += 1;
+        };
+    }, []);
     const [user, setUser] = useState<AuthUser | null>(() => {
         const savedUser = localStorage.getItem('picabilityUser');
         return savedUser ? JSON.parse(savedUser) : null;
@@ -1017,7 +1062,7 @@ export default function App() {
     };
 
     useEffect(() => {
-        if (user) {
+        if (user && connectionStatus === 'connected') {
             fetchStreaks();
             fetchStreakInvites();
             fetchSentStreakRequests();
@@ -1025,7 +1070,7 @@ export default function App() {
             fetchUnreadContent();
             fetchPublicFeed();
         }
-    }, [user]);
+    }, [user, connectionStatus]);
 
     useEffect(() => {
         if (!user || !('serviceWorker' in navigator)) return;
@@ -2037,6 +2082,58 @@ export default function App() {
         }
     };
 
+    if (connectionStatus !== 'connected') {
+        return (
+            <div
+                className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
+                style={{
+                    backgroundColor: '#0f172a',
+                    color: '#f8fafc',
+                    paddingTop: 'env(safe-area-inset-top, 20px)',
+                    paddingBottom: 'env(safe-area-inset-bottom, 20px)'
+                }}
+            >
+                <div
+                    className="text-4xl font-bold mb-5"
+                    style={{ color: '#38bdf8' }}
+                >
+                    Picability
+                </div>
+
+                {connectionStatus === 'connecting' ? (
+                    <>
+                        <div
+                            className="h-12 w-12 rounded-full border-4 border-slate-600 border-t-sky-400 animate-spin mb-6"
+                            role="status"
+                            aria-label="Connecting"
+                        />
+                        <h2 className="text-xl font-semibold mb-2">
+                            Connecting to Picability...
+                        </h2>
+                        <p className="text-sm text-slate-400 max-w-xs">
+                            Waking up our server. This may take about a minute.
+                        </p>
+                    </>
+                ) : (
+                    <>
+                        <h2 className="text-xl font-semibold mb-3">
+                            Unable to connect
+                        </h2>
+                        <p className="text-sm text-slate-400 max-w-xs mb-6">
+                            Please check your internet connection and try again.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => void checkBackendConnection()}
+                            className="rounded-xl bg-sky-500 px-6 py-3 font-semibold text-white"
+                        >
+                            Retry Connection
+                        </button>
+                    </>
+                )}
+            </div>
+        );
+    }
     if (!user) {
         return (
             <>
