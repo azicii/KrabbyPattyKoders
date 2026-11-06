@@ -68,6 +68,18 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!))
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var id = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+
+            if (string.IsNullOrEmpty(id) || await users.FindByIdAsync(id) == null)
+                context.Fail("Account no longer exists.");
+        }
+    };
 });
 
 builder.Services.AddScoped<PushNotificationService>();

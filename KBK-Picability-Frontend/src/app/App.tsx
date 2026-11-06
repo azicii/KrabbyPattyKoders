@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef} from 'react';
 import { Capacitor } from '@capacitor/core';
+import { DeleteAccountPanel } from './components/DeleteAccountPanel';
 import { HabitSelector } from './components/HabitSelector.tsx';
 import { StreakTracker, Streak } from './components/StreakTracker.tsx';
 import { HabitConfig, HabitConfiguration } from './components/HabitConfig.tsx';
@@ -2562,6 +2563,14 @@ export default function App() {
         )
             }
 
+            {user && <DeleteAccountPanel
+    token={user.token}
+    onDeleted={() => {
+        localStorage.removeItem('picabilityUser');
+        setUser(null);
+        setCurrentScreen('auth');
+    }}
+/>}
             <UserProfileModal
                 userName={
                     openProfileUserName
