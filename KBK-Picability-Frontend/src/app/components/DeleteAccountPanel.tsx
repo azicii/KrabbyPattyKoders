@@ -26,7 +26,7 @@ export function DeleteAccountPanel({ token, onDeleted }: Props) {
     finally { setBusy(false); }
   }
 
-  return <div style={{ position: 'fixed', right: 12, bottom: 82, zIndex: 1000 }}>
+  return <div style={{ position: 'relative', width: '100%' }}>
     {!open ? <button type="button" onClick={() => setOpen(true)} style={{ padding: 8, borderRadius: 8, background: '#7f1d1d', color: 'white' }}>Delete account</button> :
     <div role="dialog" aria-label="Delete account" style={{ maxWidth: 320, padding: 16, borderRadius: 12, background: '#1f2937', color: 'white', boxShadow: '0 4px 20px #0008' }}>
       <strong>Delete your account permanently?</strong>

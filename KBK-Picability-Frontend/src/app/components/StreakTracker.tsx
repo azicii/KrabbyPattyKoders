@@ -1,4 +1,5 @@
-import { Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed, Bell, BellRing, FlipHorizontal2, CircleHelp, Share2 } from 'lucide-react';
+import { DeleteAccountPanel } from './DeleteAccountPanel';
+import { Settings, Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed, Bell, BellRing, FlipHorizontal2, CircleHelp, Share2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -90,6 +91,7 @@ interface StreakTrackerProps {
     isDark: boolean;
     user: any;
     onLogout: () => void;
+    onAccountDeleted: () => void;
     onToggleDark: () => void;
     onFriends?: () => void;
     onAddHabit?: () => void;
@@ -134,6 +136,7 @@ export function StreakTracker({
     isDark,
     user,
     onLogout,
+    onAccountDeleted,
     onToggleDark,
     onFriends,
     onAddHabit,
@@ -173,6 +176,7 @@ export function StreakTracker({
     const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
     const [reminderSentId, setReminderSentId] = useState<number | null>(null);
     const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
     const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
     const [
         shareStreak,
@@ -1213,11 +1217,63 @@ export function StreakTracker({
                         </button>
 
                         <button
-                            onClick={() => setShowLogoutPrompt(true)} className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all border border-transparent hover:border-rose-500/30 ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
-                            <LogOut className="w-5 h-5 text-rose-500" />
+                            onClick={() => setShowSettings(true)} title="Settings" aria-label="Settings" className={`flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm transition-all border border-transparent hover:border-rose-500/30 ${isDark ? 'bg-slate-800 hover:bg-slate-750' : 'bg-white'}`}>
+                            <Settings className="w-5 h-5 text-slate-500" />
                         </button>
                     </div>
                 </div>
+
+                {showSettings && createPortal(
+                    <div
+                        className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                        onClick={() => setShowSettings(false)}
+                    >
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Settings"
+                            onClick={(e) => e.stopPropagation()}
+                            className={`w-full max-w-sm rounded-3xl p-6 shadow-2xl border ${
+                                isDark
+                                    ? 'bg-slate-900 border-slate-700 text-slate-100'
+                                    : 'bg-white border-slate-200 text-slate-800'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between mb-5">
+                                <h2 className="text-xl font-bold">Settings</h2>
+                                <button
+                                    onClick={() => setShowSettings(false)}
+                                    className="text-sm opacity-70 hover:opacity-100"
+                                >
+                                    Close
+                                </button>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    setShowSettings(false);
+                                    setShowLogoutPrompt(true);
+                                }}
+                                className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left ${
+                                    isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+                                }`}
+                            >
+                                <LogOut className="w-5 h-5" />
+                                <span>Log Out</span>
+                            </button>
+
+                            <div className={`border-t my-3 ${
+                                isDark ? 'border-slate-700' : 'border-slate-200'
+                            }`} />
+
+                            <DeleteAccountPanel
+                                token={user.token}
+                                onDeleted={onAccountDeleted}
+                            />
+                        </div>
+                    </div>,
+                    document.body
+                )}
 
                 {showLogoutPrompt && createPortal(
                     <div className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
