@@ -1,4 +1,4 @@
-import { ArrowLeft, Sun, Moon, UserPlus, Zap, Clock, Check, X, Loader2, Trash2, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Sun, Moon, UserPlus, Zap, Clock, Check, X, Loader2, Trash2, CheckCircle2, ShieldBan } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { User } from './UserSearch.tsx';
 
@@ -23,7 +23,8 @@ interface FriendsListProps {
   onBack?: () => void;
   onSelectFriend?: (user: User) => void;
   onFindFriends?: () => void;
-  onRemoveFriend?: (friendId: string, friendName: string) => Promise<boolean>; // Updated signature
+  onRemoveFriend?: (friendId: string, friendName: string) => Promise<boolean>;
+  onBlockSuccess?: () => void; // BLOCK_PARENT_REFRESH // Updated signature
   currentUserId: string; // From App.tsx
   refreshKey: number;
   multiSelectMode?: boolean;
@@ -42,6 +43,7 @@ export function FriendsList({
     onSelectFriend,
     onFindFriends,
     onRemoveFriend,
+    onBlockSuccess,
     currentUserId,
     refreshKey,
     multiSelectMode = false,
@@ -188,6 +190,62 @@ export function FriendsList({
     }
   };
 
+  // BLOCK_FRIEND_ACTION
+  const [blockingFriendId, setBlockingFriendId] = useState<string | null>(null);
+
+  const handleBlockFriend = async (friendId: string, friendName: string) => {
+    if (blockingFriendId) return;
+
+    const confirmed = window.confirm(
+      `Block ${friendName}?
+
+This permanently deletes your friendship and all streaks you share, including shared group streaks. Other group members may lose those streaks too.
+
+You will no longer be able to interact with each other. Unblocking later will not restore deleted friendships or streaks.
+
+Continue?`
+    );
+
+    if (!confirmed) return;
+
+    setBlockingFriendId(friendId);
+
+    try {
+      const savedUser = localStorage.getItem('picabilityUser');
+      const token = savedUser ? JSON.parse(savedUser).token : null;
+
+      if (!token) {
+        throw new Error('You must be signed in to block someone.');
+      }
+
+      const response = await fetch(
+        `${BASE_URL}/api/user-blocks/${encodeURIComponent(friendId)}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Blocking failed (${response.status}).`);
+      }
+
+      setFriends(prev => prev.filter(friend => friend.id !== friendId));
+      onBlockSuccess?.();
+      await fetchData();
+
+      window.alert(`${friendName} has been blocked.`);
+    } catch (error) {
+      console.error('Error blocking user:', error);
+      window.alert(
+        error instanceof Error ? error.message : 'Unable to block this user.'
+      );
+    } finally {
+      setBlockingFriendId(null);
+    }
+  };
   const handleUnfriend = async (friendId: string, friendName: string) => {
     const success = await onRemoveFriend?.(friendId, friendName);
     if (success) {
@@ -425,6 +483,22 @@ export function FriendsList({
                                       </button>
 
                                       {!multiSelectMode && (
+    <button
+        type="button"
+        title={`Block ${friend.name}`}
+        aria-label={`Block ${friend.name}`}
+        disabled={blockingFriendId !== null}
+        onClick={() => handleBlockFriend(friend.id, friend.name)}
+        className={`p-4 rounded-3xl transition-all ${
+            isDark
+                ? 'bg-slate-800/50 hover:bg-rose-500/20 text-rose-400'
+                : 'bg-white hover:bg-rose-50 text-rose-600 shadow-sm'
+        }`}
+    >
+        <ShieldBan className="w-5 h-5" />
+    </button>
+)}
+{!multiSelectMode && (
                                           <button
                                               type="button"
                                               onClick={() =>

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Picability.Data;
@@ -571,6 +571,35 @@ namespace Picability.Controllers
              * Every invited member must already be friends
              * with the creator.
              */
+            // BLOCK_CHECK_STREAK_INVITE
+            bool hasBlockedParticipant = await _context.UserBlocks.AnyAsync(b =>
+                (b.BlockerId == currentUserId && receiverIds.Contains(b.BlockedUserId)) ||
+                (b.BlockedUserId == currentUserId && receiverIds.Contains(b.BlockerId)));
+
+            if (hasBlockedParticipant)
+            {
+                return NotFound(new { message = "One or more invited users are unavailable." });
+            }
+
+            // BLOCK_CHECK_GROUP_INVITE_PAIRS
+             // Include the creator and all invitees.
+             var allParticipantIds = receiverIds
+                 .Append(currentUserId)
+                 .Distinct()
+                 .ToList();
+
+             bool groupHasBlockedPair = await _context.UserBlocks.AnyAsync(b =>
+                 allParticipantIds.Contains(b.BlockerId) &&
+                 allParticipantIds.Contains(b.BlockedUserId));
+
+             if (groupHasBlockedPair)
+             {
+                 return NotFound(new
+                 {
+                     message = "One or more invited users are unavailable."
+                 });
+             }
+
             foreach (var receiverId in receiverIds)
             {
                 var areFriends =
@@ -871,6 +900,43 @@ namespace Picability.Controllers
              * Using object here allows standard and group results
              * to share one response collection safely.
              */
+            // BLOCK_FILTER_INCOMING_STREAK_REQUESTS
+            // Include the sender and every invitee when checking group requests.
+            var incomingParticipantIds = standardRequests
+                .SelectMany(sr => new[] { sr.SenderId, sr.ReceiverId })
+                .Concat(groupRequests.SelectMany(sr =>
+                    sr.Members.Select(member => member.UserId)
+                        .Append(sr.SenderId)))
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct()
+                .ToList();
+
+            var incomingBlockedPairs = await _context.UserBlocks
+                .AsNoTracking()
+                .Where(b =>
+                    incomingParticipantIds.Contains(b.BlockerId) &&
+                    incomingParticipantIds.Contains(b.BlockedUserId))
+                .Select(b => new { b.BlockerId, b.BlockedUserId })
+                .ToListAsync();
+
+            standardRequests.RemoveAll(sr =>
+                incomingBlockedPairs.Any(b =>
+                    (b.BlockerId == sr.SenderId &&
+                     b.BlockedUserId == sr.ReceiverId) ||
+                    (b.BlockerId == sr.ReceiverId &&
+                     b.BlockedUserId == sr.SenderId)));
+
+            groupRequests.RemoveAll(sr =>
+            {
+                var participants = sr.Members
+                    .Select(member => member.UserId)
+                    .Append(sr.SenderId)
+                    .ToHashSet();
+
+                return incomingBlockedPairs.Any(b =>
+                    participants.Contains(b.BlockerId) &&
+                    participants.Contains(b.BlockedUserId));
+            });
             var results = new List<object>();
 
             results.AddRange(
@@ -957,6 +1023,36 @@ namespace Picability.Controllers
                 )
                 .ToListAsync();
 
+            // BLOCK_FILTER_OUTGOING_STREAK_REQUESTS
+            var outgoingParticipantIds = requests
+                .SelectMany(sr => sr.IsGroupRequest
+                    ? sr.Members.Select(member => member.UserId)
+                        .Append(sr.SenderId)
+                    : new[] { sr.SenderId, sr.ReceiverId })
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct()
+                .ToList();
+
+            var outgoingBlockedPairs = await _context.UserBlocks
+                .AsNoTracking()
+                .Where(b =>
+                    outgoingParticipantIds.Contains(b.BlockerId) &&
+                    outgoingParticipantIds.Contains(b.BlockedUserId))
+                .Select(b => new { b.BlockerId, b.BlockedUserId })
+                .ToListAsync();
+
+            requests.RemoveAll(sr =>
+            {
+                var participants = (sr.IsGroupRequest
+                    ? sr.Members.Select(member => member.UserId)
+                        .Append(sr.SenderId)
+                    : new[] { sr.SenderId, sr.ReceiverId })
+                    .ToHashSet();
+
+                return outgoingBlockedPairs.Any(b =>
+                    participants.Contains(b.BlockerId) &&
+                    participants.Contains(b.BlockedUserId));
+            });
             var results = new List<object>();
 
             foreach (var request in requests)
@@ -1076,6 +1172,37 @@ namespace Picability.Controllers
                 )
                 .ToListAsync();
 
+            // BLOCK_FILTER_MINE_STREAK_REQUESTS
+            // Hide requests containing any blocked participant pair.
+            var mineParticipantIds = requests
+                .SelectMany(sr => sr.IsGroupRequest
+                    ? sr.Members.Select(member => member.UserId)
+                        .Append(sr.SenderId)
+                    : new[] { sr.SenderId, sr.ReceiverId })
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct()
+                .ToList();
+
+            var mineBlockedPairs = await _context.UserBlocks
+                .AsNoTracking()
+                .Where(b =>
+                    mineParticipantIds.Contains(b.BlockerId) &&
+                    mineParticipantIds.Contains(b.BlockedUserId))
+                .Select(b => new { b.BlockerId, b.BlockedUserId })
+                .ToListAsync();
+
+            requests.RemoveAll(sr =>
+            {
+                var participants = (sr.IsGroupRequest
+                    ? sr.Members.Select(member => member.UserId)
+                        .Append(sr.SenderId)
+                    : new[] { sr.SenderId, sr.ReceiverId })
+                    .ToHashSet();
+
+                return mineBlockedPairs.Any(b =>
+                    participants.Contains(b.BlockerId) &&
+                    participants.Contains(b.BlockedUserId));
+            });
             var results = requests.Select(sr => new
             {
                 sr.Id,
@@ -1155,6 +1282,21 @@ namespace Picability.Controllers
             {
                 return Forbid();
             }
+
+            // BLOCK_CHECK_STREAK_ACCEPT
+             bool blocked = await _context.UserBlocks.AnyAsync(b =>
+                 (b.BlockerId == request.SenderId &&
+                  b.BlockedUserId == request.ReceiverId) ||
+                 (b.BlockerId == request.ReceiverId &&
+                  b.BlockedUserId == request.SenderId));
+
+             if (blocked)
+             {
+                 return NotFound(new
+                 {
+                     message = "Streak request not found."
+                 });
+             }
 
             var normalizedHabitName =
                 request.HabitName
@@ -1717,6 +1859,25 @@ namespace Picability.Controllers
 
                 if (requestMember == null)
                     return Forbid();
+
+                // BLOCK_CHECK_GROUP_STREAK_ACCEPT
+                 var participantIds = request.Members
+                     .Select(member => member.UserId)
+                     .Append(request.SenderId)
+                     .Distinct()
+                     .ToList();
+
+                 bool hasBlockedPair = await _context.UserBlocks.AnyAsync(b =>
+                     participantIds.Contains(b.BlockerId) &&
+                     participantIds.Contains(b.BlockedUserId));
+
+                 if (hasBlockedPair)
+                 {
+                     return NotFound(new
+                     {
+                         message = "Group streak request not found."
+                     });
+                 }
 
                 /*
                  * If the group streak was already created, return it.

@@ -41,6 +41,15 @@ namespace Picability.Controllers
             if (request.ReceiverId != currentUserId)
                 return Forbid();
 
+            // BLOCK_CHECK_FRIEND_ACCEPT
+            bool blocked = await _context.UserBlocks.AnyAsync(b =>
+                (b.BlockerId == request.SenderId &&
+                 b.BlockedUserId == request.ReceiverId) ||
+                (b.BlockerId == request.ReceiverId &&
+                 b.BlockedUserId == request.SenderId));
+
+            if (blocked)
+                return NotFound("Request not found");
             if (request.Status != "Pending")
                 return BadRequest("Request already handled");
 
@@ -157,7 +166,11 @@ namespace Picability.Controllers
                 return Unauthorized();
 
             var friends = await _context.Friends
-                .Where(f => f.UserId == currentUserId)
+                .Where(f =>
+                    f.UserId == currentUserId &&
+                    !_context.UserBlocks.Any(b =>
+                        (b.BlockerId == currentUserId && b.BlockedUserId == f.FriendId) ||
+                        (b.BlockerId == f.FriendId && b.BlockedUserId == currentUserId)))
                 .Select(f => new
                 {
                     Id = f.FriendId,

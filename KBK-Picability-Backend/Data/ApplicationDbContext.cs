@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Picability.Models;
 
@@ -13,6 +13,7 @@ namespace Picability.Data
 
         public DbSet<FriendRequest> FriendRequests { get; set; }
         public DbSet<Friend> Friends { get; set; }
+        public DbSet<UserBlock> UserBlocks { get; set; }
         public DbSet<StreakRequest> StreakRequests { get; set; }
         public DbSet<Streak> Streaks { get; set; }
         public DbSet<CheckInContent> CheckInContents { get; set; }
@@ -29,6 +30,25 @@ namespace Picability.Data
         {
             base.OnModelCreating(builder);
 
+            builder.Entity<UserBlock>()
+                .HasOne(block => block.Blocker)
+                .WithMany()
+                .HasForeignKey(block => block.BlockerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<UserBlock>()
+                .HasOne(block => block.BlockedUser)
+                .WithMany()
+                .HasForeignKey(block => block.BlockedUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<UserBlock>()
+                .HasIndex(block => new
+                {
+                    block.BlockerId,
+                    block.BlockedUserId
+                })
+                .IsUnique();
             builder.Entity<FriendRequest>()
                 .HasOne(fr => fr.Sender)
                 .WithMany(u => u.SentFriendRequests)

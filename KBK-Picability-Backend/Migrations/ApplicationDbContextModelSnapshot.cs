@@ -804,6 +804,35 @@ namespace KBK___Picability.Migrations
                     b.ToTable("StreakRequestMembers");
                 });
 
+            modelBuilder.Entity("Picability.Models.UserBlock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BlockedUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("BlockerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlockedUserId");
+
+                    b.HasIndex("BlockerId", "BlockedUserId")
+                        .IsUnique();
+
+                    b.ToTable("UserBlocks");
+                });
+
             modelBuilder.Entity("Friend", b =>
                 {
                     b.HasOne("ApplicationUser", "FriendUser")
@@ -1115,6 +1144,25 @@ namespace KBK___Picability.Migrations
                     b.Navigation("StreakRequest");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Picability.Models.UserBlock", b =>
+                {
+                    b.HasOne("ApplicationUser", "BlockedUser")
+                        .WithMany()
+                        .HasForeignKey("BlockedUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ApplicationUser", "Blocker")
+                        .WithMany()
+                        .HasForeignKey("BlockerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BlockedUser");
+
+                    b.Navigation("Blocker");
                 });
 
             modelBuilder.Entity("ApplicationUser", b =>

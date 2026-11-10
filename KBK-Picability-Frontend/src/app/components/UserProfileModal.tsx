@@ -4,6 +4,7 @@ import {
     Loader2,
     Trophy,
     UserPlus,
+    ShieldBan,
     X,
     Zap
 } from 'lucide-react';
@@ -48,6 +49,7 @@ interface UserProfileModalProps {
     onClose: () => void;
     onStartStreak: (user: User) => void;
     onFriendRequestSent?: () => void;
+    onBlockSuccess?: () => void;
 }
 
 export function UserProfileModal({
@@ -55,7 +57,8 @@ export function UserProfileModal({
     isDark,
     onClose,
     onStartStreak,
-    onFriendRequestSent
+    onFriendRequestSent,
+    onBlockSuccess
 }: UserProfileModalProps) {
     const [
         profile,
@@ -259,6 +262,65 @@ export function UserProfileModal({
             setSendingFriendRequest(
                 false
             );
+        }
+    };
+
+    // BLOCK_PROFILE_ACTION
+    const [blockingUser, setBlockingUser] = useState(false);
+
+    const blockProfileUser = async () => {
+        if (!profile || profile.relationshipStatus === 'Self' || blockingUser) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Block ${profile.userName}?
+
+This permanently deletes any friendship and all streaks you share, including shared group streaks. Other group members may lose those streaks too.
+
+You will no longer be able to interact with each other. Unblocking later will not restore deleted friendships or streaks.
+
+Continue?`
+        );
+
+        if (!confirmed) return;
+
+        const token = getToken();
+
+        if (!token) {
+            setError('You must be signed in to block someone.');
+            return;
+        }
+
+        try {
+            setBlockingUser(true);
+            setError('');
+
+            const response = await fetch(
+                `${BASE_URL}/api/user-blocks/${encodeURIComponent(profile.id)}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Blocking failed (${response.status}).`);
+            }
+
+            onBlockSuccess?.();
+            onClose();
+        } catch (err) {
+            console.error('Profile blocking failed:', err);
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'Unable to block this user.'
+            );
+        } finally {
+            setBlockingUser(false);
         }
     };
 
@@ -717,6 +779,17 @@ export function UserProfileModal({
                                                     Start Streak
                                                 </button>
                                             )}
+                                    <button
+                                        type="button"
+                                        onClick={blockProfileUser}
+                                        disabled={blockingUser}
+                                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 font-semibold transition-all disabled:opacity-60"
+                                    >
+                                        {blockingUser
+                                            ? <Loader2 className="w-5 h-5 animate-spin" />
+                                            : <ShieldBan className="w-5 h-5" />}
+                                        Block User
+                                    </button>
                                 </div>
                             )}
                     </div>

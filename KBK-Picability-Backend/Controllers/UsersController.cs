@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Picability.Data;
@@ -135,6 +135,12 @@ namespace Picability.Controllers
                     .AsNoTracking()
                     .Where(user =>
                         user.Id != currentUserId &&
+                        // BLOCKING_VISIBILITY_FILTER
+                        !_context.UserBlocks.Any(block =>
+                            (block.BlockerId == currentUserId &&
+                             block.BlockedUserId == user.Id) ||
+                            (block.BlockerId == user.Id &&
+                             block.BlockedUserId == currentUserId)) &&
                         user.Id !=
                             StreakyIdentity.UserId &&
                         user.UserName != null &&
@@ -227,6 +233,14 @@ namespace Picability.Controllers
                 });
             }
 
+                        if (await _context.UserBlocks.AnyAsync(block =>
+                (block.BlockerId == currentUserId &&
+                 block.BlockedUserId == profileUser.Id) ||
+                (block.BlockerId == profileUser.Id &&
+                 block.BlockedUserId == currentUserId)))
+            {
+                return NotFound(new { message = "User not found." });
+            }
             string relationshipStatus;
 
             if (
@@ -380,7 +394,15 @@ namespace Picability.Controllers
                 return NotFound();
             }
 
-            var user =
+                        if (await _context.UserBlocks.AnyAsync(block =>
+                (block.BlockerId == currentUserId &&
+                 block.BlockedUserId == userId) ||
+                (block.BlockerId == userId &&
+                 block.BlockedUserId == currentUserId)))
+            {
+                return NotFound();
+            }
+var user =
                 await _context.Users
                     .AsNoTracking()
                     .Where(user =>

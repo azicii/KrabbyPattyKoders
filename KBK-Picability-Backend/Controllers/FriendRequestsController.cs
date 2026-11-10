@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Picability.Data;
@@ -40,6 +40,14 @@ namespace Picability.Controllers
 
             if (currentUserId == dto.ReceiverId)
                 return BadRequest("You cannot send a friend request to yourself.");
+
+            // BLOCK_CHECK_FRIEND_REQUEST
+            bool blocked = await _context.UserBlocks.AnyAsync(b =>
+                (b.BlockerId == currentUserId && b.BlockedUserId == dto.ReceiverId) ||
+                (b.BlockerId == dto.ReceiverId && b.BlockedUserId == currentUserId));
+
+            if (blocked)
+                return NotFound(new { message = "User not found." });
 
             bool duplicatePending = await _context.FriendRequests.AnyAsync(fr =>
                 fr.SenderId == currentUserId &&
@@ -88,7 +96,13 @@ namespace Picability.Controllers
                 return Unauthorized();
 
             var requests = await _context.FriendRequests
-                .Where(fr => fr.SenderId == currentUserId || fr.ReceiverId == currentUserId)
+                .Where(fr =>
+                    (fr.SenderId == currentUserId || fr.ReceiverId == currentUserId) &&
+                    !_context.UserBlocks.Any(b =>
+                        (b.BlockerId == currentUserId &&
+                         (b.BlockedUserId == fr.SenderId || b.BlockedUserId == fr.ReceiverId)) ||
+                        (b.BlockedUserId == currentUserId &&
+                         (b.BlockerId == fr.SenderId || b.BlockerId == fr.ReceiverId))))
                 .Select(fr => new
                 {
                     fr.Id,

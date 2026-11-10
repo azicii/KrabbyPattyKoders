@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Picability.Data;
 using Picability.Models;
 
@@ -380,6 +380,20 @@ namespace Picability.Services
                     );
 
                 if (memberIds.Count == 0)
+                {
+                    continue;
+                }
+
+                // BLOCK_FILTER_AUTOMATIC_REMINDERS
+                // Exclude streaks with any blocked participant pair.
+                var hasBlockedMembers = await _context.UserBlocks
+                    .AsNoTracking()
+                    .AnyAsync(block =>
+                        memberIds.Contains(block.BlockerId) &&
+                        memberIds.Contains(block.BlockedUserId),
+                        cancellationToken);
+
+                if (hasBlockedMembers)
                 {
                     continue;
                 }

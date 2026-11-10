@@ -1,4 +1,5 @@
 import { DeleteAccountPanel } from './DeleteAccountPanel';
+import { BlockedUsersPanel } from './BlockedUsersPanel';
 import { Settings, Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed, Bell, BellRing, FlipHorizontal2, CircleHelp, Share2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
@@ -92,6 +93,7 @@ interface StreakTrackerProps {
     user: any;
     onLogout: () => void;
     onAccountDeleted: () => void;
+    onUnblockSuccess?: () => void;
     onToggleDark: () => void;
     onFriends?: () => void;
     onAddHabit?: () => void;
@@ -137,6 +139,7 @@ export function StreakTracker({
     user,
     onLogout,
     onAccountDeleted,
+    onUnblockSuccess,
     onToggleDark,
     onFriends,
     onAddHabit,
@@ -1233,7 +1236,7 @@ export function StreakTracker({
                             aria-modal="true"
                             aria-label="Settings"
                             onClick={(e) => e.stopPropagation()}
-                            className={`w-full max-w-sm rounded-3xl p-6 shadow-2xl border ${
+                            className={`w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-3xl p-6 shadow-2xl border ${
                                 isDark
                                     ? 'bg-slate-900 border-slate-700 text-slate-100'
                                     : 'bg-white border-slate-200 text-slate-800'
@@ -1266,6 +1269,12 @@ export function StreakTracker({
                                 isDark ? 'border-slate-700' : 'border-slate-200'
                             }`} />
 
+                            {/* BLOCKED_USERS_SETTINGS */}
+                            <BlockedUsersPanel
+                                isDark={isDark}
+                                onUnblockSuccess={onUnblockSuccess}
+                            />
+                            {/* BLOCK_UNBLOCK_REFRESH_WIRING */}
                             <DeleteAccountPanel
                                 token={user.token}
                                 onDeleted={onAccountDeleted}

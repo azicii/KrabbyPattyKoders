@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Picability.Data;
 using Picability.DTOs;
@@ -37,6 +37,29 @@ namespace Picability.Controllers
                 Streak streak,
                 string currentUserId)
         {
+            // BLOCK_CHECK_STREAK_SOCIAL_ACCESS
+            // Blocking takes priority over participant and friend access.
+            // Include legacy user fields and modern group members.
+            var participantIds = streak.Members
+                .Select(member => member.UserId)
+                .Append(streak.UserOneId)
+                .Append(streak.UserTwoId)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct()
+                .ToList();
+
+            var hasBlockedParticipant = await _context.UserBlocks
+                .AsNoTracking()
+                .AnyAsync(block =>
+                    (block.BlockerId == currentUserId &&
+                     participantIds.Contains(block.BlockedUserId)) ||
+                    (block.BlockedUserId == currentUserId &&
+                     participantIds.Contains(block.BlockerId)));
+
+            if (hasBlockedParticipant)
+            {
+                return false;
+            }
             var isParticipant =
                 streak.Members.Any(member =>
                     member.UserId == currentUserId
@@ -191,6 +214,31 @@ namespace Picability.Controllers
                     s.UserTwoId == userId
                 )
                 .ToListAsync();
+            // BLOCK_FILTER_MY_STREAKS
+            // Exclude any streak with a blocked participant.
+            var blockedUserIds = await _context.UserBlocks
+                .AsNoTracking()
+                .Where(block =>
+                    block.BlockerId == userId ||
+                    block.BlockedUserId == userId)
+                .Select(block =>
+                    block.BlockerId == userId
+                        ? block.BlockedUserId
+                        : block.BlockerId)
+                .Distinct()
+                .ToListAsync();
+
+            if (blockedUserIds.Count > 0)
+            {
+                streaks = streaks
+                    .Where(streak =>
+                        !blockedUserIds.Contains(streak.UserOneId) &&
+                        !blockedUserIds.Contains(streak.UserTwoId) &&
+                        !streak.Members.Any(member =>
+                            blockedUserIds.Contains(member.UserId)))
+                    .ToList();
+            }
+
 
             var streakIds = streaks
                 .Select(s => s.Id)
@@ -824,7 +872,33 @@ namespace Picability.Controllers
             if (streak == null)
                 return NotFound("Streak not found.");
 
-            /*
+
+
+            // BLOCK_GUARD_STREAK_OPERATIONS
+            // Prevent interaction with a streak containing blocked users.
+            var participantIds = streak.Members
+                .Select(member => member.UserId)
+                .Concat(new[] { streak.UserOneId, streak.UserTwoId })
+                .Where(userId => !string.IsNullOrEmpty(userId))
+                .Distinct()
+                .ToList();
+
+            var blockedParticipant = await _context.UserBlocks
+                .AsNoTracking()
+                .AnyAsync(block =>
+                    (
+                        block.BlockerId == currentUserId &&
+                        participantIds.Contains(block.BlockedUserId)
+                    ) ||
+                    (
+                        block.BlockedUserId == currentUserId &&
+                        participantIds.Contains(block.BlockerId)
+                    ));
+
+            if (blockedParticipant)
+            {
+                return NotFound("Streak not found.");
+            }/*
              * Broken streaks may be dismissed by any member.
              * This only removes the finished card from the UI.
              */
@@ -927,9 +1001,10 @@ namespace Picability.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
+            // BLOCK_SECURE_STREAK_DETAILS
             var currentUserId = GetCurrentUserId();
 
-            if (string.IsNullOrEmpty(currentUserId))
+            if (string.IsNullOrWhiteSpace(currentUserId))
             {
                 return Unauthorized();
             }
@@ -937,14 +1012,47 @@ namespace Picability.Controllers
             var streak = await _context.Streaks
                 .Include(s => s.UserOne)
                 .Include(s => s.UserTwo)
+                .Include(s => s.Members)
                 .FirstOrDefaultAsync(s =>
                     s.Id == id &&
-                    (s.UserOneId == currentUserId || s.UserTwoId == currentUserId));
+                    (
+                        s.UserOneId == currentUserId ||
+                        s.UserTwoId == currentUserId ||
+                        s.Members.Any(m => m.UserId == currentUserId)
+                    ));
 
-            if (streak == null) return NotFound("Streak not found.");
+            if (streak == null)
+            {
+                return NotFound("Streak not found.");
+            }
+
+            var participantIds = streak.Members
+                .Select(m => m.UserId)
+                .Append(streak.UserOneId)
+                .Append(streak.UserTwoId)
+                .Where(userId => !string.IsNullOrWhiteSpace(userId))
+                .Distinct()
+                .ToList();
+
+            var hasBlockedParticipant = await _context.UserBlocks
+                .AsNoTracking()
+                .AnyAsync(block =>
+                    (
+                        block.BlockerId == currentUserId &&
+                        participantIds.Contains(block.BlockedUserId)
+                    ) ||
+                    (
+                        block.BlockedUserId == currentUserId &&
+                        participantIds.Contains(block.BlockerId)
+                    ));
+
+            if (hasBlockedParticipant)
+            {
+                return NotFound("Streak not found.");
+            }
+
             return Ok(streak);
         }
-
         public class UpdateStreakVisibilityDto
         {
             public bool IsPublic { get; set; }
@@ -991,6 +1099,32 @@ namespace Picability.Controllers
                 return NotFound(
                     "Streak not found."
                 );
+            }
+
+            // BLOCK_GUARD_STREAK_OPERATIONS
+            // Prevent interaction with a streak containing blocked users.
+            var participantIds = streak.Members
+                .Select(member => member.UserId)
+                .Concat(new[] { streak.UserOneId, streak.UserTwoId })
+                .Where(userId => !string.IsNullOrEmpty(userId))
+                .Distinct()
+                .ToList();
+
+            var blockedParticipant = await _context.UserBlocks
+                .AsNoTracking()
+                .AnyAsync(block =>
+                    (
+                        block.BlockerId == currentUserId &&
+                        participantIds.Contains(block.BlockedUserId)
+                    ) ||
+                    (
+                        block.BlockedUserId == currentUserId &&
+                        participantIds.Contains(block.BlockerId)
+                    ));
+
+            if (blockedParticipant)
+            {
+                return NotFound("Streak not found.");
             }
 
             var currentMember =
@@ -1129,6 +1263,29 @@ namespace Picability.Controllers
                 )
                 .ToListAsync();
 
+            // BLOCK_FILTER_PUBLIC_FEED
+            // A blocked user must not be exposed through a mutual
+            // friend's public streak, including group streaks.
+            var blockedFeedUserIds = await _context.UserBlocks
+                .AsNoTracking()
+                .Where(block =>
+                    block.BlockerId == currentUserId ||
+                    block.BlockedUserId == currentUserId)
+                .Select(block =>
+                    block.BlockerId == currentUserId
+                        ? block.BlockedUserId
+                        : block.BlockerId)
+                .Distinct()
+                .ToListAsync();
+
+            if (blockedFeedUserIds.Count > 0)
+            {
+                streaks.RemoveAll(streak =>
+                    blockedFeedUserIds.Contains(streak.UserOneId) ||
+                    blockedFeedUserIds.Contains(streak.UserTwoId) ||
+                    streak.Members.Any(member =>
+                        blockedFeedUserIds.Contains(member.UserId)));
+            }
             if (streaks.Count == 0)
             {
                 return Ok(Array.Empty<object>());
@@ -2080,6 +2237,37 @@ namespace Picability.Controllers
                 });
             }
 
+                        // BLOCK_CHECK_MANUAL_REMINDER
+            // Refuse reminders when any participant has blocked
+            // the sender or has been blocked by the sender.
+            var reminderParticipantIds = streak.Members
+                .Select(member => member.UserId)
+                .Append(streak.UserOneId)
+                .Append(streak.UserTwoId)
+                .Where(participantId =>
+                    !string.IsNullOrWhiteSpace(participantId))
+                .Distinct()
+                .ToList();
+
+            var reminderHasBlockedParticipant =
+                await _context.UserBlocks
+                    .AsNoTracking()
+                    .AnyAsync(block =>
+                        (
+                            block.BlockerId == currentUserId &&
+                            reminderParticipantIds.Contains(
+                                block.BlockedUserId)
+                        ) ||
+                        (
+                            block.BlockedUserId == currentUserId &&
+                            reminderParticipantIds.Contains(
+                                block.BlockerId)
+                        ));
+
+            if (reminderHasBlockedParticipant)
+            {
+                return NotFound("Streak not found.");
+            }
             var memberModels = streak.Members
                 .OrderByDescending(member =>
                     member.IsCreator
@@ -2375,7 +2563,33 @@ namespace Picability.Controllers
             if (streak == null)
                 return NotFound("Streak not found.");
 
-            if (!streak.IsActive)
+
+
+            // BLOCK_GUARD_STREAK_OPERATIONS
+            // Prevent interaction with a streak containing blocked users.
+            var participantIds = streak.Members
+                .Select(member => member.UserId)
+                .Concat(new[] { streak.UserOneId, streak.UserTwoId })
+                .Where(userId => !string.IsNullOrEmpty(userId))
+                .Distinct()
+                .ToList();
+
+            var blockedParticipant = await _context.UserBlocks
+                .AsNoTracking()
+                .AnyAsync(block =>
+                    (
+                        block.BlockerId == currentUserId &&
+                        participantIds.Contains(block.BlockedUserId)
+                    ) ||
+                    (
+                        block.BlockedUserId == currentUserId &&
+                        participantIds.Contains(block.BlockerId)
+                    ));
+
+            if (blockedParticipant)
+            {
+                return NotFound("Streak not found.");
+            }if (!streak.IsActive)
             {
                 return BadRequest(
                     "This streak is no longer active."
@@ -2644,6 +2858,25 @@ namespace Picability.Controllers
                 )
             )
             {
+                // BLOCK_CHECK_CHECKIN_PUSH
+                // Check immediately before sending to each recipient.
+                var isBlockedRecipient = await _context.UserBlocks
+                    .AsNoTracking()
+                    .AnyAsync(block =>
+                        (
+                            block.BlockerId == currentUserId &&
+                            block.BlockedUserId == receiverId
+                        ) ||
+                        (
+                            block.BlockerId == receiverId &&
+                            block.BlockedUserId == currentUserId
+                        ));
+
+                if (isBlockedRecipient)
+                {
+                    continue;
+                }
+
                 await _pushNotificationService
                     .NotifyPartnerCheckedInAsync(
                         receiverId,

@@ -2264,6 +2264,10 @@ export default function App() {
                                 onFindFriends={() => setCurrentScreen('user-search')}
                                 currentUserId={user.id}
                                 onRemoveFriend={handleRemoveFriend}
+                                onBlockSuccess={() => {
+                                    fetchStreaks();
+                                    setFriendsRefreshKey(prev => prev + 1);
+                                }}
                                     refreshKey={friendsRefreshKey}
                                     multiSelectMode={isSelectingGroupFriends}
 
@@ -2298,6 +2302,11 @@ export default function App() {
                                     isDark={isDark}
                                 >
                                     <StreakTracker
+                                    onUnblockSuccess={() => {
+                                        fetchStreaks();
+                                        setFriendsRefreshKey(current => current + 1);
+                                        void fetchPendingFriendRequestCount();
+                                    }}
                                 isDark={isDark}
                                 user={user}
                                 onAccountDeleted={() => {
@@ -2581,6 +2590,11 @@ export default function App() {
                 onStartStreak={
                     handleStartStreakFromProfile
                 }
+                onBlockSuccess={() => {
+                    fetchStreaks();
+                    setFriendsRefreshKey(current => current + 1);
+                    void fetchPendingFriendRequestCount();
+                }}
                 onFriendRequestSent={() => {
                     void fetchPendingFriendRequestCount();
 

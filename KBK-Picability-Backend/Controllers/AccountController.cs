@@ -113,6 +113,13 @@ public class AccountController : ControllerBase
             await _db.Friends.Where(f => f.UserId == userId || f.FriendId == userId).ExecuteDeleteAsync();
             await _db.FriendRequests.Where(r => r.SenderId == userId || r.ReceiverId == userId).ExecuteDeleteAsync();
             await _db.PushSubscriptions.Where(p => p.UserId == userId).ExecuteDeleteAsync();
+            // BLOCK_CLEANUP_ACCOUNT_DELETION
+            // Remove blocks in both directions before deleting the user.
+            await _db.UserBlocks
+                .Where(block =>
+                    block.BlockerId == userId ||
+                    block.BlockedUserId == userId)
+                .ExecuteDeleteAsync();
             var result = await _users.DeleteAsync(user);
             if (!result.Succeeded) throw new InvalidOperationException("Identity account removal failed.");
             await tx.CommitAsync();
