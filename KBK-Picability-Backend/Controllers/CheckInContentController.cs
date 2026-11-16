@@ -22,7 +22,7 @@ namespace Picability.Controllers
          * 12 million characters allows approximately 9 MB.
          */
         private const int MaxPhotoDataUrlLength = 12_000_000;
-        private const int StaleContentRetentionDays = 365;
+        private const int StaleContentRetentionDays = 30;
 
         public CheckInContentController(
             ApplicationDbContext context,
@@ -964,11 +964,17 @@ namespace Picability.Controllers
             if (currentUserId == null)
                 return Unauthorized();
 
+             // CHECKIN_UNREAD_EXPIRATION_FILTER_V1
+            var expirationCutoff = DateTime.UtcNow.AddDays(
+                -StaleContentRetentionDays
+            );
+
             var contents =
                 await _context.CheckInContentRecipients
                     .Where(recipient =>
                         recipient.UserId == currentUserId &&
                         !recipient.IsViewed &&
+                        recipient.CheckInContent.CreatedAt >= expirationCutoff &&
                         // BLOCK_FILTER_UNREAD_CONTENT
                         recipient.CheckInContent.Streak.IsActive &&
                         !_context.UserBlocks.Any(block =>
@@ -1052,6 +1058,15 @@ namespace Picability.Controllers
                     );
 
             if (content == null)
+                return NotFound();
+
+            // CHECKIN_VIEW_EXPIRATION_GUARD_V1
+            // Expired private content cannot be viewed or acknowledged.
+            var expirationCutoff = DateTime.UtcNow.AddDays(
+                -StaleContentRetentionDays
+            );
+
+            if (content.CreatedAt < expirationCutoff)
                 return NotFound();
 
             var recipient =

@@ -32,94 +32,16 @@ namespace Picability.Controllers
             );
         }
 
-        private async Task<bool>
-            CanAccessStreakSocialActivityAsync(
-                Streak streak,
-                string currentUserId)
+        private async Task<bool> CanAccessStreakSocialActivityAsync(
+            Streak streak,
+            string currentUserId)
         {
-            // BLOCK_CHECK_STREAK_SOCIAL_ACCESS
-            // Blocking takes priority over participant and friend access.
-            // Include legacy user fields and modern group members.
-            var participantIds = streak.Members
-                .Select(member => member.UserId)
-                .Append(streak.UserOneId)
-                .Append(streak.UserTwoId)
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Distinct()
-                .ToList();
+            var accessService = new StreakSocialAccessService(_context);
 
-            var hasBlockedParticipant = await _context.UserBlocks
-                .AsNoTracking()
-                .AnyAsync(block =>
-                    (block.BlockerId == currentUserId &&
-                     participantIds.Contains(block.BlockedUserId)) ||
-                    (block.BlockedUserId == currentUserId &&
-                     participantIds.Contains(block.BlockerId)));
-
-            if (hasBlockedParticipant)
-            {
-                return false;
-            }
-            var isParticipant =
-                streak.Members.Any(member =>
-                    member.UserId == currentUserId
-                ) ||
-                streak.UserOneId == currentUserId ||
-                streak.UserTwoId == currentUserId;
-
-            if (isParticipant)
-            {
-                return true;
-            }
-
-            var friendIds =
-                await _context.FriendRequests
-                    .Where(friendRequest =>
-                        friendRequest.Status ==
-                            "Accepted" &&
-                        (
-                            friendRequest.SenderId ==
-                                currentUserId ||
-                            friendRequest.ReceiverId ==
-                                currentUserId
-                        )
-                    )
-                    .Select(friendRequest =>
-                        friendRequest.SenderId ==
-                            currentUserId
-                            ? friendRequest.ReceiverId
-                            : friendRequest.SenderId
-                    )
-                    .Distinct()
-                    .ToListAsync();
-
-            var canSeeModernPublicStreak =
-                streak.Members.Any(member =>
-                    friendIds.Contains(
-                        member.UserId
-                    ) &&
-                    member.VisibilityPublic
-                );
-
-            var canSeeLegacyPublicStreak =
-                (
-                    friendIds.Contains(
-                        streak.UserOneId
-                    ) &&
-                    streak.UserOneVisibilityPublic
-                ) ||
-                (
-                    friendIds.Contains(
-                        streak.UserTwoId
-                    ) &&
-                    streak.UserTwoVisibilityPublic
-                );
-
-            return
-                canSeeModernPublicStreak ||
-                canSeeLegacyPublicStreak;
+            return await accessService.CanAccessAsync(
+                streak,
+                currentUserId);
         }
-
         private static TimeZoneInfo GetPacificTimeZone()
         {
             try

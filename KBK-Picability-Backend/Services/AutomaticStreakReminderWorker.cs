@@ -1,4 +1,4 @@
-﻿namespace Picability.Services
+namespace Picability.Services
 {
     public class AutomaticStreakReminderWorker
         : BackgroundService
@@ -45,11 +45,37 @@
                                 AutomaticStreakReminderService
                             >();
 
+                    // CHECKIN_30_DAY_BACKGROUND_CLEANUP_V1
+                    // Remove expired private content without retaining copies.
+                    try
+                    {
+                        var db = scope.ServiceProvider
+                            .GetRequiredService<Picability.Data.ApplicationDbContext>();
+
+                        var cutoff = DateTime.UtcNow.AddDays(-30);
+
+                        await Microsoft.EntityFrameworkCore
+                            .RelationalQueryableExtensions
+                            .ExecuteDeleteAsync(
+                                db.CheckInContents.Where(
+                                    content => content.CreatedAt < cutoff
+                                ),
+                                stoppingToken
+                            );
+                    }
+                    catch (Exception cleanupException)
+                    {
+                        _logger.LogError(
+                            cleanupException,
+                            "Expired check-in content cleanup failed."
+                        );
+                    }
+
                     await reminderService
                         .ProcessDueRemindersAsync(
                             stoppingToken
                         );
-                }
+}
                 catch (
                     OperationCanceledException
                 ) when (

@@ -76,13 +76,31 @@ builder.Services.AddAuthentication(options =>
             var id = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
 
-            if (string.IsNullOrEmpty(id) || await users.FindByIdAsync(id) == null)
+            if (string.IsNullOrEmpty(id))
+            {
+                context.Fail("Invalid account.");
+                return;
+            }
+
+            var user = await users.FindByIdAsync(id);
+
+            if (user == null)
+            {
                 context.Fail("Account no longer exists.");
+                return;
+            }
+
+            if (await users.IsLockedOutAsync(user))
+            {
+                context.Fail("Account is suspended.");
+                return;
+            }
         }
     };
 });
 
 builder.Services.AddScoped<PushNotificationService>();
+builder.Services.AddScoped<StreakSocialAccessService>();
 builder.Services.AddScoped<AutomaticStreakReminderService>();
 builder.Services.AddHostedService<AutomaticStreakReminderWorker>();
 builder.Services.AddControllers();

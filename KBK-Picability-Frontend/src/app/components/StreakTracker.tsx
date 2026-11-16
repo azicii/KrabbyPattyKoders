@@ -1,7 +1,7 @@
 import { DeleteAccountPanel } from './DeleteAccountPanel';
 import { BlockedUsersPanel } from './BlockedUsersPanel';
 import { Settings, Users, Sun, Moon, Plus, CheckCircle2, ChevronDown, LogOut, Mail, Check, X, Clock, Trash2, ImageIcon, MessageCircle, Flame, Eye, EyeClosed, Bell, BellRing, FlipHorizontal2, CircleHelp, Share2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { canUsePushNotifications, enablePushNotifications } from '../utils/pushNotifications';
@@ -93,6 +93,7 @@ interface StreakTrackerProps {
     user: any;
     onLogout: () => void;
     onAccountDeleted: () => void;
+    onOpenModeration?: () => void;
     onUnblockSuccess?: () => void;
     onToggleDark: () => void;
     onFriends?: () => void;
@@ -139,6 +140,7 @@ export function StreakTracker({
     user,
     onLogout,
     onAccountDeleted,
+    onOpenModeration,
     onUnblockSuccess,
     onToggleDark,
     onFriends,
@@ -172,6 +174,17 @@ export function StreakTracker({
     const [selectedPhotoName, setSelectedPhotoName] = useState('');
     const [viewingContent, setViewingContent] = useState<any | null>(null);
     const [viewerProgress, setViewerProgress] = useState(100);
+
+    // CHECKIN_CONTENT_REPORT_LOGIC_V1
+    const [reportingViewedContent, setReportingViewedContent] = useState(false);
+    const [checkInReportReason, setCheckInReportReason] = useState('Harassment');
+    const [checkInReportDetails, setCheckInReportDetails] = useState('');
+    const [submittingCheckInReport, setSubmittingCheckInReport] = useState(false);
+    const [checkInReportFeedback, setCheckInReportFeedback] = useState('');
+    const [checkInReportSucceeded, setCheckInReportSucceeded] = useState(false);
+    // CHECKIN_TIMER_STABLE_V2
+    const viewerRemainingMsRef = useRef(10000);
+    const viewerContentIdRef = useRef<number | null>(null);
     const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
     const [cancelPendingRequest, setCancelPendingRequest] = useState<any | null>(null);
     const pushStorageKey = `picabilityPushEnabled:${user?.id}`;
@@ -283,35 +296,108 @@ export function StreakTracker({
         }
     };
 
-    const openUnreadContent = (
-        content: any
-    ) => {
-        setViewingContent(content);
+    // CHECKIN_REPORT_SUBMISSION_V1
+    const resetCheckInReport = () => {
+        setReportingViewedContent(false);
+        setCheckInReportReason('Harassment');
+        setCheckInReportDetails('');
+        setCheckInReportFeedback('');
+        setCheckInReportSucceeded(false);
+    };
 
-        void onViewCheckInContent?.(
-            content.id
-        );
+    const submitCheckInContentReport = async () => {
+        if (!viewingContent || submittingCheckInReport || checkInReportSucceeded) {
+            return;
+        }
+
+        setSubmittingCheckInReport(true);
+        setCheckInReportFeedback('');
+
+        try {
+            const response = await fetch(
+                'https://kbk-picability-backend.onrender.com/api/reports/check-in-content',
+                {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${user.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contentId: viewingContent.id,
+                        reason: checkInReportReason,
+                        details: checkInReportDetails.trim()
+                    })
+                }
+            );
+
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type');
+
+                let message = `Unable to submit report (${response.status}).`;
+
+                if (contentType?.includes('application/json')) {
+                    const error = await response.json();
+                    message = error.message ?? error.title ?? message;
+                } else {
+                    const errorText = await response.text();
+                    if (errorText) message = errorText;
+                }
+
+                throw new Error(message);
+            }
+
+            setCheckInReportSucceeded(true);
+            setCheckInReportFeedback('Report submitted successfully.');
+            setReportingViewedContent(false);
+        } catch (error) {
+            setCheckInReportFeedback(
+                error instanceof Error
+                    ? error.message
+                    : 'Unable to submit report.'
+            );
+        } finally {
+            setSubmittingCheckInReport(false);
+        }
+    };
+    // CHECKIN_VIEW_LIFECYCLE_V2
+    const openUnreadContent = (content: any) => {
+        resetCheckInReport();
+        setViewingContent(content);
+    };
+
+    // CHECKIN_REPORT_LIFECYCLE_GUARD_V1
+    const markCurrentContentViewed = () => {
+        if (!viewingContent || reportingViewedContent || submittingCheckInReport) {
+            return;
+        }
+
+        void onViewCheckInContent?.(viewingContent.id);
     };
 
     const closeViewingContent = () => {
+        if (reportingViewedContent || submittingCheckInReport) {
+            return;
+        }
+
+        markCurrentContentViewed();
         setViewingContent(null);
     };
 
     const openNextUnreadContent = () => {
-        if (!viewingContent) {
+        if (!viewingContent || reportingViewedContent || submittingCheckInReport) {
             return;
         }
 
-        const nextContent =
-            getUnreadQueueForStreak(
-                viewingContent.streakId
-            ).find(content =>
-                content.id !==
-                viewingContent.id
-            );
+        const nextContent = getUnreadQueueForStreak(
+            viewingContent.streakId
+        ).find(content =>
+            content.id !== viewingContent.id
+        );
+
+        markCurrentContentViewed();
 
         if (!nextContent) {
-            closeViewingContent();
+            setViewingContent(null);
             return;
         }
 
@@ -984,27 +1070,57 @@ export function StreakTracker({
         );
 
     useEffect(() => {
-        if (!viewingContent) return;
+        if (!viewingContent) {
+            viewerContentIdRef.current = null;
+            return;
+        }
 
-        setViewerProgress(100);
+        const durationMs =
+            (viewingContent.viewDurationSeconds || 10) * 1000;
 
-        const durationMs = (viewingContent.viewDurationSeconds || 10) * 1000;
-        const startTime = Date.now();
+        // CHECKIN_TIMER_FINAL_V3
+        if (viewerContentIdRef.current !== viewingContent.id) {
+            viewerContentIdRef.current = viewingContent.id;
+            viewerRemainingMsRef.current = durationMs;
+            setViewerProgress(100);
+        }
+
+        if (reportingViewedContent || submittingCheckInReport) {
+            return;
+        }
+
+        const startedAt = Date.now();
+        const initialRemainingMs = viewerRemainingMsRef.current;
 
         const interval = window.setInterval(() => {
-            const elapsed = Date.now() - startTime;
-            const remainingPercent = Math.max(0, 100 - (elapsed / durationMs) * 100);
+            const elapsed = Date.now() - startedAt;
+            const remainingMs = Math.max(0, initialRemainingMs - elapsed);
 
-            setViewerProgress(remainingPercent);
+            viewerRemainingMsRef.current = remainingMs;
 
-            if (remainingPercent <= 0) {
-                closeViewingContent();
+            setViewerProgress(
+                Math.max(0, (remainingMs / durationMs) * 100)
+            );
+
+            if (remainingMs <= 0) {
                 window.clearInterval(interval);
+                closeViewingContent();
             }
         }, 50);
 
-        return () => window.clearInterval(interval);
-    }, [viewingContent]);
+        return () => {
+            window.clearInterval(interval);
+
+            viewerRemainingMsRef.current = Math.max(
+                0,
+                initialRemainingMs - (Date.now() - startedAt)
+            );
+        };
+    }, [
+        viewingContent?.id,
+        reportingViewedContent,
+        submittingCheckInReport
+    ]);
 
     useEffect(() => {
         if (pushEnabled) return;
@@ -1269,6 +1385,21 @@ export function StreakTracker({
                                 isDark ? 'border-slate-700' : 'border-slate-200'
                             }`} />
 
+                            {user?.id === '04d68eab-7cb3-4c2e-82a1-d2b1801a250a' && onOpenModeration && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowSettings(false);
+                                        onOpenModeration();
+                                    }}
+                                    className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left ${
+                                        isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+                                    }`}
+                                >
+                                    <Settings className="w-5 h-5" />
+                                    <span>Admin Moderation</span>
+                                </button>
+                            )}
                             {/* BLOCKED_USERS_SETTINGS */}
                             <BlockedUsersPanel
                                 isDark={isDark}
@@ -3382,8 +3513,29 @@ export function StreakTracker({
                                                 </div>
                                             </div>
 
-                                            <div
-                                                className="w-9 h-9 rounded-full shrink-0 p-[3px]"
+                                            {/* CHECKIN_REPORT_UI_V1 */}
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                {!checkInReportSucceeded && (
+                                                    <button
+                                                        type="button"
+                                                        aria-label="Report check-in content"
+                                                        title="Report check-in content"
+                                                        disabled={submittingCheckInReport}
+                                                        onClick={() => {
+                                                            setReportingViewedContent(true);
+                                                            setCheckInReportFeedback('');
+                                                        }}
+                                                        className={`p-2 rounded-full transition-colors ${
+                                                            isDark
+                                                                ? 'text-slate-400 hover:text-rose-400 hover:bg-slate-800'
+                                                                : 'text-slate-500 hover:text-rose-600 hover:bg-slate-100'
+                                                        }`}
+                                                    >
+                                                        <LucideIcons.Flag className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <div
+                                                    className="w-9 h-9 rounded-full shrink-0 p-[3px]"
                                                 style={{
                                                     background: `conic-gradient(
                                     ${getContentAccentColor(
@@ -3411,6 +3563,7 @@ export function StreakTracker({
                                                             : 'bg-white'
                                                         }`}
                                                 />
+                                                </div>
                                             </div>
                                         </div>
 
@@ -3482,6 +3635,89 @@ export function StreakTracker({
                                             )}
                                         </div>
 
+                                        {reportingViewedContent && (
+                                            <div className={`mt-4 rounded-2xl border p-4 space-y-3 ${
+                                                isDark
+                                                    ? 'bg-slate-800 border-slate-700'
+                                                    : 'bg-slate-50 border-slate-200'
+                                            }`}>
+                                                <h3 className="font-bold text-sm">
+                                                    Report {viewingContent.contentType === 'Photo' ? 'photo' : 'message'}
+                                                </h3>
+                                                <p className="text-xs opacity-70">
+                                                    Tell us why this check-in should be reviewed.
+                                                </p>
+                                                <select
+                                                    aria-label="Reason for reporting"
+                                                    value={checkInReportReason}
+                                                    disabled={submittingCheckInReport}
+                                                    onChange={event => setCheckInReportReason(event.target.value)}
+                                                    className={`w-full rounded-xl border p-3 text-sm ${
+                                                        isDark
+                                                            ? 'bg-slate-900 border-slate-600 text-white'
+                                                            : 'bg-white border-slate-300 text-slate-800'
+                                                    }`}
+                                                >
+                                                    {[
+                                                        'Harassment',
+                                                        'Inappropriate Content',
+                                                        'Spam',
+                                                        'Impersonation',
+                                                        'Other'
+                                                    ].map(reason => (
+                                                        <option key={reason} value={reason}>
+                                                            {reason}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <textarea
+                                                    aria-label="Additional report details"
+                                                    placeholder="Additional details (optional)"
+                                                    value={checkInReportDetails}
+                                                    maxLength={1000}
+                                                    rows={2}
+                                                    disabled={submittingCheckInReport}
+                                                    onChange={event => setCheckInReportDetails(event.target.value)}
+                                                    className={`w-full rounded-xl border p-3 text-sm ${
+                                                        isDark
+                                                            ? 'bg-slate-900 border-slate-600 text-white'
+                                                            : 'bg-white border-slate-300 text-slate-800'
+                                                    }`}
+                                                />
+                                                {checkInReportFeedback && (
+                                                    <p role="alert" className="text-xs text-rose-400">
+                                                        {checkInReportFeedback}
+                                                    </p>
+                                                )}
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <button
+                                                        type="button"
+                                                        disabled={submittingCheckInReport}
+                                                        onClick={() => {
+                                                            setReportingViewedContent(false);
+                                                            setCheckInReportFeedback('');
+                                                        }}
+                                                        className="rounded-xl bg-slate-600 px-3 py-2 text-sm font-semibold text-white"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        disabled={submittingCheckInReport}
+                                                        onClick={submitCheckInContentReport}
+                                                        className="rounded-xl bg-rose-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                                                    >
+                                                        {submittingCheckInReport ? 'Submitting...' : 'Submit report'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {checkInReportSucceeded && checkInReportFeedback && (
+                                            <p role="status" className="mt-3 text-center text-xs text-teal-500">
+                                                {checkInReportFeedback}
+                                            </p>
+                                        )}
                                         <p
                                             className={`text-xs text-center mt-4 ${isDark
                                                     ? 'text-slate-500'
@@ -3493,6 +3729,7 @@ export function StreakTracker({
                                             every recipient has viewed it.
                                         </p>
 
+                                        {!reportingViewedContent && !submittingCheckInReport && (
                                         <div
                                             className={`grid gap-3 mt-4 ${remainingUnreadCount > 0
                                                     ? 'grid-cols-1 sm:grid-cols-2'
@@ -3524,6 +3761,7 @@ export function StreakTracker({
                                                 </button>
                                             )}
                                         </div>
+                                        )}
                                     </div>
                                 );
                             })()}

@@ -265,6 +265,12 @@ export function UserProfileModal({
         }
     };
 
+    // PROFILE_REPORT_STATE
+    const [showReportForm, setShowReportForm] = useState(false);
+    const [reportReason, setReportReason] = useState('Harassment');
+    const [reportDetails, setReportDetails] = useState('');
+    const [submittingReport, setSubmittingReport] = useState(false);
+    const [reportFeedback, setReportFeedback] = useState('');
     // BLOCK_PROFILE_ACTION
     const [blockingUser, setBlockingUser] = useState(false);
 
@@ -324,6 +330,54 @@ Continue?`
         }
     };
 
+    // PROFILE_REPORT_HANDLER
+    const submitProfileReport = async () => {
+        if (!profile || profile.relationshipStatus === 'Self' || submittingReport) {
+            return;
+        }
+
+        const token = getToken();
+
+        if (!token) {
+            setReportFeedback('You must be signed in to report someone.');
+            return;
+        }
+
+        setSubmittingReport(true);
+        setReportFeedback('');
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/reports`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    reportedUserId: profile.id,
+                    reason: reportReason,
+                    details: reportDetails.trim()
+                })
+            });
+
+            if (!response.ok) {
+                const message = await response.text();
+                throw new Error(message || `Report failed (${response.status}).`);
+            }
+
+            setShowReportForm(false);
+            setReportDetails('');
+            setReportFeedback('Report submitted successfully. Thank you.');
+        } catch (err) {
+            setReportFeedback(
+                err instanceof Error
+                    ? err.message
+                    : 'Unable to submit your report.'
+            );
+        } finally {
+            setSubmittingReport(false);
+        }
+    };
     const startStreak = () => {
         if (!profile) {
             return;
@@ -779,6 +833,117 @@ Continue?`
                                                     Start Streak
                                                 </button>
                                             )}
+                                    {/* PROFILE_REPORT_UI */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowReportForm(value => !value);
+                                            setReportFeedback('');
+                                        }}
+                                        disabled={submittingReport}
+                                        className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 font-semibold transition-all disabled:opacity-60"
+                                    >
+                                        Report User
+                                    </button>
+
+                                    {(showReportForm || reportFeedback) && (
+                                        <div className={`col-span-full rounded-2xl border p-4 ${
+                                            isDark
+                                                ? 'border-slate-700 bg-slate-800/50'
+                                                : 'border-slate-200 bg-slate-50'
+                                        }`}>
+                                            {showReportForm && (
+                                                <div className="space-y-3">
+                                                    <h3 className="font-semibold">
+                                                        Report {profile.userName}
+                                                    </h3>
+
+                                                    <p className="text-sm text-slate-500">
+                                                        Reports are reviewed by an administrator.
+                                                        Reporting does not automatically block this user.
+                                                    </p>
+
+                                                    <label className="block text-sm font-medium">
+                                                        Reason
+                                                        <select
+                                                            value={reportReason}
+                                                            onChange={event =>
+                                                                setReportReason(event.target.value)
+                                                            }
+                                                            disabled={submittingReport}
+                                                            className={`mt-1 w-full rounded-xl border p-3 ${
+                                                                isDark
+                                                                    ? 'border-slate-600 bg-slate-900 text-white'
+                                                                    : 'border-slate-300 bg-white text-slate-900'
+                                                            }`}
+                                                        >
+                                                            {[
+                                                                'Harassment',
+                                                                'Inappropriate Content',
+                                                                'Spam',
+                                                                'Impersonation',
+                                                                'Other'
+                                                            ].map(reason => (
+                                                                <option key={reason} value={reason}>
+                                                                    {reason}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </label>
+
+                                                    <label className="block text-sm font-medium">
+                                                        Additional details (optional)
+                                                        <textarea
+                                                            value={reportDetails}
+                                                            onChange={event =>
+                                                                setReportDetails(event.target.value)
+                                                            }
+                                                            maxLength={1000}
+                                                            rows={3}
+                                                            disabled={submittingReport}
+                                                            placeholder="Describe what happened..."
+                                                            className={`mt-1 w-full resize-y rounded-xl border p-3 ${
+                                                                isDark
+                                                                    ? 'border-slate-600 bg-slate-900 text-white'
+                                                                    : 'border-slate-300 bg-white text-slate-900'
+                                                            }`}
+                                                        />
+                                                    </label>
+
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={submitProfileReport}
+                                                            disabled={submittingReport}
+                                                            className="flex-1 rounded-xl bg-amber-600 px-4 py-3 font-semibold text-white disabled:opacity-60"
+                                                        >
+                                                            {submittingReport
+                                                                ? 'Submitting...'
+                                                                : 'Submit Report'}
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setShowReportForm(false);
+                                                                setReportFeedback('');
+                                                            }}
+                                                            disabled={submittingReport}
+                                                            className="rounded-xl border border-slate-500 px-4 py-3 font-semibold disabled:opacity-60"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {reportFeedback && (
+                                                <p role="status" className="mt-2 text-sm">
+                                                    {reportFeedback}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={blockProfileUser}

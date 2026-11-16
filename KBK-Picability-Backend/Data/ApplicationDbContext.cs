@@ -14,6 +14,7 @@ namespace Picability.Data
         public DbSet<FriendRequest> FriendRequests { get; set; }
         public DbSet<Friend> Friends { get; set; }
         public DbSet<UserBlock> UserBlocks { get; set; }
+        public DbSet<ContentReport> ContentReports { get; set; }
         public DbSet<StreakRequest> StreakRequests { get; set; }
         public DbSet<Streak> Streaks { get; set; }
         public DbSet<CheckInContent> CheckInContents { get; set; }

@@ -4,6 +4,7 @@ import { HabitSelector } from './components/HabitSelector.tsx';
 import { StreakTracker, Streak } from './components/StreakTracker.tsx';
 import { HabitConfig, HabitConfiguration } from './components/HabitConfig.tsx';
 import { AuthScreen } from './components/AuthScreen';
+import ModerationDashboard from './components/ModerationDashboard';
 import { UserSearch, User } from './components/UserSearch.tsx';
 import { FriendsList, PendingRequest } from './components/FriendList.tsx';
 import { RequestConfirmation } from './components/RequestConfirmation.tsx';
@@ -28,7 +29,8 @@ type Screen =
     | 'friends-list'
     | 'user-search'
     | 'confirmation'
-    | 'onboarding';
+    | 'onboarding'
+    | 'moderation';
 
 interface AuthUser {
     id: string;
@@ -2189,6 +2191,21 @@ export default function App() {
                 </PicabilityPageShell>
             )}
 
+            {currentScreen === 'moderation' &&
+                user?.id === '04d68eab-7cb3-4c2e-82a1-d2b1801a250a' && (
+                    <div className="min-h-screen bg-slate-950 px-4 py-8 text-white">
+                        <div className="mx-auto max-w-3xl">
+                            <button
+                                type="button"
+                                onClick={() => handleMobileTabChange('tracker')}
+                                className="mb-6 rounded-xl border border-slate-600 px-4 py-2 text-sm font-medium"
+                            >
+                                Back to Tracker
+                            </button>
+                            <ModerationDashboard token={user.token} />
+                        </div>
+                    </div>
+                )}
             {isPrimaryScreen && (
                 <>
                     <div
@@ -2302,6 +2319,7 @@ export default function App() {
                                     isDark={isDark}
                                 >
                                     <StreakTracker
+                                    onOpenModeration={() => setCurrentScreen('moderation')}
                                     onUnblockSuccess={() => {
                                         fetchStreaks();
                                         setFriendsRefreshKey(current => current + 1);

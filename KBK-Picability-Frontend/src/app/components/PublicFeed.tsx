@@ -1,4 +1,4 @@
-﻿import {
+import {
     ArrowLeft,
     CalendarDays,
     MessageCircle,
@@ -409,6 +409,19 @@ export function PublicFeed({
         setSubmittingComment
     ] = useState(false);
 
+    const [lastReportedCommentId, setLastReportedCommentId] =
+        useState<number | null>(null);
+    // COMMENT_REPORT_STATE
+    const [reportingCommentId, setReportingCommentId] =
+        useState<number | null>(null);
+    const [commentReportReason, setCommentReportReason] =
+        useState('Harassment');
+    const [commentReportDetails, setCommentReportDetails] =
+        useState('');
+    const [submittingCommentReport, setSubmittingCommentReport] =
+        useState(false);
+    const [commentReportFeedback, setCommentReportFeedback] =
+        useState('');
     const getToken = () => {
         const savedUser =
             localStorage.getItem(
@@ -527,9 +540,77 @@ export function PublicFeed({
         }
     };
 
+    // COMMENT_REPORT_HANDLER
+    const submitCommentReport = async () => {
+        if (reportingCommentId === null || submittingCommentReport) {
+            return;
+        }
+
+        const token = getToken();
+
+        if (!token) {
+            setCommentReportFeedback('You must be signed in to report comments.');
+            return;
+        }
+
+        setSubmittingCommentReport(true);
+        setCommentReportFeedback('');
+
+        try {
+            const response = await fetch(
+                `${BASE_URL}/api/reports/comment`,
+                {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        commentId: reportingCommentId,
+                        reason: commentReportReason,
+                        details: commentReportDetails.trim()
+                    })
+                }
+            );
+
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type');
+                const result = contentType?.includes('application/json')
+                    ? await response.json()
+                    : await response.text();
+
+                const message = typeof result === 'string'
+                    ? result
+                    : result.message ?? `Report failed (${response.status}).`;
+
+                throw new Error(message);
+            }
+
+            setLastReportedCommentId(reportingCommentId);
+            setCommentReportFeedback('Comment reported successfully.');
+            setReportingCommentId(null);
+            setCommentReportDetails('');
+        } catch (err) {
+            setCommentReportFeedback(
+                err instanceof Error
+                    ? err.message
+                    : 'Unable to report this comment.'
+            );
+        } finally {
+            setSubmittingCommentReport(false);
+        }
+    };
+    const resetCommentReport = () => {
+        setReportingCommentId(null);
+        setCommentReportReason('Harassment');
+        setCommentReportDetails('');
+        setCommentReportFeedback('');
+        setLastReportedCommentId(null);
+    };
     const toggleComments = async (
         item: PublicFeedItem
     ) => {
+        resetCommentReport();
         if (
             expandedCommentsStreakId ===
             item.id
@@ -1294,6 +1375,133 @@ export function PublicFeed({
                                                                         comment.text
                                                                     }
                                                                 </p>
+                                                                    {/* COMMENT_REPORT_UI */}
+                                                                    {(() => {
+                                                                        let currentUserId = '';
+
+                                                                        try {
+                                                                            const savedUser = localStorage.getItem('picabilityUser');
+                                                                            currentUserId = savedUser
+                                                                                ? JSON.parse(savedUser).id ?? ''
+                                                                                : '';
+                                                                        } catch {
+                                                                            currentUserId = '';
+                                                                        }
+
+                                                                        return currentUserId !== comment.userId;
+                                                                    })() && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setReportingCommentId(comment.id);
+                                                                                setCommentReportReason('Harassment');
+                                                                                setCommentReportDetails('');
+                                                                                setCommentReportFeedback('');
+                                                                            }}
+                                                                            disabled={submittingCommentReport}
+                                                                            className="mt-1 text-xs font-medium text-amber-500 hover:underline disabled:opacity-50"
+                                                                        >
+                                                                            Report
+                                                                        </button>
+                                                                    )}
+
+                                                                    {reportingCommentId === comment.id && (
+                                                                        <div className={`mt-3 rounded-xl border p-3 space-y-3 ${
+                                                                            isDark
+                                                                                ? 'border-slate-700 bg-slate-800'
+                                                                                : 'border-slate-200 bg-white'
+                                                                        }`}>
+                                                                            <p className="text-sm font-semibold">
+                                                                                Report this comment
+                                                                            </p>
+
+                                                                            <label className="block text-xs font-medium">
+                                                                                Reason
+                                                                                <select
+                                                                                    value={commentReportReason}
+                                                                                    onChange={event =>
+                                                                                        setCommentReportReason(event.target.value)
+                                                                                    }
+                                                                                    disabled={submittingCommentReport}
+                                                                                    className={`mt-1 w-full rounded-lg border p-2 text-sm ${
+                                                                                        isDark
+                                                                                            ? 'border-slate-600 bg-slate-900 text-white'
+                                                                                            : 'border-slate-300 bg-white text-slate-900'
+                                                                                    }`}
+                                                                                >
+                                                                                    {[
+                                                                                        'Harassment',
+                                                                                        'Inappropriate Content',
+                                                                                        'Spam',
+                                                                                        'Impersonation',
+                                                                                        'Other'
+                                                                                    ].map(reason => (
+                                                                                        <option key={reason} value={reason}>
+                                                                                            {reason}
+                                                                                        </option>
+                                                                                    ))}
+                                                                                </select>
+                                                                            </label>
+
+                                                                            <label className="block text-xs font-medium">
+                                                                                Additional details (optional)
+                                                                                <textarea
+                                                                                    value={commentReportDetails}
+                                                                                    onChange={event =>
+                                                                                        setCommentReportDetails(event.target.value)
+                                                                                    }
+                                                                                    maxLength={1000}
+                                                                                    rows={3}
+                                                                                    disabled={submittingCommentReport}
+                                                                                    placeholder="Describe the issue..."
+                                                                                    className={`mt-1 w-full resize-y rounded-lg border p-2 text-sm ${
+                                                                                        isDark
+                                                                                            ? 'border-slate-600 bg-slate-900 text-white'
+                                                                                            : 'border-slate-300 bg-white text-slate-900'
+                                                                                    }`}
+                                                                                />
+                                                                            </label>
+
+                                                                            <div className="flex gap-2">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => void submitCommentReport()}
+                                                                                    disabled={submittingCommentReport}
+                                                                                    className="flex-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                                                                                >
+                                                                                    {submittingCommentReport
+                                                                                        ? 'Submitting...'
+                                                                                        : 'Submit Report'}
+                                                                                </button>
+
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        setReportingCommentId(null);
+                                                                                        setCommentReportFeedback('');
+                                                                                    }}
+                                                                                    disabled={submittingCommentReport}
+                                                                                    className="rounded-lg border border-slate-500 px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                                                                                >
+                                                                                    Cancel
+                                                                                </button>
+                                                                            </div>
+
+                                                                            {commentReportFeedback && (
+                                                                                <p role="status" className="text-xs text-amber-500">
+                                                                                    {commentReportFeedback}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {reportingCommentId === null &&
+                                                                        commentReportFeedback &&
+                                                                        lastReportedCommentId === comment.id && (
+                                                                            <p role="status" className="mt-2 text-xs text-emerald-500">
+                                                                                {commentReportFeedback}
+                                                                            </p>
+                                                                        )}
                                                             </div>
                                                         </div>
                                                     )
