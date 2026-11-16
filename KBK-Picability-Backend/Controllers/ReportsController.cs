@@ -59,6 +59,9 @@ public class ReportsController : ControllerBase
             return Conflict(new { message = "Report has already been reviewed." });
 
         report.Status = "Dismissed";
+        if (report.ContentType == "CheckInContent")
+            report.EvidenceSnapshot = null;
+
         report.ReviewedAt = DateTime.UtcNow;
         report.ReviewedByUserId = currentUserId;
 
@@ -116,6 +119,9 @@ public class ReportsController : ControllerBase
         _db.StreakComments.Remove(comment);
 
         report.Status = "ContentRemoved";
+        if (report.ContentType == "CheckInContent")
+            report.EvidenceSnapshot = null;
+
         report.ReviewedAt = DateTime.UtcNow;
         report.ReviewedByUserId = currentUserId;
 
@@ -328,13 +334,24 @@ public class ReportsController : ControllerBase
             Reason = request.Reason,
             Details = request.Details?.Trim(),
             EvidenceSnapshot = content.ContentType == "Message"
-                ? "[Private message reported; text not retained]"
-                : "[Private photo reported; image not retained]",
+                ? content.MessageText
+                : "[Private photo reported; image deleted]",
             Status = "Pending",
             CreatedAt = DateTime.UtcNow
         };
 
         _db.ContentReports.Add(report);
+
+        // REPORTED_PRIVATE_PHOTO_IMMEDIATE_DELETION
+        if (content.ContentType == "Photo")
+        {
+            var photoToDelete = await _db.CheckInContents
+                .FirstOrDefaultAsync(c => c.Id == content.Id);
+
+            if (photoToDelete != null)
+                _db.CheckInContents.Remove(photoToDelete);
+        }
+
         await _db.SaveChangesAsync();
 
         return Ok(new
@@ -396,6 +413,9 @@ public class ReportsController : ControllerBase
         report.Status = content == null
             ? "AlreadyDeleted"
             : "ContentRemoved";
+
+        if (report.ContentType == "CheckInContent")
+            report.EvidenceSnapshot = null;
 
         report.ReviewedAt = DateTime.UtcNow;
         report.ReviewedByUserId = currentUserId;
@@ -506,6 +526,9 @@ public class ReportsController : ControllerBase
         }
 
         report.Status = "UserSuspended";
+        if (report.ContentType == "CheckInContent")
+            report.EvidenceSnapshot = null;
+
         report.ReviewedAt = DateTime.UtcNow;
         report.ReviewedByUserId = currentUserId;
 

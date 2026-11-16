@@ -3647,6 +3647,12 @@ export function StreakTracker({
                                                 <p className="text-xs opacity-70">
                                                     Tell us why this check-in should be reviewed.
                                                 </p>
+                                                {/* CHECKIN_REPORT_PRIVACY_NOTICE_V1 */}
+                                                <p className="text-xs opacity-70">
+                                                    {viewingContent.contentType === 'Photo'
+                                                        ? 'Reporting immediately deletes this photo. No image copy is saved for moderation.'
+                                                        : 'Reporting shares this message with a moderator until the report is resolved.'}
+                                                </p>
                                                 <select
                                                     aria-label="Reason for reporting"
                                                     value={checkInReportReason}
