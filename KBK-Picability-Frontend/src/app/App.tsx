@@ -875,6 +875,16 @@ export default function App() {
                 }
             );
 
+            // CHECKIN_DELETED_CONTENT_LOCAL_CLEANUP_V1
+            // Reported photos may already be deleted on the server.
+            if (response.status === 404) {
+                setUnreadContent(previous =>
+                    previous.filter(content => content.id !== contentId)
+                );
+                await fetchUnreadContent();
+                return;
+            }
+
             if (!response.ok) {
                 const contentType =
                     response.headers.get(
@@ -914,6 +924,9 @@ export default function App() {
                 return;
             }
 
+            setUnreadContent(previous =>
+                previous.filter(content => content.id !== contentId)
+            );
             await fetchUnreadContent();
         } catch (error) {
             console.error(

@@ -349,6 +349,13 @@ export function StreakTracker({
             setCheckInReportSucceeded(true);
             setCheckInReportFeedback('Report submitted successfully.');
             setReportingViewedContent(false);
+
+            // CHECKIN_REPORTED_PHOTO_ONE_TIME_VIEW_V1
+            // A reported photo must never remain open or be replayable.
+            if (viewingContent.contentType === 'Photo') {
+                void onViewCheckInContent?.(viewingContent.id);
+                setViewingContent(null);
+            }
         } catch (error) {
             setCheckInReportFeedback(
                 error instanceof Error
