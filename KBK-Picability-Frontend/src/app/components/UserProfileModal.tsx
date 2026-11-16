@@ -474,10 +474,12 @@ Continue?`
                     relative
                     w-full
                     max-w-md
+                    max-h-[calc(100dvh-2rem)]
+                    overflow-y-auto
+                    overscroll-contain
                     rounded-[2rem]
                     border
                     shadow-2xl
-                    overflow-hidden
                     ${isDark
                         ? 'bg-slate-900 border-slate-700'
                         : 'bg-white border-slate-200'
