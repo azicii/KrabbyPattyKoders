@@ -172,6 +172,15 @@ export function UserProfileModal({
         void fetchProfile();
     }, [userName]);
 
+    // PROFILE_REPORT_STATE
+    const [showReportForm, setShowReportForm] = useState(false);
+    const [reportReason, setReportReason] = useState('Harassment');
+    const [reportDetails, setReportDetails] = useState('');
+    const [submittingReport, setSubmittingReport] = useState(false);
+    const [reportFeedback, setReportFeedback] = useState('');
+    // BLOCK_PROFILE_ACTION
+    const [blockingUser, setBlockingUser] = useState(false);
+
     if (!userName) {
         return null;
     }
@@ -264,15 +273,6 @@ export function UserProfileModal({
             );
         }
     };
-
-    // PROFILE_REPORT_STATE
-    const [showReportForm, setShowReportForm] = useState(false);
-    const [reportReason, setReportReason] = useState('Harassment');
-    const [reportDetails, setReportDetails] = useState('');
-    const [submittingReport, setSubmittingReport] = useState(false);
-    const [reportFeedback, setReportFeedback] = useState('');
-    // BLOCK_PROFILE_ACTION
-    const [blockingUser, setBlockingUser] = useState(false);
 
     const blockProfileUser = async () => {
         if (!profile || profile.relationshipStatus === 'Self' || blockingUser) {
