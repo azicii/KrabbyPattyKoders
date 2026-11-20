@@ -1407,6 +1407,23 @@ export function StreakTracker({
                                     <span>Admin Moderation</span>
                                 </button>
                             )}
+                            {/* CONTACT_SUPPORT_SETTINGS_V1 */}
+                            <a
+                                href="mailto:picability.support@gmail.com?subject=Picability%20Support%20Request"
+                                className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left ${
+                                    isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+                                }`}
+                            >
+                                <Mail className="w-5 h-5 shrink-0" />
+                                <span className="flex flex-col min-w-0">
+                                    <span>Contact Support</span>
+                                    <span className={`text-xs select-text break-all ${
+                                        isDark ? 'text-slate-400' : 'text-slate-500'
+                                    }`}>
+                                        picability.support@gmail.com
+                                    </span>
+                                </span>
+                            </a>
                             {/* BLOCKED_USERS_SETTINGS */}
                             <BlockedUsersPanel
                                 isDark={isDark}
