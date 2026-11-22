@@ -87,7 +87,7 @@ namespace Picability.Controllers
             if (dateOfBirth > today.AddYears(-13))
             {
                 return BadRequest(new {
-                    message = "You are not eligible to create an account."
+                    message = "You must be at least 13 years old to create a Picability account."
                 });
             }
 
