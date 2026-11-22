@@ -150,7 +150,7 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
     <div className={`min-h-screen p-6 transition-colors duration-300 flex flex-col ${
       isDark ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 'bg-gradient-to-br from-slate-50 to-slate-100'
     }`}>
-      
+
       <div className="flex items-center justify-between mb-8">
         <div className="w-12 h-12" />
         <h1 className={`text-2xl font-semibold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
@@ -170,7 +170,7 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
         <div className={`rounded-3xl p-8 shadow-xl transition-all duration-300 ${
           isDark ? 'bg-slate-800/50 backdrop-blur-md border border-slate-700' : 'bg-white'
         }`}>
-          
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <div className="space-y-2">
@@ -339,22 +339,6 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 ${
-                loading ? 'opacity-70 cursor-not-allowed' : ''
-              } bg-gradient-to-r from-teal-600 to-cyan-700 text-white`}
-            >
-              {loading ? (
-                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  {isLogin ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
-                  {isLogin ? 'Sign In' : 'Create Account'}
-                </>
-              )}
-            </button>
             {/* PICABILITY_LEGAL_CONSENT_V1 */}
             {!isLogin && (
               <label className={`flex items-start gap-3 mt-4 text-xs leading-relaxed ${
@@ -381,6 +365,24 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
                 </span>
               </label>
             )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 ${
+                loading ? 'opacity-70 cursor-not-allowed' : ''
+              } bg-gradient-to-r from-teal-600 to-cyan-700 text-white`}
+            >
+              {loading ? (
+                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  {isLogin ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
+                  {isLogin ? 'Sign In' : 'Create Account'}
+                </>
+              )}
+            </button>
+
           </form>
 
           <div className="mt-4 text-center text-xs">
