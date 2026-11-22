@@ -9,6 +9,8 @@ interface AuthScreenProps {
 
 export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps) {
   const [isLogin, setIsLogin] = useState(true);
+  // PICABILITY_LEGAL_CONSENT_V1
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -17,7 +19,8 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    password: ''
+    password: '',
+    dateOfBirth: ''
   });
 
     const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -82,6 +85,11 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
           return;
       }
 
+    if (!isLogin && !acceptedTerms) {
+      setError('Please agree to the Terms of Service and acknowledge the Privacy Policy.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -94,7 +102,8 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
         : {
             Username: formData.username,
             Email: formData.email,
-            Password: formData.password
+            Password: formData.password,
+            DateOfBirth: formData.dateOfBirth || null
           };
 
       // Match the port found in your Backend's launchSettings.json
@@ -178,6 +187,44 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
                     onChange={(e) => setFormData({...formData, username: e.target.value})}
                   />
                  </div>
+              </div>
+            )}
+
+            {!isLogin && (
+              <div className="space-y-2">
+                <label
+                  htmlFor="registration-date-of-birth"
+                  className={`text-sm font-medium ml-1 ${
+                    isDark ? 'text-slate-300' : 'text-slate-600'
+                  }`}
+                >
+                  Date of Birth
+                </label>
+
+                <input
+                  id="registration-date-of-birth"
+                  type="date"
+                  required
+                  value={formData.dateOfBirth}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      dateOfBirth: e.target.value
+                    })
+                  }
+                  className={`w-full px-4 py-3.5 rounded-2xl outline-none ${
+                    isDark
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-50 text-slate-900'
+                  }`}
+                />
+
+                <p className={`text-xs ${
+                  isDark ? 'text-slate-400' : 'text-slate-500'
+                }`}>
+                  You must meet the minimum age requirement to use Picability.
+                </p>
               </div>
             )}
 
@@ -308,7 +355,41 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
                 </>
               )}
             </button>
+            {/* PICABILITY_LEGAL_CONSENT_V1 */}
+            {!isLogin && (
+              <label className={`flex items-start gap-3 mt-4 text-xs leading-relaxed ${
+                isDark ? 'text-slate-300' : 'text-slate-600'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  required
+                  className="mt-1 h-4 w-4 shrink-0 accent-teal-600"
+                />
+                <span>
+                  I agree to the{' '}
+                  <a href="https://picability.vercel.app/terms/" target="_blank" rel="noopener noreferrer"
+                    className="text-teal-500 underline">
+                    Terms of Service
+                  </a>
+                  {' '}and acknowledge the{' '}
+                  <a href="https://picability.vercel.app/privacy/" target="_blank" rel="noopener noreferrer"
+                    className="text-teal-500 underline">
+                    Privacy Policy
+                  </a>.
+                </span>
+              </label>
+            )}
           </form>
+
+          <div className="mt-4 text-center text-xs">
+            <a href="https://picability.vercel.app/privacy/" target="_blank" rel="noopener noreferrer"
+              className="text-teal-500 hover:underline">Privacy Policy</a>
+            <span className="mx-2 text-slate-400">|</span>
+            <a href="https://picability.vercel.app/terms/" target="_blank" rel="noopener noreferrer"
+              className="text-teal-500 hover:underline">Terms of Service</a>
+          </div>
 
           <div className="mt-6 text-center">
             <button

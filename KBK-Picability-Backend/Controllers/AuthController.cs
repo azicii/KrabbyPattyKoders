@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Picability.Models;
 using Picability.DTOs;
@@ -64,6 +64,32 @@ namespace Picability.Controllers
 
             var email =
                 model.Email?.Trim();
+
+            // Validate age without storing date of birth.
+            if (!model.DateOfBirth.HasValue)
+            {
+                return BadRequest(new {
+                    message = "Date of birth is required."
+                });
+            }
+
+            var dateOfBirth = model.DateOfBirth.Value;
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            if (dateOfBirth > today ||
+                dateOfBirth < today.AddYears(-120))
+            {
+                return BadRequest(new {
+                    message = "Please enter a valid date of birth."
+                });
+            }
+
+            if (dateOfBirth > today.AddYears(-13))
+            {
+                return BadRequest(new {
+                    message = "You are not eligible to create an account."
+                });
+            }
 
             if (string.IsNullOrWhiteSpace(username))
             {

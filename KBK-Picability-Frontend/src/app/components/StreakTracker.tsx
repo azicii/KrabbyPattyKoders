@@ -1424,6 +1424,25 @@ export function StreakTracker({
                                     </span>
                                 </span>
                             </a>
+                            {/* PICABILITY_LEGAL_SETTINGS_V1 */}
+                            <div className="flex flex-col gap-2 px-3 py-3 text-sm">
+                                <a
+                                    href="https://picability.vercel.app/privacy/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-teal-500 hover:underline"
+                                >
+                                    Privacy Policy
+                                </a>
+                                <a
+                                    href="https://picability.vercel.app/terms/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-teal-500 hover:underline"
+                                >
+                                    Terms of Service
+                                </a>
+                            </div>
                             {/* BLOCKED_USERS_SETTINGS */}
                             <BlockedUsersPanel
                                 isDark={isDark}
