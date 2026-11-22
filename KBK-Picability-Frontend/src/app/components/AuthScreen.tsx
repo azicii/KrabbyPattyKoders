@@ -223,7 +223,7 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
                 <p className={`text-xs ${
                   isDark ? 'text-slate-400' : 'text-slate-500'
                 }`}>
-                  You must meet the minimum age requirement to use Picability.
+                  You must be 13 years old or older to use Picability.
                 </p>
               </div>
             )}
