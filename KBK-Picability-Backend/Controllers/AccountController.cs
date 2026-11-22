@@ -120,6 +120,13 @@ public class AccountController : ControllerBase
                     block.BlockerId == userId ||
                     block.BlockedUserId == userId)
                 .ExecuteDeleteAsync();
+            // PRIVACY_REPORT_ACCOUNT_CLEANUP_V2
+            await _db.ContentReports
+                .Where(r =>
+                    r.ReporterId == userId ||
+                    r.ReportedUserId == userId ||
+                    r.ReviewedByUserId == userId)
+                .ExecuteDeleteAsync();
             var result = await _users.DeleteAsync(user);
             if (!result.Succeeded) throw new InvalidOperationException("Identity account removal failed.");
             await tx.CommitAsync();

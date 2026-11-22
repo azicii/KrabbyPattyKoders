@@ -71,6 +71,30 @@ namespace Picability.Services
                         );
                     }
 
+                    // PRIVACY_REPORT_RETENTION_V2
+                    try
+                    {
+                        var reportDb = scope.ServiceProvider
+                            .GetRequiredService<Picability.Data.ApplicationDbContext>();
+
+                        var reportCutoff = DateTime.UtcNow.AddDays(-90);
+
+                        await Microsoft.EntityFrameworkCore
+                            .RelationalQueryableExtensions
+                            .ExecuteDeleteAsync(
+                                reportDb.ContentReports.Where(
+                                    report => report.CreatedAt < reportCutoff
+                                ),
+                                stoppingToken
+                            );
+                    }
+                    catch (Exception reportCleanupException)
+                    {
+                        _logger.LogError(
+                            reportCleanupException,
+                            "Moderation report cleanup failed."
+                        );
+                    }
                     await reminderService
                         .ProcessDueRemindersAsync(
                             stoppingToken
