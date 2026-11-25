@@ -64,7 +64,17 @@ namespace Picability.Controllers
 
             var email =
                 model.Email?.Trim();
+            // PICABILITY_SERVER_LEGAL_CONSENT_V1
+            const string currentTermsVersion = "2026-11-24";
 
+            if (!model.AcceptedTerms ||
+                model.TermsVersion != currentTermsVersion)
+            {
+                return BadRequest(new
+                {
+                    message = "You must agree to the current Terms of Service and acknowledge the Privacy Policy."
+                });
+            }
             // Validate age without storing date of birth.
             if (!model.DateOfBirth.HasValue)
             {
@@ -113,8 +123,9 @@ namespace Picability.Controllers
             {
                 UserName = username,
                 Email = email,
-                UserNameDisplay = username
-            };
+                UserNameDisplay = username,
+                AcceptedTermsVersion = currentTermsVersion,
+                TermsAcceptedAtUtc = DateTime.UtcNow};
 
             var result =
                 await _userManager.CreateAsync(

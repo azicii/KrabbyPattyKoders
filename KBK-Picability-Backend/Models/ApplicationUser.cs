@@ -1,9 +1,13 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Picability.Models;
 
 public class ApplicationUser : IdentityUser
 {
     public string UserNameDisplay { get; set; } = string.Empty;
+
+    // Null means no acceptance record is available.
+    public string? AcceptedTermsVersion { get; set; }
+    public DateTime? TermsAcceptedAtUtc { get; set; }
 
     /*
      * Permanent profile record.

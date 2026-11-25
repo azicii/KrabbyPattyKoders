@@ -61,7 +61,7 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
 
       if (!isLogin && !validateEmail(formData.email)) {
           setError('Please enter a valid email address.');
-          return; 
+          return;
       }
       if (
           !isLogin &&
@@ -94,7 +94,7 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
 
     try {
       // The keys here match the property names in your RegisterDto.cs and LoginDto.cs
-      const authData = isLogin 
+      const authData = isLogin
         ? {
             Email: formData.email,
             Password: formData.password
@@ -103,11 +103,13 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
             Username: formData.username,
             Email: formData.email,
             Password: formData.password,
-            DateOfBirth: formData.dateOfBirth || null
+            DateOfBirth: formData.dateOfBirth || null,
+            AcceptedTerms: acceptedTerms,
+            TermsVersion: '2026-11-24'
           };
 
       // Match the port found in your Backend's launchSettings.json
-      // const BASE_URL = 'http://localhost:5232'; 
+      // const BASE_URL = 'http://localhost:5232';
       const BASE_URL = 'https://kbk-picability-backend.onrender.com';
       const endpoint = isLogin ? `${BASE_URL}/api/auth/login` : `${BASE_URL}/api/auth/register`;
 
@@ -134,8 +136,8 @@ export function AuthScreen({ isDark, onToggleDark, onSuccess }: AuthScreenProps)
             }, 600);
         } else {
         // Identity sometimes returns an array of error objects
-        const errorMsg = Array.isArray(result) 
-          ? result[0].description 
+        const errorMsg = Array.isArray(result)
+          ? result[0].description
           : result.message || 'Authentication failed.';
         setError(errorMsg);
       }
