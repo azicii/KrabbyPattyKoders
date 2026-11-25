@@ -207,6 +207,16 @@ namespace Picability.Controllers
                 });
             }
 
+
+            // PICABILITY_CONTENT_FILTER_V1
+            if (Picability.Services.ContentModerationService.ContainsProhibitedContent(normalizedHabitName))
+            {
+                return BadRequest(new
+                {
+                    message = "Your streak name contains prohibited language. Please choose another name."
+                });
+            }
+
             var normalizedHabitNameLower =
     normalizedHabitName.ToLower();
 
@@ -856,7 +866,7 @@ namespace Picability.Controllers
 
         // ADDED BY REECE
         // Before: No endpoint for the UI to fetch incoming streak requests for a user
-        // After: Added this endpoint to fetch incoming streak requests for a user, 
+        // After: Added this endpoint to fetch incoming streak requests for a user,
         // including sender info
         [HttpGet("incoming")]
         public async Task<IActionResult> GetIncomingRequests()

@@ -838,6 +838,15 @@ namespace Picability.Controllers
         public async Task<IActionResult> CreateMessage(
             [FromBody] CreateCheckInMessageDto model)
         {
+            // PICABILITY_CONTENT_FILTER_V1
+            if (Picability.Services.ContentModerationService.ContainsProhibitedContent(model.MessageText))
+            {
+                return BadRequest(new
+                {
+                    message = "Your message contains prohibited language. Please revise it and try again."
+                });
+            }
+
             if (
                 string.IsNullOrWhiteSpace(
                     model.MessageText

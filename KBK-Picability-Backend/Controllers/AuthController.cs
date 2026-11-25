@@ -119,6 +119,16 @@ namespace Picability.Controllers
                 });
             }
 
+
+            // PICABILITY_CONTENT_FILTER_V1
+            if (Picability.Services.ContentModerationService.ContainsProhibitedContent(username))
+            {
+                return BadRequest(new
+                {
+                    message = "Your username contains prohibited language. Please choose another username."
+                });
+            }
+
             var user = new ApplicationUser
             {
                 UserName = username,

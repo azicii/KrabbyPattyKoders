@@ -1800,6 +1800,16 @@ namespace Picability.Controllers
                 });
             }
 
+
+            // PICABILITY_CONTENT_FILTER_V1
+            if (Picability.Services.ContentModerationService.ContainsProhibitedContent(text))
+            {
+                return BadRequest(new
+                {
+                    message = "Your comment contains prohibited language. Please revise it and try again."
+                });
+            }
+
             if (text.Length > 500)
             {
                 return BadRequest(new
